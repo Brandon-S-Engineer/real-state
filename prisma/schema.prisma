@@ -80,3 +80,115 @@ model Plantilla {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ── Real estate ────────────────────────────────────────────────────────────────
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  SUSPENDED
+  OVERPRICED
+}
+
+enum PriceChangeType {
+  INITIAL
+  INCREASE
+  DECREASE
+}
+
+enum ScrapeRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Zone {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  searchUrl           String
+  locationKeywords    Json     @default("[]")
+  desarrolloKeywords  Json     @default("[]")
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  scrapeRuns ScrapeRun[]
+}
+
+model ScrapeRun {
+  id                String          @id @default(cuid())
+  zoneId            String?
+  zoneName          String          // copia para mostrar si la zona se borra
+  status            ScrapeRunStatus @default(RUNNING)
+  startedAt         DateTime        @default(now())
+  finishedAt        DateTime?
+  listingsNew       Int             @default(0)
+  listingsUpdated   Int             @default(0)
+  listingsUnchanged Int             @default(0)
+  listingsSuspended Int             @default(0)
+  error             String?
+
+  zone Zone? @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  @@index([zoneId])
+  @@index([startedAt])
+}
+
+model Listing {
+  id           String        @id @default(cuid())
+  sourceId     String        @unique // ID de Inmuebles24 extraído de la URL
+  sourceUrl    String
+  title        String
+  zona         String
+  desarrollo   String?
+  price        Float
+  currency     String        @default("MXN")
+  m2Constructed Float?
+  m2Total      Float?
+  bedrooms     Int?
+  bathrooms    Float?
+  parkingSpaces Int?
+  floor        Int?
+  amenities    Json          @default("[]")
+  images       Json          @default("[]")
+  pricePerM2         Float?
+  zoneAvgPricePerM2  Float?
+  dealScore          Float?
+  status       ListingStatus @default(ACTIVE)
+  notes        String?
+  firstSeenAt  DateTime      @default(now())
+  lastSeenAt   DateTime      @default(now())
+  lastCheckedAt DateTime     @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  priceHistory PriceHistory[]
+
+  @@index([zona])
+  @@index([status])
+  @@index([dealScore])
+}
+
+model PriceHistory {
+  id         String          @id @default(cuid())
+  listingId  String
+  price      Float
+  changeType PriceChangeType
+  recordedAt DateTime        @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+}
+
+model SavedSearch {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  label     String?
+  filters   Json      @default("{}")
+  listingId String?   // Si apunta a un listing específico
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([slug])
+}

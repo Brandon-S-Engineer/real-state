@@ -163,6 +163,7 @@ model Listing {
   updatedAt    DateTime      @updatedAt
 
   priceHistory PriceHistory[]
+  clienteContactos ClienteContacto[]
 
   @@index([zona])
   @@index([status])
@@ -191,4 +192,110 @@ model SavedSearch {
   createdAt DateTime  @default(now())
 
   @@index([slug])
+}
+// ── CRM ────────────────────────────────────────────────────────────────────────
+
+enum ClienteEtapa {
+  A   // Cierre < 90 días — cadencia semanal
+  B   // 90-180 días — cadencia quincenal
+  C   // Largo plazo / referidos / SOI — cadencia mensual
+  D   // No calificado / muerto — trimestral o purga
+}
+
+enum ClienteType {
+  COMPRADOR
+  VENDEDOR
+  AMBOS
+  PASADO
+}
+
+enum ClienteFuente {
+  REFERIDO
+  FACEBOOK
+  INMUEBLES24
+  LLAMADA
+  EVENTO
+  SOI
+  OTRO
+}
+
+enum ContactoTipo {
+  LLAMADA
+  WHATSAPP
+  EMAIL
+  VISITA
+  EVENTO
+  NOTA
+  OTRO
+}
+
+enum ContactoEstado {
+  PLANEADO
+  REALIZADO
+  OMITIDO
+}
+
+model Cliente {
+  id                 String        @id @default(cuid())
+  nombre             String
+  telefono           String?       // null cuando se captura desde FB y no tenemos número aún
+  telefonoVerificado Boolean       @default(false)
+  email              String?
+  emailVerificado    Boolean       @default(false)
+  type               ClienteType   @default(COMPRADOR)
+  etapa              ClienteEtapa  @default(C)
+  fuente             ClienteFuente @default(OTRO)
+  motivacion         String?
+  timeline           String?       // texto libre: "3-6 meses", "antes de junio"
+  presupuestoMin     Float?
+  presupuestoMax     Float?
+  referredById       String?
+  referredByName     String?       // si no está en el CRM
+  tags               Json          @default("[]")
+  spouseName         String?
+  spousePhone        String?
+  birthday           DateTime?
+  notasPerma         String?
+  ultimoContactoAt   DateTime?
+  proximoContactoAt  DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  referredBy Cliente?  @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals  Cliente[] @relation("Referrals")
+  contactos  ClienteContacto[]
+
+  @@index([etapa])
+  @@index([type])
+  @@index([proximoContactoAt])
+}
+
+model ClienteContacto {
+  id              String         @id @default(cuid())
+  clienteId       String
+  tipo            ContactoTipo
+  estado          ContactoEstado @default(PLANEADO)
+  fechaProgramada DateTime
+  realizadoAt     DateTime?
+  resumen         String?
+  listingId       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  cliente Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  listing Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  @@index([clienteId])
+  @@index([estado, fechaProgramada])
+}
+
+// ── API Keys (para la extensión de Chrome y futuras integraciones) ────────────
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String    // "Mi extensión Chrome", "Zapier", etc.
+  keyHash    String    @unique // sha256 del key — nunca guardamos el texto plano
+  prefix     String    // primeros 8 chars del key para mostrar en UI ("rsk_abcd...")
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
 }

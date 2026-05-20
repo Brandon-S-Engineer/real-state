@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, ExternalLink, TrendingDown, TrendingUp, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PriceHistoryChart from '@/components/dashboard/price-history-chart'
+import GenerarAnuncioButton from '@/components/dashboard/generar-anuncio-button'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -103,15 +104,31 @@ export default async function PropiedadDetailPage({ params }: Params) {
           {listing.desarrollo && <span className='text-sm text-muted-foreground'>· {listing.desarrollo}</span>}
         </div>
 
-        <a
-          href={listing.sourceUrl}
-          target='_blank'
-          rel='noopener noreferrer'
-          className='inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-md text-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity'
-        >
-          <ExternalLink className='h-3.5 w-3.5' />
-          Ver en Inmuebles24
-        </a>
+        <div className='flex flex-wrap gap-2 mt-2'>
+          <a
+            href={listing.sourceUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity'
+          >
+            <ExternalLink className='h-3.5 w-3.5' />
+            Ver en Inmuebles24
+          </a>
+          <GenerarAnuncioButton
+            propiedad={{
+              id: listing.id,
+              title: listing.title,
+              zona: listing.zona,
+              desarrollo: listing.desarrollo,
+              price: listing.price,
+              m2Constructed: listing.m2Constructed,
+              bedrooms: listing.bedrooms,
+              bathrooms: listing.bathrooms,
+              parkingSpaces: listing.parkingSpaces,
+              amenities: Array.isArray(listing.amenities) ? (listing.amenities as string[]) : [],
+            }}
+          />
+        </div>
       </div>
 
       {/* Métricas principales */}

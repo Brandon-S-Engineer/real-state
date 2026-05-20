@@ -2,16 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Settings, Car, LogOut, Megaphone, BookOpen, Building2, MapPin } from 'lucide-react'
+import { Settings, Car, LogOut, Megaphone, BookOpen, Building2, MapPin, Users, Key } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 
 const NAV = [
-  { href: '/dashboard/inventario', label: 'Inventario', icon: Car },
+  { href: '/dashboard/propiedades', label: 'Propiedades', icon: Building2 },
+  { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
+  { href: '/dashboard/zonas', label: 'Zonas', icon: MapPin },
   { href: '/dashboard/anunciador', label: 'Anunciador', icon: Megaphone },
   { href: '/dashboard/plantillas', label: 'Plantillas', icon: BookOpen },
-  { href: '/dashboard/propiedades', label: 'Propiedades', icon: Building2 },
-  { href: '/dashboard/zonas', label: 'Zonas', icon: MapPin },
+  { href: '/dashboard/api-keys', label: 'API Keys', icon: Key },
   { href: '/dashboard/profile', label: 'Perfil', icon: Settings },
 ]
 

@@ -14,12 +14,14 @@ export default async function PropiedadesPage() {
       zona: true, desarrollo: true, price: true,
       m2Constructed: true, bedrooms: true, bathrooms: true, parkingSpaces: true,
       pricePerM2: true, zoneAvgPricePerM2: true, dealScore: true,
-      status: true, notes: true, firstSeenAt: true, lastSeenAt: true,
+      status: true, notes: true, amenities: true,
+      firstSeenAt: true, lastSeenAt: true,
     },
   })
 
   const listings: Listing[] = rows.map((r) => ({
     ...r,
+    amenities: Array.isArray(r.amenities) ? (r.amenities as string[]) : [],
     firstSeenAt: r.firstSeenAt.toISOString(),
     lastSeenAt:  r.lastSeenAt.toISOString(),
   }))

@@ -1,5 +1,5 @@
-import AnunciadorClient from '@/components/dashboard/anunciador-client'
+import PropiedadAnunciadorClient from '@/components/dashboard/propiedad-anunciador-client'
 
 export default function AnunciadorPage() {
-  return <AnunciadorClient />
+  return <PropiedadAnunciadorClient />
 }

@@ -9,9 +9,10 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { ExternalLink, RefreshCw, TrendingDown, TrendingUp, Minus, Play, Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { ExternalLink, RefreshCw, TrendingDown, TrendingUp, Minus, Play, Loader2, CheckCircle2, XCircle, Megaphone } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { usePropiedadAnunciador } from '@/lib/propiedad-anunciador-store'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ export type Listing = {
   dealScore: number | null
   status: 'ACTIVE' | 'SOLD' | 'SUSPENDED' | 'OVERPRICED'
   notes: string | null
+  amenities: string[]
   firstSeenAt: string
   lastSeenAt: string
 }
@@ -275,6 +277,7 @@ function ScrapeStatusBanner({ runningRun, lastFinishedRun }: {
 
 export default function PropiedadesTable({ listings: initial }: { listings: Listing[] }) {
   const router = useRouter()
+  const setPropiedad = usePropiedadAnunciador((s) => s.setPropiedad)
   const [listings, setListings] = useState(initial)
   const [sorting, setSorting] = useState<SortingState>([{ id: 'dealScore', desc: true }])
   const [columnFilters] = useState<ColumnFiltersState>([])
@@ -452,19 +455,41 @@ export default function PropiedadesTable({ listings: initial }: { listings: List
       ),
     },
     {
-      id: 'open',
+      id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <a
-          href={row.original.sourceUrl}
-          target='_blank'
-          rel='noopener noreferrer'
-          onClick={(e) => e.stopPropagation()}
-          className='p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-foreground transition-colors'
-          title='Ver en Inmuebles24'
-        >
-          <ExternalLink className='h-3.5 w-3.5' />
-        </a>
+        <div className='flex items-center gap-0.5' onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => {
+              setPropiedad({
+                id: row.original.id,
+                title: row.original.title,
+                zona: row.original.zona,
+                desarrollo: row.original.desarrollo,
+                price: row.original.price,
+                m2Constructed: row.original.m2Constructed,
+                bedrooms: row.original.bedrooms,
+                bathrooms: row.original.bathrooms,
+                parkingSpaces: row.original.parkingSpaces,
+                amenities: row.original.amenities,
+              })
+              router.push('/dashboard/anunciador')
+            }}
+            className='p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-foreground transition-colors'
+            title='Generar anuncio'
+          >
+            <Megaphone className='h-3.5 w-3.5' />
+          </button>
+          <a
+            href={row.original.sourceUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-foreground transition-colors'
+            title='Ver en Inmuebles24'
+          >
+            <ExternalLink className='h-3.5 w-3.5' />
+          </a>
+        </div>
       ),
     },
   ]

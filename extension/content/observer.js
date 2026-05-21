@@ -144,6 +144,77 @@
     return true
   }
 
+  // ── Heat indicator (comments, reactions) ─────────────────────────────────
+
+  function parseCount(s) {
+    if (!s) return null
+    const clean = s.replace(/[,\.]/g, '').trim()
+    // Soporte para "1.2k", "3M" en notación de FB
+    const m = clean.match(/^(\d+)([kKmM])?$/)
+    if (!m) return null
+    const n = parseInt(m[1], 10)
+    if (isNaN(n)) return null
+    const mult = m[2]?.toLowerCase()
+    if (mult === 'k') return n * 1000
+    if (mult === 'm') return n * 1000000
+    return n
+  }
+
+  function extractHeatCounts(container) {
+    // El engagement (likes, comentarios) NO vive dentro de [story_message] —
+    // está en una sección hermana del footer. Por eso scanneamos el container
+    // entero, no el texto del body.
+    const fullText = (container.innerText || '').slice(0, 8000)
+
+    let comments = null
+    let reactions = null
+
+    // Comments: "20 comments" / "20 comentarios" / "1.2k comments"
+    const cm = fullText.match(/(\d+(?:[,\.]\d+)*(?:[kKmM])?)\s*(?:comment|comentario)s?\b/i)
+    if (cm) comments = parseCount(cm[1])
+
+    // Reactions: "All reactions: N" / "Todas las reacciones: N"
+    const rm = fullText.match(/(?:All reactions|Todas las reacciones)[:\s]+(\d+(?:[,\.]\d+)*(?:[kKmM])?)/i)
+    if (rm) reactions = parseCount(rm[1])
+
+    // Reactions alt: aria-label de la barra de reacciones
+    if (reactions === null) {
+      const reactionEl = container.querySelector(
+        '[aria-label*="reaction" i], [aria-label*="reacció" i], [aria-label*="Like:" i]'
+      )
+      const lab = reactionEl?.getAttribute('aria-label')
+      const lm = lab?.match(/(\d+(?:[,\.]\d+)*(?:[kKmM])?)/)
+      if (lm) reactions = parseCount(lm[1])
+    }
+
+    // Comments alt: aria-label de la sección de comentarios
+    if (comments === null) {
+      const commentEl = container.querySelector(
+        '[aria-label*="comment" i], [aria-label*="comentari" i]'
+      )
+      const lab = commentEl?.getAttribute('aria-label')
+      const lm = lab?.match(/(\d+(?:[,\.]\d+)*(?:[kKmM])?)/)
+      if (lm) comments = parseCount(lm[1])
+    }
+
+    return { commentsCount: comments, reactionsCount: reactions }
+  }
+
+  // Quita el footer típico de FB ("All reactions: ...", "Like Comment Share")
+  // del texto del post, para no contaminar el contenido.
+  function cleanFbNoise(text) {
+    let out = text
+    // Suffix patterns típicos
+    const suffixes = [
+      /All reactions:.*$/is,
+      /Todas las reacciones:.*$/is,
+      /\b(?:Like|Comment|Share|Me gusta|Comentar|Compartir)(?:\s+(?:Like|Comment|Share|Me gusta|Comentar|Compartir))+\s*$/i,
+      /\d+\s*(?:comments?|comentarios?)\s*(?:Like|Comment|Share|Me gusta|Comentar|Compartir)?.*$/i,
+    ]
+    for (const s of suffixes) out = out.replace(s, '').trim()
+    return out
+  }
+
   function extractPost(container) {
     const msgEl = container.querySelector('[data-ad-rendering-role="story_message"]')
     const rawText = (msgEl?.innerText ?? container.innerText ?? '').trim()
@@ -154,6 +225,7 @@
     // Autor: primer link de perfil dentro del contenedor
     const links = container.querySelectorAll('a[role="link"], a[href]')
     let author = null
+    let authorHref = null
     const candidateLinks = []
     for (const a of links) {
       const href = a.getAttribute('href') || ''
@@ -162,26 +234,84 @@
       if (name.length < 2 || name.length > 80) continue
       if (/^\d+\s*(h|m|s|d|min|hora|día)/i.test(name)) continue  // timestamps "10h"
       candidateLinks.push({ name, href })
-      if (!author) author = name
+      if (!author) {
+        author = name
+        authorHref = href
+      }
     }
 
     if (!author) {
       return { error: 'no-author', linksCount: links.length, candidates: candidateLinks }
     }
 
-    // Permalink
+    // authorId estable extraído del href (sobrevive cambios de nombre)
+    const authorId = extractAuthorIdFromHref(authorHref)
+
+    // Permalink + timestamp original del post
+    // FB pone aria-label="5h"/"30m"/"2d" en el link del permalink, que es
+    // el tiempo relativo desde la creación. Lo convertimos a timestamp absoluto.
     let permalink = null
+    let postedAt = null
     for (const a of links) {
       const href = a.getAttribute('href') || ''
       if (href.includes('/posts/') || href.includes('/permalink/')) {
         try {
           permalink = new URL(href, location.origin).href.split('?')[0]
         } catch {}
+        const label = a.getAttribute('aria-label') || a.textContent?.trim() || ''
+        postedAt = parseRelativeTime(label)
         break
       }
     }
 
-    return { author, text: rawText.slice(0, 2000), permalink }
+    // Heat indicator (comentarios, reacciones) — escanea TODO el container,
+    // no solo story_message, porque el engagement vive en el footer.
+    const { commentsCount, reactionsCount } = extractHeatCounts(container)
+
+    // Texto limpio (sin "Like Comment Share" trailing)
+    const cleanText = cleanFbNoise(rawText).slice(0, 2000)
+
+    return { author, authorId, text: cleanText, permalink, commentsCount, reactionsCount, postedAt }
+  }
+
+  // Helper inline (no podemos importar ES modules en content scripts)
+  function extractAuthorIdFromHref(href) {
+    if (!href || typeof href !== 'string') return null
+    let m = href.match(/\/user\/(\d+)/)
+    if (m) return `fb_${m[1]}`
+    m = href.match(/[?&]id=(\d+)/)
+    if (m) return `fb_${m[1]}`
+    m = href.match(/^\/([^/?#]+)/)
+    if (m && m[1] !== 'groups' && m[1] !== 'profile.php' && m[1] !== 'people') {
+      return `fb_${m[1]}`
+    }
+    m = href.match(/^\/people\/[^/]+\/(\d+)/)
+    if (m) return `fb_${m[1]}`
+    return null
+  }
+
+  /**
+   * Parsea el aria-label de FB ("5h", "30m", "2d", "1w", "45s") a timestamp absoluto.
+   * Devuelve null si no encaja con el formato (e.g. fechas absolutas como "April 27").
+   */
+  function parseRelativeTime(s) {
+    if (!s) return null
+    // Acepta: "5h", "5 h", "30m", "1d", "1w", "1y", "45s"
+    const m = s.match(/^\s*(\d+)\s*([smhdwy])\s*$/i)
+    if (!m) return null
+    const n = parseInt(m[1], 10)
+    if (isNaN(n)) return null
+    const unit = m[2].toLowerCase()
+    const msPerUnit = {
+      s: 1000,
+      m: 60_000,
+      h: 3_600_000,
+      d: 86_400_000,
+      w: 604_800_000,
+      y: 31_536_000_000,
+    }[unit]
+    if (!msPerUnit) return null
+    return Date.now() - n * msPerUnit
   }
 
   function generatePostId(post) {
@@ -324,7 +454,20 @@
     }
 
     scanStats.matched++
-    log('✓ MATCH', { author: post.author, matches, text: post.text.slice(0, 80) })
+    log('✓ MATCH', {
+      author: post.author,
+      matches,
+      text: post.text.slice(0, 80),
+      comments: post.commentsCount,
+      reactions: post.reactionsCount,
+    })
+
+    // Diagnóstico: si no detectó counts, dump del final del container.innerText
+    // para que veamos qué hay que parsear
+    if (post.commentsCount === null && post.reactionsCount === null) {
+      const tail = (el.innerText || '').slice(-300)
+      log('   ⚙ Sin heat counts. Final del container.innerText:', tail)
+    }
 
     highlightMatch(el, matches)
 
@@ -333,12 +476,16 @@
       groupId: currentGroup.id,
       groupName: currentGroup.name,
       author: post.author,
+      authorId: post.authorId,
       text: post.text,
       permalink: post.permalink,
       detectedAt: Date.now(),
+      postedAt: post.postedAt,
       type: 'POST',
       state: 'new',
       matches,
+      commentsCount: post.commentsCount,
+      reactionsCount: post.reactionsCount,
     }
     chrome.runtime.sendMessage({ type: 'NEW_ALERT', alert }).catch((err) => {
       log('Error enviando alerta al background:', err)

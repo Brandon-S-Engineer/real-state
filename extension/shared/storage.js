@@ -49,6 +49,7 @@ export const DEFAULTS = {
   groups: [],
   keywords: { positive: [], negative: [] },
   alerts: [],
+  authors: {},
   settings: {
     crmUrl: 'http://localhost:3000',
     crmApiKey: '',

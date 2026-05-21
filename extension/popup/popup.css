@@ -267,6 +267,37 @@ header h1 {
   margin-bottom: 8px;
 }
 
+/* ── Author meta (cross-group, frequency, agent) ─────────────────────── */
+.alert-author-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.meta-pill {
+  font-size: 11.5px;
+  padding: 2px 9px;
+  border-radius: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.meta-frequent {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.meta-crossgroup {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c4b5fd;
+}
+
+.meta-agent {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
 .alert-text {
   font-size: 14px;
   color: var(--text);
@@ -280,6 +311,51 @@ header h1 {
 }
 
 .alert-text:hover { color: #fff; }
+
+.alert-heat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.heat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.heat-icon {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.heat-value {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.heat-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.02em;
+}
+
+.heat-badge.hot {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.heat-badge.fresh {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}
 
 .alert-matches {
   display: flex;
@@ -339,6 +415,27 @@ header h1 {
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
   border-color: var(--danger);
+}
+
+.action-btn.crm {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.action-btn.crm:hover {
+  background: rgba(96, 165, 250, 0.28);
+  color: #bfdbfe;
+}
+
+.action-btn.agent-on {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.action-btn.agent-on:hover {
+  background: rgba(239, 68, 68, 0.28);
 }
 
 /* ── Message generator (expanded inline) ────────────────────────────────── */

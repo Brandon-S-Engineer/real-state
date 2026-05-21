@@ -4,6 +4,7 @@ import {
   generateId, extractGroupSlug,
 } from '../shared/storage.js'
 import { DEFAULT_TEMPLATES, composeMessage, textToBlock } from '../shared/templates.js'
+import { PRESET_POSITIVES, PRESET_NEGATIVES } from '../shared/presets.js'
 
 function $(id) { return document.getElementById(id) }
 
@@ -149,6 +150,45 @@ async function loadKeywords() {
   $('kw-negative').value = (kw.negative ?? []).join('\n')
 }
 
+function mergeUnique(existing, preset) {
+  // Preserva el orden actual del usuario, agrega al final lo nuevo del preset.
+  const seen = new Set(existing.map((s) => s.toLowerCase()))
+  const additions = preset.filter((s) => !seen.has(s.toLowerCase()))
+  return [...existing, ...additions]
+}
+
+async function loadPositivesPack() {
+  const current = $('kw-positive').value.split('\n').map((s) => s.trim()).filter(Boolean)
+  const merged = mergeUnique(current, PRESET_POSITIVES)
+  const added = merged.length - current.length
+  $('kw-positive').value = merged.join('\n')
+  debounceSaveKeywords()
+  if (added > 0) {
+    flashSaved()
+    const el = $('save-indicator')
+    el.textContent = `✓ ${added} keywords agregadas`
+    setTimeout(() => { el.textContent = 'Cambios guardados automáticamente' }, 2000)
+  } else {
+    alert('Ya tienes todas las keywords del pack.')
+  }
+}
+
+async function loadNegativesPack() {
+  const current = $('kw-negative').value.split('\n').map((s) => s.trim()).filter(Boolean)
+  const merged = mergeUnique(current, PRESET_NEGATIVES)
+  const added = merged.length - current.length
+  $('kw-negative').value = merged.join('\n')
+  debounceSaveKeywords()
+  if (added > 0) {
+    flashSaved()
+    const el = $('save-indicator')
+    el.textContent = `✓ ${added} negativas agregadas`
+    setTimeout(() => { el.textContent = 'Cambios guardados automáticamente' }, 2000)
+  } else {
+    alert('Ya tienes todas las negativas del pack.')
+  }
+}
+
 // ── Templates ────────────────────────────────────────────────────────────────
 
 let tplTimeout = null
@@ -275,6 +315,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Keywords
   $('kw-positive').addEventListener('input', debounceSaveKeywords)
   $('kw-negative').addEventListener('input', debounceSaveKeywords)
+  $('load-positives-pack').addEventListener('click', loadPositivesPack)
+  $('load-negatives-pack').addEventListener('click', loadNegativesPack)
 
   // Templates
   ;['tpl-zona', 'tpl-saludo', 'tpl-referencia', 'tpl-presentacion', 'tpl-oferta', 'tpl-cierre']

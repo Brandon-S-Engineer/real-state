@@ -3,6 +3,7 @@
 // Coordina alertas, dedupe, badge count, y reloads programados.
 
 import { getAlerts, setAlerts, getGroups, setGroups, getSettings } from '../shared/storage.js'
+import { recordAuthorPost, getAuthor, setMarkedAsAgent } from '../shared/authors.js'
 
 const RELOAD_ALARM_PREFIX = 'reload-group-'
 
@@ -21,6 +22,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     updateAlert(msg.alertId, msg.patch).then(() => sendResponse({ ok: true }))
     return true
   }
+  if (msg.type === 'SEND_TO_CRM') {
+    sendToCrm(msg.alertId).then((result) => sendResponse(result))
+    return true
+  }
+  if (msg.type === 'MARK_AGENT') {
+    setMarkedAsAgent(msg.authorId, msg.marked, msg.note).then(() => sendResponse({ ok: true }))
+    return true
+  }
   if (msg.type === 'SYNC_RELOAD_ALARMS') {
     syncReloadAlarms().then(() => sendResponse({ ok: true }))
     return true
@@ -32,14 +41,53 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 async function handleNewAlert(alert) {
   const alerts = await getAlerts()
+  const existingIdx = alerts.findIndex((a) => a.id === alert.id)
 
-  // Dedup por id
-  if (alerts.some((a) => a.id === alert.id)) {
-    return { ok: true, deduped: true }
+  // Registrar al autor en el store (cross-group + stats)
+  if (alert.authorId) {
+    await recordAuthorPost(alert.authorId, alert.author, {
+      alertId: alert.id,
+      groupId: alert.groupId,
+      groupName: alert.groupName,
+      postedAt: alert.postedAt,
+      detectedAt: alert.detectedAt,
+      matchedKeywords: alert.matches ?? [],
+    }).catch(() => {})
   }
 
-  // Prepend + cap a 500
-  const updated = [alert, ...alerts].slice(0, 500)
+  // Dedup: si ya existe, hacer MERGE en vez de descartar.
+  if (existingIdx >= 0) {
+    const existing = alerts[existingIdx]
+    const merged = {
+      ...existing,
+      commentsCount: alert.commentsCount ?? existing.commentsCount,
+      reactionsCount: alert.reactionsCount ?? existing.reactionsCount,
+      matches: alert.matches?.length ? alert.matches : existing.matches,
+      text: (alert.text?.length ?? 0) > (existing.text?.length ?? 0)
+        ? alert.text
+        : existing.text,
+      permalink: existing.permalink ?? alert.permalink,
+      postedAt: existing.postedAt ?? alert.postedAt,
+      // authorId puede haber faltado en la primera detección
+      authorId: existing.authorId ?? alert.authorId,
+    }
+    const updated = [...alerts]
+    updated[existingIdx] = merged
+    await setAlerts(updated)
+    return { ok: true, merged: true }
+  }
+
+  // Auto-filtrar futuras alertas de autores marcados como agentes:
+  // se guardan con state='dismissed' para no contaminar la vista por defecto.
+  let initialState = alert.state ?? 'new'
+  if (alert.authorId) {
+    const author = await getAuthor(alert.authorId)
+    if (author?.markedAsAgent) initialState = 'dismissed'
+  }
+  const alertToStore = { ...alert, state: initialState }
+
+  // Alerta nueva: prepend + cap a 500
+  const updated = [alertToStore, ...alerts].slice(0, 500)
   await setAlerts(updated)
 
   // Incrementar contador del grupo
@@ -51,7 +99,7 @@ async function handleNewAlert(alert) {
   ))
 
   await updateBadge()
-  return { ok: true, deduped: false }
+  return { ok: true, deduped: false, autoDismissed: initialState === 'dismissed' }
 }
 
 async function markViewed(alertIds) {
@@ -78,6 +126,61 @@ async function updateBadge() {
   const unread = alerts.filter((a) => a.state === 'new').length
   await chrome.action.setBadgeText({ text: unread > 0 ? String(unread) : '' })
   await chrome.action.setBadgeBackgroundColor({ color: '#ef4444' })
+}
+
+// ── Envío al CRM ─────────────────────────────────────────────────────────────
+
+async function sendToCrm(alertId) {
+  const settings = await getSettings()
+  if (!settings.crmUrl || !settings.crmApiKey) {
+    return { ok: false, error: 'CRM no configurado. Ve a opciones → Conexión al CRM.' }
+  }
+
+  const alerts = await getAlerts()
+  const alert = alerts.find((a) => a.id === alertId)
+  if (!alert) return { ok: false, error: 'Alerta no encontrada' }
+
+  // Si ya fue enviada, no duplicar — devolver la URL existente
+  if (alert.crmClienteUrl) {
+    return { ok: true, alreadySent: true, url: alert.crmClienteUrl }
+  }
+
+  const url = `${settings.crmUrl.replace(/\/$/, '')}/api/clientes/inbox`
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${settings.crmApiKey}`,
+      },
+      body: JSON.stringify({
+        autor: alert.author,
+        textoPost: alert.text,
+        grupo: alert.groupName,
+        urlPost: alert.permalink ?? undefined,
+        tipo: alert.type ?? 'POST',
+      }),
+    })
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '')
+      if (res.status === 401) return { ok: false, error: 'API key inválida o expirada' }
+      return { ok: false, error: `HTTP ${res.status}: ${errBody.slice(0, 100)}` }
+    }
+
+    const data = await res.json()
+    // Persistir crmClienteId/url y marcar la alerta como saved
+    await updateAlert(alertId, {
+      state: 'saved',
+      crmClienteId: data.id,
+      crmClienteUrl: data.url,
+    })
+
+    return { ok: true, clienteId: data.id, url: data.url }
+  } catch (err) {
+    return { ok: false, error: `No se pudo conectar: ${err.message}` }
+  }
 }
 
 // ── Reload alarms (cadencia programada por grupo) ────────────────────────────

@@ -1,14 +1,18 @@
-import { getAlerts, getGroups, getTemplates } from '../shared/storage.js'
+import { getAlerts, getGroups, getTemplates, getSettings } from '../shared/storage.js'
 import { composeMessage } from '../shared/templates.js'
+import { getAuthors, postsInLastDays, groupsCount, groupsList } from '../shared/authors.js'
 
 // ── Estado local del popup ────────────────────────────────────────────────────
 
 let allAlerts = []
 let allGroups = []
+let allAuthors = {}
 let templates = null
-let currentFilter = 'all'   // all | new | viewed | contacted | dismissed
+let settings = null
+let currentFilter = 'all'   // all | new | viewed | contacted | saved | dismissed
 const expandedAlerts = new Set()
 const editedMessages = new Map()  // alertId → texto editado
+const sendingToCrm = new Set()    // alertIds actualmente enviándose
 
 // ── Utils ────────────────────────────────────────────────────────────────────
 
@@ -115,12 +119,24 @@ function renderAlerts() {
 function renderAlertItem(a) {
   const li = el('li', { className: `alert-item state-${a.state}` })
 
-  // Header
+  // Header — usar postedAt (cuando se publicó realmente) si lo tenemos,
+  // si no, detectedAt (cuando lo capturamos)
+  const timeRef = a.postedAt ?? a.detectedAt
   li.appendChild(el('div', { className: 'alert-header' }, [
     el('span', { className: 'alert-author', text: a.author }),
-    el('span', { className: 'alert-time', text: relativeTime(a.detectedAt) }),
+    el('span', {
+      className: 'alert-time',
+      text: relativeTime(timeRef),
+      title: a.postedAt
+        ? `Publicado hace ${relativeTime(a.postedAt)} · Capturado hace ${relativeTime(a.detectedAt)}`
+        : `Capturado hace ${relativeTime(a.detectedAt)} (sin fecha de publicación)`,
+    }),
   ]))
   li.appendChild(el('div', { className: 'alert-group', text: a.groupName }))
+
+  // Author meta (cross-group, post count, agent flag)
+  const authorMeta = renderAuthorMeta(a)
+  if (authorMeta) li.appendChild(authorMeta)
 
   // Texto del post (click abre Facebook)
   const textEl = el('div', {
@@ -135,6 +151,42 @@ function renderAlertItem(a) {
   })
   li.appendChild(textEl)
 
+  // Heat indicator (comments, reactions, freshness)
+  const heatBits = []
+  if (a.commentsCount != null) heatBits.push({ icon: '💬', value: a.commentsCount, label: 'comentarios' })
+  if (a.reactionsCount != null) heatBits.push({ icon: '❤', value: a.reactionsCount, label: 'reacciones' })
+  if (heatBits.length > 0) {
+    const heat = el('div', { className: 'alert-heat' })
+    for (const bit of heatBits) {
+      heat.appendChild(el('span', {
+        className: 'heat-item',
+        title: bit.label,
+        html: `<span class="heat-icon">${bit.icon}</span> <span class="heat-value">${bit.value}</span>`,
+      }))
+    }
+    // Hot/cold indicator — usa postedAt si lo tenemos (fecha real del post)
+    const total = (a.commentsCount ?? 0) + (a.reactionsCount ?? 0)
+    const ageRef = a.postedAt ?? a.detectedAt
+    const ageHr = (Date.now() - ageRef) / 3_600_000
+
+    if (ageHr < 3 && total >= 5) {
+      // Mucho engagement en poco tiempo → competencia, actúa ya
+      heat.appendChild(el('span', {
+        className: 'heat-badge hot',
+        text: '🔥 caliente',
+        title: `${total} reacciones/comentarios en ${ageHr.toFixed(1)}h — hay competencia, actúa rápido`,
+      }))
+    } else if (ageHr < 1 && total <= 1) {
+      // Recién posteado, sin engagement → eres de los primeros
+      heat.appendChild(el('span', {
+        className: 'heat-badge fresh',
+        text: '✨ fresco',
+        title: `Publicado hace ${ageHr < 0.5 ? '<30min' : '<1h'} sin engagement — entra de los primeros`,
+      }))
+    }
+    li.appendChild(heat)
+  }
+
   // Keywords matched
   if (a.matches?.length) {
     const matchesEl = el('div', { className: 'alert-matches' })
@@ -147,21 +199,22 @@ function renderAlertItem(a) {
   // Action buttons row
   const actions = el('div', { className: 'alert-actions' })
 
-  const msgBtn = el('button', {
+  // Mensaje (genera template)
+  actions.appendChild(el('button', {
     className: 'action-btn',
     text: expandedAlerts.has(a.id) ? '💬 Ocultar' : '💬 Mensaje',
     onClick: (e) => {
       e.stopPropagation()
-      if (expandedAlerts.has(a.id)) {
-        expandedAlerts.delete(a.id)
-      } else {
-        expandedAlerts.add(a.id)
-      }
+      if (expandedAlerts.has(a.id)) expandedAlerts.delete(a.id)
+      else expandedAlerts.add(a.id)
       renderAlerts()
     },
-  })
-  actions.appendChild(msgBtn)
+  }))
 
+  // CRM button (mandar lead al CRM o abrir si ya fue enviado)
+  actions.appendChild(renderCrmButton(a))
+
+  // Contactado / Revertir
   if (a.state !== 'contacted') {
     actions.appendChild(el('button', {
       className: 'action-btn',
@@ -184,6 +237,7 @@ function renderAlertItem(a) {
     }))
   }
 
+  // Descartar
   if (a.state !== 'dismissed') {
     actions.appendChild(el('button', {
       className: 'action-btn danger',
@@ -196,6 +250,30 @@ function renderAlertItem(a) {
     }))
   }
 
+  // Marcar autor como agente (solo si tenemos authorId)
+  if (a.authorId) {
+    const author = allAuthors[a.authorId]
+    const isAgent = !!author?.markedAsAgent
+    actions.appendChild(el('button', {
+      className: 'action-btn ' + (isAgent ? 'agent-on' : ''),
+      text: isAgent ? '🚫 Es agente' : '🚫 Agente',
+      title: isAgent
+        ? `${a.author} está marcado como agente. Click para desmarcar.`
+        : `Marcar a ${a.author} como agente. Sus futuros posts se auto-descartan.`,
+      onClick: async (e) => {
+        e.stopPropagation()
+        if (!isAgent) {
+          if (!confirm(`Marcar a "${a.author}" como agente conocido?\n\nSus posts futuros se auto-descartarán (no contaminarán tu feed). Los actuales se mantienen.`)) return
+        }
+        await chrome.runtime.sendMessage({
+          type: 'MARK_AGENT',
+          authorId: a.authorId,
+          marked: !isAgent,
+        })
+      },
+    }))
+  }
+
   li.appendChild(actions)
 
   // Message panel expandido
@@ -204,6 +282,102 @@ function renderAlertItem(a) {
   }
 
   return li
+}
+
+// ── Author meta row ──────────────────────────────────────────────────────────
+
+function renderAuthorMeta(a) {
+  if (!a.authorId) return null
+  const author = allAuthors[a.authorId]
+  if (!author) return null
+
+  const bits = []
+  const last30 = postsInLastDays(author, 30)
+  const grps = groupsCount(author)
+  const otherGroups = grps - (author.posts.some((p) => p.groupId === a.groupId) ? 1 : 0)
+
+  if (last30 >= 3) {
+    bits.push({
+      cls: 'meta-pill meta-frequent',
+      text: `📊 ${last30} posts en 30d`,
+      title: `Este autor ha posteado ${last30} veces en tus grupos en los últimos 30 días. Considera marcarlo como agente si es repetitivo.`,
+    })
+  }
+  if (otherGroups >= 1) {
+    const otherGroupNames = groupsList(author)
+      .filter((g) => g.id !== a.groupId)
+      .map((g) => g.name)
+      .join(', ')
+    bits.push({
+      cls: 'meta-pill meta-crossgroup',
+      text: `👥 También en ${otherGroups} ${otherGroups === 1 ? 'grupo' : 'grupos'}`,
+      title: `Cross-group: este autor también posteó en: ${otherGroupNames}`,
+    })
+  }
+  if (author.markedAsAgent) {
+    bits.push({
+      cls: 'meta-pill meta-agent',
+      text: '🚫 Agente marcado',
+      title: 'Marcado como agente conocido. Sus futuros posts se auto-descartan.',
+    })
+  }
+
+  if (bits.length === 0) return null
+
+  const row = el('div', { className: 'alert-author-meta' })
+  for (const b of bits) {
+    row.appendChild(el('span', { className: b.cls, text: b.text, title: b.title }))
+  }
+  return row
+}
+
+// ── CRM button ───────────────────────────────────────────────────────────────
+
+function renderCrmButton(a) {
+  const isSent = !!a.crmClienteUrl
+  const isSending = sendingToCrm.has(a.id)
+  const crmConfigured = !!(settings?.crmUrl && settings?.crmApiKey)
+
+  if (isSent) {
+    return el('button', {
+      className: 'action-btn crm',
+      text: '✓ Ver en CRM',
+      title: 'Abrir cliente en el CRM',
+      onClick: (e) => {
+        e.stopPropagation()
+        const fullUrl = `${settings.crmUrl.replace(/\/$/, '')}${a.crmClienteUrl}`
+        chrome.tabs.create({ url: fullUrl })
+      },
+    })
+  }
+
+  return el('button', {
+    className: `action-btn ${crmConfigured ? 'primary' : ''}`,
+    text: isSending ? '... Enviando' : '→ CRM',
+    title: crmConfigured
+      ? 'Enviar como Cliente al CRM (etapa D, fuente Facebook)'
+      : 'CRM no configurado — ve a opciones para configurar URL + API key',
+    onClick: async (e) => {
+      e.stopPropagation()
+      if (!crmConfigured) {
+        chrome.runtime.openOptionsPage()
+        return
+      }
+      if (sendingToCrm.has(a.id)) return
+      sendingToCrm.add(a.id)
+      renderAlerts()
+      const result = await chrome.runtime.sendMessage({ type: 'SEND_TO_CRM', alertId: a.id })
+      sendingToCrm.delete(a.id)
+      if (result?.ok) {
+        // Abrir el cliente recién creado
+        const fullUrl = `${settings.crmUrl.replace(/\/$/, '')}${result.url}`
+        chrome.tabs.create({ url: fullUrl })
+      } else {
+        alert(`Error al enviar al CRM: ${result?.error ?? 'desconocido'}`)
+      }
+      renderAlerts()
+    },
+  })
 }
 
 // ── Message panel (template generator inline) ────────────────────────────────
@@ -260,8 +434,8 @@ function renderMessagePanel(alert) {
 // ── Init y data refresh ──────────────────────────────────────────────────────
 
 async function refresh() {
-  ;[allGroups, allAlerts, templates] = await Promise.all([
-    getGroups(), getAlerts(), getTemplates(),
+  ;[allGroups, allAlerts, templates, settings, allAuthors] = await Promise.all([
+    getGroups(), getAlerts(), getTemplates(), getSettings(), getAuthors(),
   ])
   renderGroups()
   renderAlerts()
@@ -301,6 +475,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Live updates: si llegan alertas nuevas o cambian estados, re-render
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return
-    if (changes.alerts || changes.groups || changes.templates) refresh()
+    if (changes.alerts || changes.groups || changes.templates || changes.authors) refresh()
   })
 })

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Upwork Hunter</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  :root {
+    /* Jerarquía de 3 niveles en vez de un gris plano: el lienzo (--bg) va
+       MÁS oscuro porque no tiene texto encima — solo se ve como margen
+       alrededor del panel. El panel (--c-panel) es donde se lee, anclado en
+       el #3f3f3f que pidió Bran. Los controles (inputs/botones) quedan un
+       paso más claros todavía, para distinguirse del panel. */
+    --bg: #2b2b2b;
+    --c-panel: #3f3f3f;
+    --c-surface: #4d4d4d;
+    --c-surface-2: #5b5b5b;
+    --c-border: #6c6c6c;
+    --c-border-soft: #4a4a4a;
+    --c-text: #cecece;
+    --c-text-2: #9e9e9e;
+    --c-text-3: #7a7a7a;
+    --accent: #5a9bf2;
+    --accent-strong: #3d82e6;
+    --accent-soft: rgba(90,155,242,.15);
+    --accent-ink: rgba(0,0,0,.62);
+    --ok: #3ccb9a;
+    --danger: #e5736f;
+    --num-font: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Monaco, monospace;
+  }
+
+  body {
+    width: 340px;
+    background: var(--bg);
+    color: var(--c-text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    padding: 8px;
+  }
+
+  .uh-panel {
+    background: var(--c-panel);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .uh-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--c-border-soft);
+  }
+  .uh-brand { display: flex; align-items: center; gap: 10px; }
+  .uh-title { font-size: 15px; font-weight: 600; letter-spacing: -.2px; }
+  .uh-subtitle { font-size: 11px; color: var(--c-text-3); margin-top: 1px; }
+
+  .uh-toggle {
+    width: 38px; height: 22px; border-radius: 99px; border: none;
+    background: var(--c-surface-2); cursor: pointer; padding: 0;
+    position: relative; transition: background .18s ease; flex: none;
+  }
+  .uh-toggle.on { background: var(--accent-strong); }
+  .uh-toggle-knob {
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; transition: transform .18s ease;
+  }
+  .uh-toggle.on .uh-toggle-knob { transform: translateX(16px); }
+
+  .uh-status {
+    display: flex; align-items: center; gap: 9px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--c-border-soft);
+  }
+  .uh-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c-text-3); }
+  .uh-dot.live { background: var(--ok); }
+  .uh-dot.error { background: var(--danger); }
+  .uh-status-text { font-size: 12px; color: var(--c-text-2); }
+  .uh-status-text strong { color: var(--c-text); }
+
+  .uh-section { padding: 12px 16px; border-bottom: 1px solid var(--c-border-soft); }
+  .uh-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .uh-field:last-child { margin-bottom: 0; }
+  .uh-field-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--c-text-3); font-weight: 500; }
+  .uh-input, .uh-select {
+    background: var(--c-surface); border: 1px solid var(--c-border);
+    border-radius: 7px; color: var(--c-text); font: inherit; font-size: 12.5px;
+    height: 30px; padding: 0 10px; width: 100%;
+  }
+  .uh-input:focus, .uh-select:focus { outline: none; border-color: var(--accent); }
+  .uh-row { display: flex; gap: 8px; }
+  .uh-row > * { flex: 1; }
+
+  .uh-actions { padding: 12px 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .uh-btn {
+    font: inherit; font-size: 12px; font-weight: 500;
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-text);
+    transition: .15s;
+  }
+  .uh-btn:hover:not(:disabled) { border-color: var(--accent); }
+  .uh-btn:disabled { opacity: .5; cursor: default; }
+  .uh-btn-primary { background: var(--accent-soft); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, transparent); }
+  .uh-btn-link { background: none; border: none; color: var(--accent); text-decoration: none; padding: 7px 0; }
+
+  .uh-stats { padding: 10px 16px; font-size: 11.5px; color: var(--c-text-3); font-family: var(--num-font); }
+  .uh-stats strong { color: var(--c-text-2); font-weight: 600; }
+  .uh-error { padding: 0 16px 10px; font-size: 11.5px; color: var(--danger); }
+
+  .uh-footer { padding: 8px 16px 2px; margin-top: 2px; font-size: 10px; color: var(--c-text-3); text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="uh-panel">
+  <header class="uh-header">
+    <div class="uh-brand">
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="var(--accent)" />
+        <circle cx="16" cy="16" r="6.5" fill="none" stroke="var(--accent-ink)" stroke-width="1.8" />
+        <circle cx="16" cy="16" r="1.7" fill="var(--accent-ink)" />
+        <line x1="16" y1="2.5" x2="16" y2="8" stroke="var(--accent-ink)" stroke-width="1.8" stroke-linecap="round" />
+        <line x1="16" y1="24" x2="16" y2="29.5" stroke="var(--accent-ink)" stroke-width="1.8" stroke-linecap="round" />
+        <line x1="2.5" y1="16" x2="8" y2="16" stroke="var(--accent-ink)" stroke-width="1.8" stroke-linecap="round" />
+        <line x1="24" y1="16" x2="29.5" y2="16" stroke="var(--accent-ink)" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+      <div>
+        <div class="uh-title">Upwork Hunter</div>
+        <div class="uh-subtitle">Captura → CRM</div>
+      </div>
+    </div>
+    <button class="uh-toggle on" id="enabled" role="switch" aria-checked="true">
+      <span class="uh-toggle-knob"></span>
+    </button>
+  </header>
+
+  <div class="uh-status">
+    <span class="uh-dot" id="dot"></span>
+    <span class="uh-status-text" id="status-text">Cargando…</span>
+  </div>
+  <div class="uh-error" id="error-text" style="display:none"></div>
+
+  <div class="uh-section" id="connection-section">
+    <div class="uh-field">
+      <span class="uh-field-label">URL del CRM</span>
+      <input class="uh-input" id="crm-url" placeholder="http://localhost:3000">
+    </div>
+    <div class="uh-field">
+      <span class="uh-field-label">API Key</span>
+      <input class="uh-input" id="crm-key" type="password" placeholder="rsk_...">
+    </div>
+    <button class="uh-btn uh-btn-primary" id="save-connection-btn">Guardar conexión</button>
+  </div>
+
+  <div class="uh-section">
+    <label class="uh-field" style="margin-bottom:0">
+      <span class="uh-field-label">Intervalo de escaneo</span>
+      <select class="uh-select" id="interval">
+        <option value="1">1 min</option>
+        <option value="2">2 min</option>
+        <option value="3">3 min</option>
+        <option value="5" selected>5 min</option>
+        <option value="10">10 min</option>
+        <option value="20">20 min</option>
+        <option value="30">30 min</option>
+        <option value="60">60 min</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="uh-actions">
+    <button class="uh-btn" id="scan-btn">Escanear ahora</button>
+    <a class="uh-btn-link" id="dashboard-link" href="#" target="_blank">Abrir dashboard ↗</a>
+    <a class="uh-btn-link" id="edit-connection-link" href="#" style="display:none; font-size:11px;">Editar conexión</a>
+  </div>
+
+  <div class="uh-stats" id="stats-text"></div>
+</div>
+
+<footer class="uh-footer">v3.2 · solo captura, el resto (incluidas las alertas) vive en el CRM</footer>
+
+<script src="popup.js"></script>
+</body>
+</html>

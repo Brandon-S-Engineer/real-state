@@ -5,9 +5,9 @@ export const runtime = 'nodejs'
 export default auth((req) => {
   const isLoggedIn = !!req.auth
   const isAuthPage = req.nextUrl.pathname.startsWith('/login')
-  const isDashboard = req.nextUrl.pathname.startsWith('/dashboard')
+  const isProtected = req.nextUrl.pathname.startsWith('/dashboard') || req.nextUrl.pathname.startsWith('/gw2')
 
-  if (isDashboard && !isLoggedIn) {
+  if (isProtected && !isLoggedIn) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
@@ -19,5 +19,5 @@ export default auth((req) => {
 })
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/gw2/:path*', '/login'],
 }

@@ -153,6 +153,162 @@ export function LineChart({
   )
 }
 
+// ─── TwoSeriesChart ─────────────────────────────────────────────────────────
+// Dos series en un solo eje (nunca dual-axis) — para pares tipo Sold/Bought o
+// Buy/Sell donde ambas comparten unidad. Colores: slot 1 y 2 de la paleta
+// categórica validada del skill de dataviz (orden fijo, par adyacente ya
+// probado: ΔE CVD 9.1 claro / 8.4 oscuro — por encima del piso de 8).
+
+const SERIES_COLORS = {
+  1: { light: '#2a78d6', dark: '#3987e5' },
+  2: { light: '#eb6834', dark: '#d95926' },
+} as const
+
+interface TwoSeriesChartProps {
+  data: Record<string, unknown>[]
+  xKey: string
+  series: [{ key: string; label: string }, { key: string; label: string }]
+  height?: number
+  yFormatter?: (v: number) => string
+}
+
+export function TwoSeriesChart({ data, xKey, series, height = 220, yFormatter = (v) => String(v) }: TwoSeriesChartProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [w, setW] = useState(600)
+  const [hover, setHover] = useState<number | null>(null)
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    if (!ref.current) return
+    const ro = new ResizeObserver((entries) => { for (const e of entries) setW(e.contentRect.width) })
+    ro.observe(ref.current)
+    return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const el = document.documentElement
+    const update = () => setIsDark(el.classList.contains('dark'))
+    update()
+    const mo = new MutationObserver(update)
+    mo.observe(el, { attributes: true, attributeFilter: ['class'] })
+    return () => mo.disconnect()
+  }, [])
+
+  const mode = isDark ? 'dark' : 'light'
+  const colors = [SERIES_COLORS[1][mode], SERIES_COLORS[2][mode]]
+
+  const pad = { l: 64, r: 16, t: 16, b: 28 }
+  const iw = Math.max(100, w - pad.l - pad.r)
+  const ih = height - pad.t - pad.b
+
+  const allValues = data.flatMap((d) => series.map((s) => d[s.key] as number))
+  const max = Math.max(...allValues, 0)
+  const min = Math.min(...allValues, 0)
+  const range = max - min || 1
+  const yMax = max + range * 0.15
+  const yMin = Math.max(0, min - range * 0.15)
+  const yRange = yMax - yMin || 1
+
+  const xStep = data.length > 1 ? iw / (data.length - 1) : iw
+  const seriesPts = series.map((s) =>
+    data.map((d, i) => ({
+      x: pad.l + i * xStep,
+      y: pad.t + ih - (((d[s.key] as number) - yMin) / yRange) * ih,
+      d,
+    })),
+  )
+
+  const ticks = 4
+  const yTicks: { v: number; y: number }[] = []
+  for (let i = 0; i <= ticks; i++) {
+    const v = yMin + (yRange * i) / ticks
+    yTicks.push({ v, y: pad.t + ih - (i / ticks) * ih })
+  }
+
+  const handleMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    let closest = 0
+    let best = Infinity
+    seriesPts[0].forEach((p, i) => {
+      const dist = Math.abs(p.x - x)
+      if (dist < best) { best = dist; closest = i }
+    })
+    setHover(closest)
+  }
+
+  return (
+    <div ref={ref} className="w-full space-y-2" onMouseLeave={() => setHover(null)}>
+      <div className="flex items-center gap-4 text-xs">
+        {series.map((s, i) => (
+          <div key={s.key} className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: colors[i] }} />
+            <span className="text-muted-foreground">{s.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="relative w-full" style={{ height: height + 52 }}>
+        <svg width={w} height={height} onMouseMove={handleMove} className="overflow-visible absolute bottom-0 left-0">
+          {yTicks.map((t, i) => (
+            <g key={i}>
+              <line x1={pad.l} x2={w - pad.r} y1={t.y} y2={t.y} stroke="currentColor" strokeOpacity="0.08" strokeDasharray="2 3" />
+              <text x={pad.l - 8} y={t.y + 4} textAnchor="end" fontSize="11" className="fill-muted-foreground">
+                {yFormatter(Math.round(t.v))}
+              </text>
+            </g>
+          ))}
+          {(() => {
+            const every = Math.max(1, Math.floor(data.length / Math.min(data.length, Math.floor(w / 95))))
+            let lastShown = -Infinity
+            return seriesPts[0].map((p, i) => {
+              const isLast = i === data.length - 1
+              if (i % every !== 0 && !isLast) return null
+              if (isLast && i - lastShown < every / 2) return null
+              lastShown = i
+              return (
+                <text key={i} x={p.x} y={height - 8} textAnchor="middle" fontSize="11" className="fill-muted-foreground">
+                  {String(p.d[xKey])}
+                </text>
+              )
+            })
+          })()}
+          {seriesPts.map((pts, si) => {
+            const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+            return <path key={si} d={linePath} fill="none" stroke={colors[si]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          })}
+          {hover !== null && (
+            <line x1={seriesPts[0][hover].x} x2={seriesPts[0][hover].x} y1={pad.t} y2={pad.t + ih} stroke="currentColor" strokeOpacity="0.2" strokeDasharray="3 3" />
+          )}
+        </svg>
+        {hover !== null && (() => {
+          const p = seriesPts[0][hover]
+          const left = Math.min(Math.max(p.x - 70, 4), w - 144)
+          // Filas ordenadas por valor descendente: la serie con la línea más
+          // alta aparece arriba en el tooltip, así coincide con lo que se ve en
+          // la gráfica (ej. Sell arriba, Buy abajo — buy siempre es la de abajo).
+          const orderedRows = series
+            .map((s, i) => ({ s, i, val: seriesPts[i][hover].d[s.key] as number }))
+            .sort((a, b) => b.val - a.val)
+          return (
+            <div className="absolute pointer-events-none bg-popover border border-border rounded-md shadow-md px-3 py-2 text-xs min-w-[130px]" style={{ left, top: 0 }}>
+              <div className="text-muted-foreground mb-1">{String(p.d[xKey])}</div>
+              {orderedRows.map(({ s, i, val }) => (
+                <div key={s.key} className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: colors[i] }} />
+                    {s.label}
+                  </span>
+                  <span className="font-mono font-semibold">{yFormatter(val)}</span>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+      </div>
+    </div>
+  )
+}
+
 // ─── BarChart ────────────────────────────────────────────────────────────────
 
 interface BarChartProps {

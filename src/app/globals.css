@@ -96,37 +96,49 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  /* Gris cómodo de lectura de Bran (~#3f3f3f) reservado para las SUPERFICIES
+     donde de verdad lees: card/popover/sidebar. El lienzo de la app va un paso
+     por debajo y los controles (secondary/muted/accent) un paso por encima, para
+     que haya jerarquía/profundidad en vez de un solo gris plano. Matiz cálido
+     casi imperceptible (chroma ~0.004, hue 75) para que no se vea "gris muerto",
+     estilo Apple Notes. Texto moderado (no blanco puro) para no abrir el contraste. */
+
+  --background: oklch(0.312 0.003 75);   /* lienzo de la app — un paso bajo el panel */
+  --foreground: oklch(0.865 0.004 75);
+
+  --card: oklch(0.378 0.004 75);         /* superficie de lectura ≈ #3f3f3f */
+  --card-foreground: oklch(0.875 0.004 75);
+  --popover: oklch(0.402 0.004 75);      /* menús/flotantes — elevados */
+  --popover-foreground: oklch(0.885 0.004 75);
+
+  --primary: oklch(0.865 0.004 75);      /* botón claro con texto oscuro */
+  --primary-foreground: oklch(0.275 0.004 75);
+  --secondary: oklch(0.438 0.004 75);    /* relleno de control — sobre el panel */
+  --secondary-foreground: oklch(0.885 0.004 75);
+  --muted: oklch(0.438 0.004 75);
+  --muted-foreground: oklch(0.725 0.004 75);
+  --accent: oklch(0.470 0.005 75);       /* hover — perceptible sobre el control */
+  --accent-foreground: oklch(0.905 0.004 75);
+
+  --destructive: oklch(0.637 0.182 24.5);
+  --border: oklch(1 0 0 / 12%);          /* líneas suaves pero legibles en tablas */
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.62 0.004 75);
+
+  --chart-1: oklch(0.72 0.13 250);       /* algo de vida en las gráficas */
+  --chart-2: oklch(0.70 0.13 165);
+  --chart-3: oklch(0.78 0.13 80);
+  --chart-4: oklch(0.68 0.15 300);
+  --chart-5: oklch(0.70 0.14 30);
+
+  --sidebar: oklch(0.345 0.004 75);      /* chrome de navegación, bajo las cards */
+  --sidebar-foreground: oklch(0.865 0.004 75);
+  --sidebar-primary: oklch(0.58 0.146 256);   /* item activo — azul refinado */
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-accent: oklch(0.418 0.004 75);    /* hover de nav */
+  --sidebar-accent-foreground: oklch(0.905 0.004 75);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.62 0.004 75);
 }
 
 @layer base {
@@ -137,5 +149,222 @@
     @apply bg-background text-foreground;
     font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
+}
+
+/* ============================================================================
+   PUBLIC PORTFOLIO (site) — Claude Design handoff, high-fidelity restyle.
+   Scoped to .site-theme so the dashboard's shadcn tokens stay untouched.
+   Light tokens on .site-theme; dark tokens on .dark .site-theme (next-themes).
+   ========================================================================== */
+.site-theme {
+  --bg: oklch(0.982 0.004 70);
+  --bg-2: oklch(0.963 0.005 70);
+  --card: oklch(1 0 0);
+  --fg: oklch(0.22 0.01 60);
+  --muted: oklch(0.505 0.01 60);
+  --border: oklch(0.19 0.01 60 / 0.12);
+  --border-strong: oklch(0.19 0.01 60 / 0.2);
+  --accent: oklch(0.605 0.2 39);
+  --accent-fg: oklch(0.995 0 0);
+  --accent-soft: oklch(0.605 0.2 39 / 0.1);
+  --live: oklch(0.58 0.16 155);
+  --code-bg: oklch(0.965 0.005 70);
+  --code-fg: oklch(0.3 0.01 60);
+  --shadow: 0 1px 2px oklch(0.2 0.01 60 / 0.04), 0 8px 30px oklch(0.2 0.01 60 / 0.06);
+
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-onest), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark .site-theme {
+  --bg: oklch(0.168 0.006 60);
+  --bg-2: oklch(0.205 0.006 60);
+  --card: oklch(0.216 0.007 60);
+  --fg: oklch(0.95 0.004 75);
+  --muted: oklch(0.66 0.006 75);
+  --border: oklch(1 0 0 / 0.1);
+  --border-strong: oklch(1 0 0 / 0.18);
+  --accent: oklch(0.72 0.185 44);
+  --accent-fg: oklch(0.18 0.03 44);
+  --accent-soft: oklch(0.72 0.185 44 / 0.14);
+  --live: oklch(0.76 0.15 158);
+  --code-bg: oklch(0.235 0.008 60);
+  --code-fg: oklch(0.82 0.006 75);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 12px 40px oklch(0 0 0 / 0.35);
+}
+
+.site-theme ::selection {
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+
+/* Font-family helpers (families wired via next/font in (site)/layout.tsx) */
+.site-display {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+}
+.site-mono {
+  font-family: var(--font-jetbrains), ui-monospace, 'JetBrains Mono', monospace;
+}
+
+/* Mono uppercase section kicker (accent) */
+.site-kicker {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Surfaces */
+.site-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+/* Buttons — size (height/padding/font-size) applied per-instance in JSX */
+.site-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.site-btn-accent {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.site-btn-accent:hover {
+  filter: brightness(0.93);
+}
+.site-btn-outline {
+  background: var(--card);
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+.site-btn-outline:hover {
+  border-color: var(--accent);
+}
+.site-btn-inverse {
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: 9px;
+}
+.site-btn-inverse:hover {
+  filter: brightness(1.08);
+}
+
+/* Card lift on hover (Claude Design interaction spec) */
+.site-lift {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.site-lift:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+/* Motion */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.site-rise {
+  animation: riseIn 0.7s ease both;
+}
+.site-rise-delay {
+  animation: riseIn 0.7s 0.12s ease both;
+}
+.site-marquee {
+  animation: marquee 26s linear infinite;
+}
+.site-blink {
+  animation: blink 1.05s step-end infinite;
+}
+.site-pulse {
+  animation: pulseDot 1.8s ease-in-out infinite;
+}
+
+/* Soft attention pulse — gentle glow for the "Full screen" CTA on demo embeds */
+@keyframes softAttn {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--accent-soft);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px var(--accent-soft);
+    opacity: 0.88;
+  }
+}
+.site-attn {
+  animation: softAttn 2.4s ease-in-out infinite;
+}
+
+/* Scaled live-preview iframe inside project cards: renders the real demo at a
+   ~1150px virtual viewport, scaled to fit the card. Non-interactive on purpose. */
+.site-preview-frame {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 250%;
+  height: 250%;
+  transform: scale(0.4);
+  transform-origin: top left;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-rise,
+  .site-rise-delay,
+  .site-marquee,
+  .site-blink,
+  .site-pulse,
+  .site-attn {
+    animation: none;
   }
 }

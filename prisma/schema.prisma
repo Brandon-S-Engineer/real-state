@@ -103,14 +103,14 @@ enum ScrapeRunStatus {
 }
 
 model Zone {
-  id                  String   @id @default(cuid())
-  name                String   @unique
-  searchUrl           String
-  locationKeywords    Json     @default("[]")
-  desarrolloKeywords  Json     @default("[]")
-  active              Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  name               String   @unique
+  searchUrl          String
+  locationKeywords   Json     @default("[]")
+  desarrolloKeywords Json     @default("[]")
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   scrapeRuns ScrapeRun[]
 }
@@ -118,7 +118,7 @@ model Zone {
 model ScrapeRun {
   id                String          @id @default(cuid())
   zoneId            String?
-  zoneName          String          // copia para mostrar si la zona se borra
+  zoneName          String // copia para mostrar si la zona se borra
   status            ScrapeRunStatus @default(RUNNING)
   startedAt         DateTime        @default(now())
   finishedAt        DateTime?
@@ -135,34 +135,34 @@ model ScrapeRun {
 }
 
 model Listing {
-  id           String        @id @default(cuid())
-  sourceId     String        @unique // ID de Inmuebles24 extraído de la URL
-  sourceUrl    String
-  title        String
-  zona         String
-  desarrollo   String?
-  price        Float
-  currency     String        @default("MXN")
-  m2Constructed Float?
-  m2Total      Float?
-  bedrooms     Int?
-  bathrooms    Float?
-  parkingSpaces Int?
-  floor        Int?
-  amenities    Json          @default("[]")
-  images       Json          @default("[]")
-  pricePerM2         Float?
-  zoneAvgPricePerM2  Float?
-  dealScore          Float?
-  status       ListingStatus @default(ACTIVE)
-  notes        String?
-  firstSeenAt  DateTime      @default(now())
-  lastSeenAt   DateTime      @default(now())
-  lastCheckedAt DateTime     @default(now())
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  sourceId          String        @unique // ID de Inmuebles24 extraído de la URL
+  sourceUrl         String
+  title             String
+  zona              String
+  desarrollo        String?
+  price             Float
+  currency          String        @default("MXN")
+  m2Constructed     Float?
+  m2Total           Float?
+  bedrooms          Int?
+  bathrooms         Float?
+  parkingSpaces     Int?
+  floor             Int?
+  amenities         Json          @default("[]")
+  images            Json          @default("[]")
+  pricePerM2        Float?
+  zoneAvgPricePerM2 Float?
+  dealScore         Float?
+  status            ListingStatus @default(ACTIVE)
+  notes             String?
+  firstSeenAt       DateTime      @default(now())
+  lastSeenAt        DateTime      @default(now())
+  lastCheckedAt     DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  priceHistory PriceHistory[]
+  priceHistory     PriceHistory[]
   clienteContactos ClienteContacto[]
 
   @@index([zona])
@@ -187,19 +187,20 @@ model SavedSearch {
   slug      String    @unique
   label     String?
   filters   Json      @default("{}")
-  listingId String?   // Si apunta a un listing específico
+  listingId String? // Si apunta a un listing específico
   expiresAt DateTime?
   createdAt DateTime  @default(now())
 
   @@index([slug])
 }
+
 // ── CRM ────────────────────────────────────────────────────────────────────────
 
 enum ClienteEtapa {
-  A   // Cierre < 90 días — cadencia semanal
-  B   // 90-180 días — cadencia quincenal
-  C   // Largo plazo / referidos / SOI — cadencia mensual
-  D   // No calificado / muerto — trimestral o purga
+  A // Cierre < 90 días — cadencia semanal
+  B // 90-180 días — cadencia quincenal
+  C // Largo plazo / referidos / SOI — cadencia mensual
+  D // No calificado / muerto — trimestral o purga
 }
 
 enum ClienteType {
@@ -238,7 +239,7 @@ enum ContactoEstado {
 model Cliente {
   id                 String        @id @default(cuid())
   nombre             String
-  telefono           String?       // null cuando se captura desde FB y no tenemos número aún
+  telefono           String? // null cuando se captura desde FB y no tenemos número aún
   telefonoVerificado Boolean       @default(false)
   email              String?
   emailVerificado    Boolean       @default(false)
@@ -246,11 +247,11 @@ model Cliente {
   etapa              ClienteEtapa  @default(C)
   fuente             ClienteFuente @default(OTRO)
   motivacion         String?
-  timeline           String?       // texto libre: "3-6 meses", "antes de junio"
+  timeline           String? // texto libre: "3-6 meses", "antes de junio"
   presupuestoMin     Float?
   presupuestoMax     Float?
   referredById       String?
-  referredByName     String?       // si no está en el CRM
+  referredByName     String? // si no está en el CRM
   tags               Json          @default("[]")
   spouseName         String?
   spousePhone        String?
@@ -261,8 +262,8 @@ model Cliente {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  referredBy Cliente?  @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals  Cliente[] @relation("Referrals")
+  referredBy Cliente?          @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals  Cliente[]         @relation("Referrals")
   contactos  ClienteContacto[]
 
   @@index([etapa])
@@ -293,9 +294,9 @@ model ClienteContacto {
 
 model ApiKey {
   id         String    @id @default(cuid())
-  name       String    // "Mi extensión Chrome", "Zapier", etc.
+  name       String // "Mi extensión Chrome", "Zapier", etc.
   keyHash    String    @unique // sha256 del key — nunca guardamos el texto plano
-  prefix     String    // primeros 8 chars del key para mostrar en UI ("rsk_abcd...")
+  prefix     String // primeros 8 chars del key para mostrar en UI ("rsk_abcd...")
   lastUsedAt DateTime?
   createdAt  DateTime  @default(now())
 }
@@ -303,33 +304,33 @@ model ApiKey {
 // ── Upwork ───────────────────────────────────────────────────────────────────
 
 model UpworkJob {
-  id           String    @id @default(cuid())
-  uid          String    @unique // uid/href estable generado por content.js
-  url          String
-  title        String
-  description  String?
-  skills       Json      @default("[]")
-  budget       String?
-  proposals    Int?
-  proposalText String?
-  clientSpent  Float?
-  spentText    String?
-  postedText   String?
-  postedHours  Float?
+  id                 String    @id @default(cuid())
+  uid                String    @unique // uid/href estable generado por content.js
+  url                String
+  title              String
+  description        String?
+  skills             Json      @default("[]")
+  budget             String?
+  proposals          Int?
+  proposalText       String?
+  clientSpent        Float?
+  spentText          String?
+  postedText         String?
+  postedHours        Float?
   // Snapshot de postedHours tomado SOLO en la creación (nunca se sobreescribe
   // después) — la antigüedad real se calcula como tiempo transcurrido desde
   // firstSeenAt + esta foto inicial, en vez de confiar en postedHours/postedText
   // (que se congelan si el job se cae de los resultados) o en firstSeenAt solo
   // (que ignora que el job ya podía tener horas/días cuando lo vimos por primera vez).
   initialPostedHours Float?
-  score        Float?
-  reasons      Json      @default("[]")
-  ganado       Boolean   @default(false)
-  ganadoAt     DateTime?
-  firstSeenAt  DateTime  @default(now())
-  lastSeenAt   DateTime  @default(now())
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  score              Float?
+  reasons            Json      @default("[]")
+  ganado             Boolean   @default(false)
+  ganadoAt           DateTime?
+  firstSeenAt        DateTime  @default(now())
+  lastSeenAt         DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([score])
   @@index([ganado])
@@ -436,26 +437,26 @@ model ExtractorOpportunity {
 // filtrando basura sin transacciones) y "Demanda Subiendo" (momentum — demanda
 // que se disparó vs su base). Se recalcula con scripts/gw2/scan-market.ts.
 model Gw2MarketOpportunity {
-  id             String   @id @default(cuid())
-  itemId         Int      @unique
-  bid            Int // mejor buy order actual (cobre)
-  ask            Int // mejor sell listing actual (cobre)
-  spread         Int // ask - bid
-  spreadPct      Float // spread / bid
-  supply         Int // unidades a la venta
-  demand         Int // buy orders abiertas
-  soldDiario     Float // instant-buys/día (promedio 7d, DataWars2)
-  boughtDiario   Float // buy orders llenadas/día
-  flujoDiario    Float // sold + bought — el filtro anti-ruido central
-  diasParaVender Float? // supply / soldDiario
+  id                 String   @id @default(cuid())
+  itemId             Int      @unique
+  bid                Int // mejor buy order actual (cobre)
+  ask                Int // mejor sell listing actual (cobre)
+  spread             Int // ask - bid
+  spreadPct          Float // spread / bid
+  supply             Int // unidades a la venta
+  demand             Int // buy orders abiertas
+  soldDiario         Float // instant-buys/día (promedio 7d, DataWars2)
+  boughtDiario       Float // buy orders llenadas/día
+  flujoDiario        Float // sold + bought — el filtro anti-ruido central
+  diasParaVender     Float? // supply / soldDiario
   // Flipping: comprar al bid, vender al ask, 15% de impuesto en la venta.
-  profitFlip     Int // ask*0.85 - bid, por unidad (cobre)
-  roiFlip        Float // profitFlip / bid
+  profitFlip         Int // ask*0.85 - bid, por unidad (cobre)
+  roiFlip            Float // profitFlip / bid
   oroPotencialDiario Int // profitFlip × min(sold, bought) — oro realizable por día capturando ambas patas
   // Demanda subiendo: demanda reciente (últimas 24h) vs base (días previos).
-  demandChangePct Float // (demanda reciente - base) / base
-  priceChangePct  Float // movimiento del precio de venta en la misma ventana (confirmación)
-  computedAt     DateTime @default(now())
+  demandChangePct    Float // (demanda reciente - base) / base
+  priceChangePct     Float // movimiento del precio de venta en la misma ventana (confirmación)
+  computedAt         DateTime @default(now())
 
   @@index([oroPotencialDiario])
   @@index([demandChangePct])
@@ -475,12 +476,12 @@ model Gw2Favorite {
 // "Refinement") — se resuelven una vez con scripts/gw2/sync-refinement.ts. El
 // scanner combina estas recetas con precios en vivo y filtra mercados muertos.
 model Gw2RefinementRecipe {
-  recipeId    Int    @id // id de receta de la API
-  outputItemId Int   @unique
-  outputCount Int    @default(1)
-  family      String // Metal | Cloth | Leather | Wood
-  ingredients Json // [{ itemId, count }]
-  createdAt   DateTime @default(now())
+  recipeId     Int      @id // id de receta de la API
+  outputItemId Int      @unique
+  outputCount  Int      @default(1)
+  family       String // Metal | Cloth | Leather | Wood
+  ingredients  Json // [{ itemId, count }]
+  createdAt    DateTime @default(now())
 }
 
 // ── Legendarias: market-making sobre las que DE VERDAD se mueven ───────────────
@@ -490,44 +491,44 @@ model Gw2RefinementRecipe {
 // Bought reales del order book), no la demanda fantasma. Y el spread tiene que
 // superar el 15% de impuesto del TP para que el flip deje algo.
 model Gw2LegendaryOpportunity {
-  id            String   @id @default(cuid())
-  itemId        Int      @unique
-  bid           Int
-  ask           Int
-  spread        Int
-  spreadPct     Float
-  supply        Int // listings a la venta (stock)
-  demand        Int // buy orders abiertas (la mayoría fantasma)
-  soldSemana    Int // vendidos ejecutados en 7 días (REAL)
-  boughtSemana  Int // buy orders llenadas en 7 días (REAL)
-  soldDiario    Float
-  boughtDiario  Float
-  profitFlip    Int // ask×0.85 − bid — market-making neto (negativo si el spread no vence al impuesto)
-  roiFlip       Float
-  diasParaVender Float? // supply / soldDiario
+  id                 String   @id @default(cuid())
+  itemId             Int      @unique
+  bid                Int
+  ask                Int
+  spread             Int
+  spreadPct          Float
+  supply             Int // listings a la venta (stock)
+  demand             Int // buy orders abiertas (la mayoría fantasma)
+  soldSemana         Int // vendidos ejecutados en 7 días (REAL)
+  boughtSemana       Int // buy orders llenadas en 7 días (REAL)
+  soldDiario         Float
+  boughtDiario       Float
+  profitFlip         Int // ask×0.85 − bid — market-making neto (negativo si el spread no vence al impuesto)
+  roiFlip            Float
+  diasParaVender     Float? // supply / soldDiario
   oroPotencialDiario Int // profitFlip × min(sold, bought)/día
-  phantomRatio  Float // demand / max(soldSemana,1) — alto = demanda fantasma
-  viable        Boolean // profitFlip>0 y volumen ejecutado real de ambos lados
-  computedAt    DateTime @default(now())
+  phantomRatio       Float // demand / max(soldSemana,1) — alto = demanda fantasma
+  viable             Boolean // profitFlip>0 y volumen ejecutado real de ambos lados
+  computedAt         DateTime @default(now())
 
   @@index([oroPotencialDiario])
 }
 
 model Gw2RefinementOpportunity {
-  id               String   @id @default(cuid())
-  outputItemId     Int      @unique
-  family           String
+  id                 String   @id @default(cuid())
+  outputItemId       Int      @unique
+  family             String
   // Estrategia paciente (la real): comprar mats con buy order al bid, vender el
   // refinado listado al ask (15% de impuesto en la venta).
-  costoBuyOrder    Int // Σ(bid ingrediente × count), por unidad de refinado
-  ingresoListado   Int // ask refinado × 0.85
-  gananciaBuyOrder Int // ingresoListado - costoBuyOrder
-  roiBuyOrder      Float
+  costoBuyOrder      Int // Σ(bid ingrediente × count), por unidad de refinado
+  ingresoListado     Int // ask refinado × 0.85
+  gananciaBuyOrder   Int // ingresoListado - costoBuyOrder
+  roiBuyOrder        Float
   // Instantáneo garantizado: comprar mats ya (ask), tirar refinado al bid.
-  gananciaInstant  Int
-  refinedSoldDiario Float // demanda real del refinado (DataWars2) — filtro anti-muerto
+  gananciaInstant    Int
+  refinedSoldDiario  Float // demanda real del refinado (DataWars2) — filtro anti-muerto
   oroPotencialDiario Int // gananciaBuyOrder × refinedSoldDiario (throughput acotado por demanda)
-  computedAt       DateTime @default(now())
+  computedAt         DateTime @default(now())
 
   @@index([oroPotencialDiario])
 }
@@ -628,4 +629,77 @@ model Gw2OrderBook {
   buys      Json
   sells     Json
   fetchedAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRADING — diario de operaciones
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// El diario es la pieza de más valor de la sección: es lo único que responde
+// "¿tengo ventaja de verdad?". Cada operación se registra en tres bloques
+// deliberados:
+//   1. EL PLAN     — lo decidido ANTES de entrar (entrada, stop, objetivo).
+//   2. LO QUE PASÓ — la ejecución real.
+//   3. CONTEXTO    — para poder cortar las estadísticas después.
+// Guardar el plan aparte de la ejecución es lo que permite medir DISCIPLINA
+// (¿respetaste el stop?), no solamente el resultado.
+//
+// Los precios van como Float y no como entero escalado: cada instrumento tiene
+// distinta cantidad de decimales (5 en EURUSD, 3 en los JPY, 2 en índices) y
+// escalar a mano invita a un bug silencioso de precisión. El R-múltiplo es un
+// cociente, así que es invariante a la escala. Mismo criterio que `Listing.price`.
+//
+// El R-múltiplo y el resultado NO se guardan: se derivan en `stats.ts` a partir
+// de entrada/salida/stop. Un campo derivado guardado es un campo que puede
+// quedar desincronizado al editar la operación.
+
+model TradeSetup {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  /// Checklist de la estrategia, en markdown.
+  reglas    String   @default("")
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  trades    Trade[]
+}
+
+model Trade {
+  id        String @id @default(cuid())
+  symbol    String
+  timeframe String
+
+  /// live = dinero real · replay = práctica barra a barra · backtest = generado por un setup
+  mode      String @default("live")
+  /// long | short
+  direccion String
+
+  // ── 1. El plan, decidido antes de entrar ──
+  plannedEntry  Float
+  plannedStop   Float
+  plannedTarget Float?
+  /// % de la cuenta arriesgado en esta operación.
+  riskPct       Float?
+
+  // ── 2. La ejecución real ──
+  entryAt    DateTime
+  entryPrice Float
+  exitAt     DateTime?
+  exitPrice  Float?
+  sizeUnits  Float?
+  /// Comisiones + swap, en unidades de precio del instrumento.
+  fees       Float     @default(0)
+
+  // ── 3. Contexto para cortar las estadísticas ──
+  /// asia | londres | ny | solape
+  session String?
+  setupId String?
+  setup   TradeSetup? @relation(fields: [setupId], references: [id], onDelete: SetNull)
+  notas   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([symbol, entryAt])
+  @@index([mode, entryAt])
+  @@index([setupId])
 }

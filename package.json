@@ -11,12 +11,14 @@
     "scrape": "tsx --tsconfig scripts/tsconfig.json scripts/scraper/index.ts",
     "sync:gw2-items": "tsx --tsconfig scripts/tsconfig.json scripts/gw2/sync-items.ts",
     "scan:gw2-market": "tsx --tsconfig scripts/tsconfig.json scripts/gw2/scan-market.ts",
+    "trading:fetch": "tsx --tsconfig scripts/tsconfig.json scripts/trading/fetch-bars.ts",
     "sync:gw2-refinement": "tsx --tsconfig scripts/tsconfig.json scripts/gw2/sync-refinement.ts",
     "prewarm:gw2-events": "tsx --tsconfig scripts/tsconfig.json scripts/gw2/prewarm-events.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
     "@base-ui/react": "^1.3.0",
+    "@duckdb/node-api": "^1.5.5-r.3",
     "@hookform/resolvers": "^5.2.2",
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.7.0",
@@ -26,6 +28,7 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dukascopy-node": "^1.50.0",
     "googleapis": "^171.4.0",
     "lucide-react": "^1.7.0",
     "nanoid": "^5.1.11",

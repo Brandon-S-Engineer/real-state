@@ -232,3 +232,27 @@ export async function GET(req: Request) {
     meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
   })
 }
+
+// ── Purga ────────────────────────────────────────────────────────────────────
+// Vacía la tabla para poder calibrar una búsqueda desde cero: se limpia, se
+// deja correr SOLO la búsqueda nueva, y lo que aparezca es señal limpia de qué
+// tan buena es esa query (sin el ruido de todas las búsquedas anteriores).
+//
+// Los jobs marcados como ganado se conservan siempre — son historial real, no
+// ruido de calibración. Con ?includeGanado=true se borran también.
+
+export async function DELETE(req: Request) {
+  const error = await requireAdmin()
+  if (error) return error
+
+  const { searchParams } = new URL(req.url)
+  const includeGanado = searchParams.get('includeGanado') === 'true'
+
+  const { count } = await prisma.upworkJob.deleteMany({
+    where: includeGanado ? {} : { ganado: false },
+  })
+
+  const kept = includeGanado ? 0 : await prisma.upworkJob.count()
+
+  return NextResponse.json({ ok: true, deleted: count, kept })
+}

@@ -19,7 +19,7 @@ import { getPricesSnapshot } from './prices-cache'
 import { ensureMarketHistoryFresh } from './market-history'
 
 const TP_CUT = 0.15
-const SHORTLIST_SIZE = 3000
+const SHORTLIST_SIZE = 2000 // acotado para no re-llenar Neon (512 MB) y que el refill de historial sea más rápido
 const MIN_FLUJO_DIARIO = 10 // sold+bought/día mínimo para considerar que hay transacciones reales
 const RECENT_HOURS = 24 // ventana "reciente" para la señal de demanda
 const HISTORY_CHUNK = 400

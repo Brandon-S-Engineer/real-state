@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { TwoSeriesChart } from '@/components/dashboard/charts'
 import OrderBook from '@/components/gw2/order-book'
 import FavoriteStar from '@/components/gw2/favorite-star'
+import { WeekBars, ConsistencyDot } from '@/components/gw2/week-bars'
+import { analyzeWeekly } from '@/lib/gw2/weekly-cycle'
 import { formatCopper, formatPercent } from '@/lib/gw2/format'
 
 type Listing = { listings: number; unit_price: number; quantity: number }
@@ -46,6 +48,24 @@ const RANGES = [
 ] as const
 type RangeKey = (typeof RANGES)[number]['key']
 
+// Ventanas del ciclo semanal: cortas para ver si el patrón sigue vivo AHORA
+// (el mercado cambia), largas para ver si es un efecto estructural de años.
+// Con poca data el patrón sale con más ruido — normal, no se oculta, se muestra
+// con menos confianza (ver `weeks` de WeeklyStat).
+const WEEK_RANGES = [
+  { key: '1s', label: '1 sem', days: 7 },
+  { key: '2s', label: '2 sem', days: 14 },
+  { key: '3s', label: '3 sem', days: 21 },
+  { key: '1m', label: '1 mes', days: 30 },
+  { key: '2m', label: '2 meses', days: 60 },
+  { key: '3m', label: '3 meses', days: 90 },
+  { key: '6m', label: '6 meses', days: 180 },
+  { key: '1a', label: '1 año', days: 365 },
+  { key: '2a', label: '2 años', days: 730 },
+  { key: 'todo', label: 'Todo', days: Infinity },
+] as const
+type WeekRangeKey = (typeof WEEK_RANGES)[number]['key']
+
 function Stat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div>
@@ -55,7 +75,12 @@ function Stat({ label, value, strong }: { label: string; value: string; strong?:
   )
 }
 
-export default function ItemDetailClient({ itemId }: { itemId: number }) {
+/**
+ * `embedded` = se está mostrando dentro de otra página (p. ej. Buscar ítem), no
+ * como pantalla propia: se oculta el botón Volver y el padding exterior, porque
+ * el contenedor ya los aporta.
+ */
+export default function ItemDetailClient({ itemId, embedded = false }: { itemId: number; embedded?: boolean }) {
   const router = useRouter()
   const [data, setData] = useState<Detail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,6 +88,7 @@ export default function ItemDetailClient({ itemId }: { itemId: number }) {
   const [daily, setDaily] = useState<DailyRow[] | null>(null)
   const [dailyLoading, setDailyLoading] = useState(true)
   const [range, setRange] = useState<RangeKey>('2a')
+  const [weekRange, setWeekRange] = useState<WeekRangeKey>('3m')
 
   useEffect(() => {
     let active = true
@@ -100,6 +126,13 @@ export default function ItemDetailClient({ itemId }: { itemId: number }) {
       .map((d) => ({ ...d, x: formatDay(d.date) }))
   }, [daily, range])
 
+  const weeklyStat = useMemo(() => {
+    if (!daily) return null
+    const days = WEEK_RANGES.find((r) => r.key === weekRange)!.days
+    const rows = daily.map((d) => ({ date: new Date(d.date), buyPriceAvg: d.buyPriceAvg, sellPriceAvg: d.sellPriceAvg }))
+    return analyzeWeekly(rows, { days })
+  }, [daily, weekRange])
+
   const bid = data?.price?.buys?.unit_price ?? 0
   const ask = data?.price?.sells?.unit_price ?? 0
   const spread = ask - bid
@@ -107,10 +140,12 @@ export default function ItemDetailClient({ itemId }: { itemId: number }) {
   const chartData = data?.history.map((h) => ({ ...h, x: formatHour(h.periodStart) })) ?? []
 
   return (
-    <div className='p-6 space-y-6'>
-      <button onClick={() => router.back()} className='inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground'>
-        <ArrowLeft className='h-3 w-3' /> Volver
-      </button>
+    <div className={embedded ? 'space-y-6' : 'p-6 space-y-6'}>
+      {!embedded && (
+        <button onClick={() => router.back()} className='inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground'>
+          <ArrowLeft className='h-3 w-3' /> Volver
+        </button>
+      )}
 
       {loading ? (
         <div className='flex items-center gap-2 py-12 text-muted-foreground'><Loader2 className='h-5 w-5 animate-spin' /> Cargando order book en vivo...</div>
@@ -201,6 +236,53 @@ export default function ItemDetailClient({ itemId }: { itemId: number }) {
                   <div>
                     <div className='text-xs text-muted-foreground mb-1'>Volumen diario (Sold / Bought)</div>
                     <TwoSeriesChart data={longData} xKey='x' series={[{ key: 'bought', label: 'Bought' }, { key: 'sold', label: 'Sold' }]} yFormatter={(v) => v.toLocaleString('es-MX')} />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Ciclo semanal — por día de la semana, a varias ventanas */}
+          <Card>
+            <CardHeader className='flex flex-row items-start justify-between gap-4 space-y-0'>
+              <div>
+                <CardTitle className='text-sm'>Ciclo semanal — comprá el día de sobreoferta</CardTitle>
+                <CardDescription>El finde los casuales inundan la oferta y hunden el precio; entre semana sube. Cambiá de ventana para ver si el patrón sigue vivo ahora o es solo un promedio de años.</CardDescription>
+              </div>
+              <div className='flex items-center gap-1 shrink-0 flex-wrap justify-end max-w-70'>
+                {WEEK_RANGES.map((r) => (
+                  <button
+                    key={r.key}
+                    onClick={() => setWeekRange(r.key)}
+                    className={`px-2 py-1 rounded-md text-xs transition-colors ${weekRange === r.key ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {dailyLoading ? (
+                <div className='flex items-center gap-2 py-8 text-sm text-muted-foreground'><Loader2 className='h-4 w-4 animate-spin' /> Cargando...</div>
+              ) : !weeklyStat ? (
+                <p className='text-sm text-muted-foreground'>Sin suficiente historial en esta ventana para ver un patrón (probá una ventana más larga).</p>
+              ) : (
+                <div className='max-w-md'>
+                  <div className='text-sm mb-2'>
+                    Comprá <span className='text-emerald-600 dark:text-emerald-400 font-semibold'>{weeklyStat.cheapestLabel}</span>, vendé/procesá <span className='text-amber-600 dark:text-amber-500 font-semibold'>{weeklyStat.richestLabel}</span>
+                  </div>
+                  <WeekBars stat={weeklyStat} />
+                  <div className='mt-2 flex items-center justify-between text-xs'>
+                    <span className='tabular-nums'>
+                      edge <span className='font-semibold text-foreground'>{(weeklyStat.spreadPct * 100).toFixed(2)}%</span>
+                    </span>
+                    {weeklyStat.weeks >= 2 ? (
+                      <span className='inline-flex items-center gap-1.5 text-muted-foreground'>
+                        <ConsistencyDot v={weeklyStat.consistency} />
+                        {(weeklyStat.consistency * 100).toFixed(0)}% de {weeklyStat.weeks} semanas
+                      </span>
+                    ) : (
+                      <span className='text-muted-foreground'>ventana muy corta para medir consistencia</span>
+                    )}
                   </div>
                 </div>
               )}

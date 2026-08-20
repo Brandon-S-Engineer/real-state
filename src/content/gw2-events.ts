@@ -44,40 +44,33 @@ export type Gw2Event = {
   groups: EventItemGroup[]
 }
 
-// Materiales base de Tyria por tier — se usan como "moneda" para comprar
-// Zephyrite Supply Boxes en Four Winds, así que su demanda se dispara al inicio.
-const FOUR_WINDS_CLOTH: EventItem[] = [
-  { id: 19718 }, // Jute Scrap
-  { id: 19739 }, // Wool Scrap
-  { id: 19741 }, // Cotton Scrap
-  { id: 19743 }, // Linen Scrap
-  { id: 19748 }, // Silk Scrap
-  { id: 19745 }, // Gossamer Scrap
+// Materiales que se pagan como "moneda" por las Zephyrite Supply Boxes. Se
+// listan SOLO los de alto valor unitario: un +30% sobre un Copper Ore de 11c es
+// ruido que no mueve la aguja, por más lindo que se vea el porcentaje. Lo que
+// importa es el oro absoluto por unidad × las unidades que podés acumular.
+const FOUR_WINDS_CURRENCY: EventItem[] = [
+  { id: 19721, note: 'Glob of Ectoplasm — el rey del festival: 7 por caja, alto valor unitario y demanda cruzada de crafteo. Acumular por meses y descargar durante el evento.' },
+  { id: 24277, note: 'Pile of Crystalline Dust — ecto procesado (×1.85). Sube junto con el ecto y es el otro gran vehículo de acumulación.' },
+  { id: 44941, note: 'Watchwork Sprocket — mat especial aceptado como pago; de los que más se infla con la demanda del bazar.' },
+  { id: 19701, note: 'Orichalcum Ore — alto valor unitario y demanda cruzada con crafteo ascendido.' },
+  { id: 19745, note: 'Gossamer Scrap — la tela de tier más alto; la única del grupo con valor unitario que justifica acumular.' },
+  { id: 19748, note: 'Silk Scrap — volumen enorme y precio decente; el caballo de batalla de las telas.' },
+  { id: 19725, note: 'Ancient Wood Log — la madera de tier alto.' },
+  { id: 19732, note: 'Hardened Leather Section — el cuero de tier alto; históricamente el más escaso de los cueros.' },
+  { id: 19700, note: 'Mithril Ore — volumen altísimo; sirve más por cantidad que por precio unitario.' },
+  { id: 19722, note: 'Elder Wood Log — mismo caso que el Mithril: se acumula por volumen.' },
 ]
-const FOUR_WINDS_WOOD: EventItem[] = [
-  { id: 19723 }, // Green Wood Log
-  { id: 19726 }, // Soft Wood Log
-  { id: 19727 }, // Seasoned Wood Log
-  { id: 19724 }, // Hard Wood Log
-  { id: 19722 }, // Elder Wood Log
-  { id: 19725 }, // Ancient Wood Log
-]
-const FOUR_WINDS_ORE: EventItem[] = [
-  { id: 19697 }, // Copper Ore
-  { id: 19699 }, // Iron Ore
-  { id: 19703 }, // Silver Ore
-  { id: 19698 }, // Gold Ore
-  { id: 19702 }, // Platinum Ore
-  { id: 19700 }, // Mithril Ore
-  { id: 19701, note: 'Orichalcum Ore — de los más volátiles: alto valor unitario y demanda cruzada con crafteo ascendido.' },
-]
-const FOUR_WINDS_LEATHER: EventItem[] = [
-  { id: 19719 }, // Rawhide Leather Section
-  { id: 19728 }, // Thin Leather Section
-  { id: 19730 }, // Coarse Leather Section
-  { id: 19731 }, // Rugged Leather Section
-  { id: 19729 }, // Thick Leather Section
-  { id: 19732 }, // Hardened Leather Section
+
+// Lo que los GANADORES liquidan: las infusiones que salen de las cajas con
+// probabilidad de lotería. Casi nadie las saca, pero el que la saca la lista de
+// inmediato para realizar — y eso basta para hundir un mercado tan chico.
+// Verificado con datos: caen 20-27% durante el festival y se recuperan después.
+const FOUR_WINDS_INFUSIONS: EventItem[] = [
+  { id: 88732, note: 'Crystal Infusion of Condition Damage — la más consistente del grupo: se hunde fuerte durante el festival y se recuperó TODOS los años medidos.' },
+  { id: 90977, note: 'Mystic Infusion — la de mayor retorno medido; mercado chico, así que entrá con órdenes y paciencia.' },
+  { id: 88771, note: 'Crystal Infusion of Power — stat popular, buena liquidez relativa dentro de lo ilíquido que son las infusiones.' },
+  { id: 88871, note: 'Crystal Infusion of Precision — mismo patrón, algo más irregular año a año.' },
+  { id: 91111, note: 'Mystic Infusion (variante) — segunda opción si la otra no tiene órdenes cerca de tu precio.' },
 ]
 
 export const GW2_EVENTS: Gw2Event[] = [
@@ -197,30 +190,14 @@ export const GW2_EVENTS: Gw2Event[] = [
       'El ángulo de Four Winds es distinto: los materiales base de Tyria (tela, madera, metal, cuero, ectos, polvo cristalino, watchwork sprockets) se usan como "moneda" para comprar Zephyrite Supply Boxes en los vendors del Bazaar Docks. Como todos hacen lo mismo al inicio del festival, la DEMANDA de esos mats sube de golpe y sus precios en el TP se inflan los primeros días, luego se corrigen. Los ectos y el orichalcum son los más volátiles por su alto valor unitario.',
     groups: [
       {
-        label: 'Materiales especiales (los más volátiles)',
-        note: 'Alto valor unitario → mayor movimiento de precio cuando sube la demanda del festival.',
-        items: [
-          { id: 19721, note: 'Glob of Ectoplasm — 7 por caja; de los más caros y con demanda cruzada de crafteo.' },
-          { id: 24277, note: 'Pile of Crystalline Dust — mat de gama alta aceptado en el bazar.' },
-          { id: 44941, note: 'Watchwork Sprocket — mat especial aceptado como pago en el bazar.' },
-        ],
+        label: 'Moneda del bazar — acumular antes, vender DURANTE',
+        note: 'Se pagan a los vendors del Bazaar Docks para conseguir las cajas. Como todos compran cajas a la vez, la demanda explota y el precio sube. Solo los de valor unitario alto: sobre un mat de 11c, un +30% no es negocio.',
+        items: FOUR_WINDS_CURRENCY,
       },
       {
-        label: 'Telas — moneda del bazar',
-        note: 'Se pagan a los vendors del Bazaar Docks para conseguir cajas; la demanda sube al inicio del festival.',
-        items: FOUR_WINDS_CLOTH,
-      },
-      {
-        label: 'Metales — moneda del bazar',
-        items: FOUR_WINDS_ORE,
-      },
-      {
-        label: 'Madera — moneda del bazar',
-        items: FOUR_WINDS_WOOD,
-      },
-      {
-        label: 'Cuero — moneda del bazar',
-        items: FOUR_WINDS_LEATHER,
+        label: 'Infusiones — comprar lo que dumpean los ganadores',
+        note: 'Salen de las cajas con probabilidad de lotería. El que la saca la lista al instante para realizar la ganancia, y en un mercado de 10-20 unidades listadas eso basta para hundir el precio. Se compran durante el evento y se aguantan meses.',
+        items: FOUR_WINDS_INFUSIONS,
       },
       {
         label: 'Ítems propios del festival',

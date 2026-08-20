@@ -9,7 +9,7 @@ import { Fragment, useState, useMemo, useCallback, useEffect, useRef, type React
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { ExternalLink, RefreshCw, Loader2, ChevronDown, ChevronRight, Bell, Copy, Download } from 'lucide-react'
+import { ExternalLink, RefreshCw, Loader2, ChevronDown, ChevronRight, Bell, Copy, Download, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -422,11 +422,13 @@ const AGE_OPTIONS = [
   { label: '7d',    value: '168' },
 ]
 
-function FiltersBar({ filters, onChange, onRecalcular, recalculating, minScoreAlert, onMinScoreAlertChange }: {
+function FiltersBar({ filters, onChange, onRecalcular, recalculating, onPurgar, purging, minScoreAlert, onMinScoreAlertChange }: {
   filters: Filters
   onChange: (f: Partial<Filters>) => void
   onRecalcular: () => void
   recalculating: boolean
+  onPurgar: () => void
+  purging: boolean
   minScoreAlert: number
   onMinScoreAlertChange: (v: number) => void
 }) {
@@ -495,10 +497,21 @@ function FiltersBar({ filters, onChange, onRecalcular, recalculating, minScoreAl
         </Button>
       )}
 
-      <div className='ml-auto'>
+      <div className='ml-auto flex gap-2'>
         <Button variant='outline' size='sm' onClick={onRecalcular} disabled={recalculating}>
           {recalculating ? <Loader2 className='h-3.5 w-3.5 mr-1.5 animate-spin' /> : <RefreshCw className='h-3.5 w-3.5 mr-1.5' />}
           Recalcular scores
+        </Button>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={onPurgar}
+          disabled={purging}
+          title='Borra todos los jobs capturados (menos los ganados) para calibrar una búsqueda desde cero'
+          className='text-destructive hover:text-destructive'
+        >
+          {purging ? <Loader2 className='h-3.5 w-3.5 mr-1.5 animate-spin' /> : <Trash2 className='h-3.5 w-3.5 mr-1.5' />}
+          Limpiar guardados
         </Button>
       </div>
     </div>
@@ -512,6 +525,7 @@ export default function UpworkJobsTable({ jobs: initial, initialMinScoreAlert }:
   const [sorting, setSorting] = useState<SortingState>([{ id: 'postedHours', desc: false }])
   const [columnFilters] = useState<ColumnFiltersState>([])
   const [recalculating, setRecalculating] = useState(false)
+  const [purging, setPurging] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [minScoreAlert, setMinScoreAlert] = useState(initialMinScoreAlert)
 
@@ -632,6 +646,31 @@ export default function UpworkJobsTable({ jobs: initial, initialMinScoreAlert }:
       toast.error('Error al recalcular')
     } finally {
       setRecalculating(false)
+    }
+  }
+
+  // Vaciar la tabla para calibrar una búsqueda nueva desde cero: se limpia,
+  // se deja correr SOLO la query nueva, y lo que entre es señal limpia de qué
+  // tan buena es esa query. Los ganados se conservan (son historial real).
+  const handlePurgar = async () => {
+    const ganados = jobs.filter((j) => j.ganado).length
+    const aBorrar = jobs.length - ganados
+    const msg = ganados > 0
+      ? `¿Borrar ${aBorrar} jobs capturados? (se conservan los ${ganados} ganados)`
+      : `¿Borrar los ${aBorrar} jobs capturados? Esto no se puede deshacer.`
+    if (!confirm(msg)) return
+
+    setPurging(true)
+    try {
+      const res = await fetch('/api/upwork/jobs', { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      toast.success(`${data.deleted} jobs borrados${data.kept ? ` — ${data.kept} ganados conservados` : ''}`)
+      await reloadJobs()
+    } catch {
+      toast.error('Error al limpiar')
+    } finally {
+      setPurging(false)
     }
   }
 
@@ -774,6 +813,8 @@ export default function UpworkJobsTable({ jobs: initial, initialMinScoreAlert }:
         onChange={(partial) => setFilters((f) => ({ ...f, ...partial }))}
         onRecalcular={handleRecalcular}
         recalculating={recalculating}
+        onPurgar={handlePurgar}
+        purging={purging}
         minScoreAlert={minScoreAlert}
         onMinScoreAlertChange={setMinScoreAlert}
       />

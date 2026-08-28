@@ -104,14 +104,15 @@ export type VariantView = {
   /** Unidades vendidas por día en el mercado (media de 30 días). */
   dustVentaDiaria: number
   ectoVentaDiaria: number
-  /** Fracción del volumen diario del mercado que representa tu meta diaria. */
+  /** Fracción del volumen diario del mercado que se comería una hora tuya. */
   dustCargaDiaria: number
   ectoCargaDiaria: number
-  dailyStacks: number
-  dailyGearUnits: number
-  dailyProfitCraft: number
-  dailyProfitNoCraft: number
-  dailyGearCost: number
+  /** Stacks/hora al ritmo de procesado (~45s/stack, igual para amarillo y verde). */
+  stacksPerHour: number
+  gearUnitsPerHour: number
+  profitPerHourCraft: number
+  profitPerHourNoCraft: number
+  gearCostPerHour: number
 }
 
 export type UnidView = {
@@ -240,7 +241,7 @@ function RutaSalida({ v }: { v: VariantView }) {
           <div className='text-[11px] mt-2 leading-snug'>
             <span className='text-muted-foreground'>Se venden </span>
             <strong className='tabular-nums'>{v.dustVentaDiaria.toLocaleString('es-MX')}</strong>
-            <span className='text-muted-foreground'> por día en todo el mercado. Tu meta diaria sería el </span>
+            <span className='text-muted-foreground'> por día en todo el mercado. Una hora tuya sería el </span>
             <strong className={v.dustCargaDiaria > 0.15 ? 'text-red-500' : 'text-foreground'}>{(v.dustCargaDiaria * 100).toFixed(0)}%</strong>
             <span className='text-muted-foreground'> de ese volumen.</span>
           </div>
@@ -261,7 +262,7 @@ function RutaSalida({ v }: { v: VariantView }) {
           <div className='text-[11px] mt-2 leading-snug'>
             <span className='text-muted-foreground'>Se venden </span>
             <strong className='tabular-nums'>{v.ectoVentaDiaria.toLocaleString('es-MX')}</strong>
-            <span className='text-muted-foreground'> por día. Tu meta diaria sería el </span>
+            <span className='text-muted-foreground'> por día. Una hora tuya sería el </span>
             <strong className={v.ectoCargaDiaria > 0.15 ? 'text-red-500' : 'text-foreground'}>{(v.ectoCargaDiaria * 100).toFixed(1)}%</strong>
             <span className='text-muted-foreground'> — se coloca sin mover el precio.</span>
           </div>
@@ -804,9 +805,9 @@ function VariantSection({ v, stackSize, bestPromo }: { v: VariantView; stackSize
         </table>
       </div>
 
-      {/* Meta diaria — se pinta según el resultado real: con el gear caro puede dar negativo. */}
+      {/* Ganancia por hora — cada stack tarda ~45s en procesarse, sea amarillo o verde, así que el techo real es el tiempo, no una meta de stacks. */}
       {(() => {
-        const ok = v.dailyProfitCraft > 0
+        const ok = v.profitPerHourCraft > 0
         const sign = (n: number) => (n >= 0 ? '+' : '')
         const tone = ok
           ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/20'
@@ -817,22 +818,22 @@ function VariantSection({ v, stackSize, bestPromo }: { v: VariantView; stackSize
         return (
           <div className={`rounded-xl border-2 p-4 ${tone}`}>
             <div className={`text-xs uppercase tracking-wide font-medium ${head}`}>
-              Meta diaria — comprar y {v.dustEnabled ? v.routeLabel : 'vender'} {v.dailyStacks} stacks ({v.dailyGearUnits.toLocaleString('es-MX')} {v.label.split(' ')[0].toLowerCase()})
+              Ganancia por hora — comprar y {v.dustEnabled ? v.routeLabel : 'vender'} ~{v.stacksPerHour} stacks/h ({v.gearUnitsPerHour.toLocaleString('es-MX')} {v.label.split(' ')[0].toLowerCase()})
             </div>
             {/* Mismo orden que el veredicto de arriba: sin craftear primero, después crafteando. */}
             <div className='grid grid-cols-2 gap-4 mt-1.5'>
               <div>
-                <div className={`text-2xl font-bold tabular-nums ${small}`}>{sign(v.dailyProfitNoCraft)}{formatCopper(v.dailyProfitNoCraft)}</div>
+                <div className={`text-2xl font-bold tabular-nums ${small}`}>{sign(v.profitPerHourNoCraft)}{formatCopper(v.profitPerHourNoCraft)}</div>
                 <div className='text-xs text-muted-foreground'>sin craftear ({v.dustEnabled ? v.routeLabel : 'vendiendo ectos'})</div>
               </div>
               <div>
-                <div className={`text-3xl font-bold tabular-nums ${big}`}>{sign(v.dailyProfitCraft)}{formatCopper(v.dailyProfitCraft)}</div>
+                <div className={`text-3xl font-bold tabular-nums ${big}`}>{sign(v.profitPerHourCraft)}{formatCopper(v.profitPerHourCraft)}</div>
                 <div className='text-xs text-muted-foreground'>crafteando lo óptimo</div>
               </div>
             </div>
             <div className='text-[11px] text-muted-foreground mt-2'>
-              Ganancia neta (ya descontado el gear: {formatCopper(v.dailyGearCost)} por los {v.dailyStacks} stacks). Diferencia craft vs no-craft ={' '}
-              <strong>{formatCopper(v.dailyProfitCraft - v.dailyProfitNoCraft)}</strong> extra por hacer el crafteo.
+              Ganancia neta por hora (ya descontado el gear: {formatCopper(v.gearCostPerHour)}). Diferencia craft vs no-craft ={' '}
+              <strong>{formatCopper(v.profitPerHourCraft - v.profitPerHourNoCraft)}</strong> extra por hora por hacer el crafteo.
               {!ok && (
                 <> Hoy da <strong>negativo</strong> porque el gear está caro — mirá el precio objetivo de arriba antes de comprar.</>
               )}

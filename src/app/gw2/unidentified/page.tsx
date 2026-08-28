@@ -50,6 +50,10 @@ export default async function UnidentifiedPage() {
     return { id, name: nameOf(id), icon: iconOf(id), qty, sellUnitNet: Math.round(net(ask)), subtotalNet: sellSubtotal, craft }
   }
 
+  // Abrir + salvagear un stack tarda lo mismo sea amarillo o verde — el techo real
+  // es el tiempo, no una meta de stacks. Todo se muestra por hora en base a esto.
+  const stacksPerHour = 3600 / UNID.secondsPerStack
+
   const computeVariant = (variant: UnidVariant): VariantView => {
     const materialRows = variant.materials.map((m) => mkRow(m.id, m.qtyPerStack))
     const ectos = variant.ectos
@@ -222,15 +226,15 @@ export default async function UnidentifiedPage() {
       dustQty: Math.round(dustQty * 10) / 10,
       dustVentaDiaria,
       ectoVentaDiaria,
-      // Qué fracción del volumen diario del mercado representa la meta diaria.
-      dustCargaDiaria: dustVentaDiaria > 0 ? (dustQty * variant.dailyStacks) / dustVentaDiaria : 0,
-      ectoCargaDiaria: ectoVentaDiaria > 0 ? (ectos * variant.dailyStacks) / ectoVentaDiaria : 0,
-      // ── Meta diaria: comprar y procesar N stacks de esta rareza ──
-      dailyStacks: variant.dailyStacks,
-      dailyGearUnits: variant.dailyStacks * UNID.stackSize,
-      dailyProfitCraft: profitOptimized * variant.dailyStacks,
-      dailyProfitNoCraft: profitChosen * variant.dailyStacks,
-      dailyGearCost: gearCostBuyOrder * variant.dailyStacks,
+      // Qué fracción del volumen diario del mercado se comería UNA HORA tuya.
+      dustCargaDiaria: dustVentaDiaria > 0 ? (dustQty * stacksPerHour) / dustVentaDiaria : 0,
+      ectoCargaDiaria: ectoVentaDiaria > 0 ? (ectos * stacksPerHour) / ectoVentaDiaria : 0,
+      // ── Ganancia por hora: cada stack tarda ~45s en procesarse, sea cual sea la rareza ──
+      stacksPerHour,
+      gearUnitsPerHour: stacksPerHour * UNID.stackSize,
+      profitPerHourCraft: profitOptimized * stacksPerHour,
+      profitPerHourNoCraft: profitChosen * stacksPerHour,
+      gearCostPerHour: gearCostBuyOrder * stacksPerHour,
     }
   }
 

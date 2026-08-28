@@ -23,8 +23,6 @@ export type UnidVariant = {
   ectoNote: string
   /** Valor de la suerte (Essence of Luck) que suelta por stack, en cobre. Los verdes sueltan mucha; los rare no. */
   luckValueCopper: number
-  /** Meta diaria de stacks a procesar de esta rareza. */
-  dailyStacks: number
   materials: UnidMaterial[]
   salvageCosts: SalvageCostLine[]
 }
@@ -36,7 +34,6 @@ const RARE: UnidVariant = {
   ectos: 222.75, // 250 × 0.891 (247 rare + 3 exotic)
   ectoNote: '250 × 0.891 = 222.75 ectos (247 rare + 3 exotic)',
   luckValueCopper: 0, // los rare no sueltan suerte relevante
-  dailyStacks: 30,
   materials: [
     { id: 19700, qtyPerStack: 115.125 }, // Mithril Ore
     { id: 19722, qtyPerStack: 96.15 }, // Elder Wood Log
@@ -64,7 +61,6 @@ const GREEN: UnidVariant = {
   ectos: 7.6, // los verdes casi no dan ectos
   ectoNote: 'los verdes casi no dan ectos (~7.6 por stack)',
   luckValueCopper: 3200, // la suerte que sueltan vale ~32s por stack (duplica la ganancia base)
-  dailyStacks: 150,
   materials: [
     { id: 19700, qtyPerStack: 112.65 }, // Mithril Ore
     { id: 19722, qtyPerStack: 91.175 }, // Elder Wood Log
@@ -92,6 +88,10 @@ export const UNID = {
   stackSize: 250,
   ectoToDust: 1.85, // cada ecto procesado rinde ~1.85 Crystalline Dust
   tpCut: 0.15,
+  // Abrir + salvagear un stack tarda lo mismo sea amarillo o verde — el techo
+  // real no es "cuántos stacks te ponés de meta", es cuánto tiempo tenés. Por
+  // eso todo se muestra por hora (3600/45 = 80 stacks/h) en vez de una meta diaria.
+  secondsPerStack: 45,
   ectoItemId: 19721, // Glob of Ectoplasm
   dustItemId: 24277, // Pile of Crystalline Dust
   // El ecto se vende mucho más rápido que el dust y no necesita el paso extra

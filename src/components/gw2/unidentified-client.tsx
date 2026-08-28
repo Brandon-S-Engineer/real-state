@@ -152,8 +152,8 @@ const GOLD_PRICE = 'text-amber-500 dark:text-amber-400'
 function GoldCaption({ v }: { v: VariantView }) {
   if (!v.goldEntry) return null
   return (
-    <div className='text-[11px] text-amber-600 dark:text-amber-400 mt-1 leading-snug'>
-      🟡 Buen momento — {formatCopper(v.profitChosen)}+ por stack y se está llenando {v.gearVelocidad.toFixed(1)}× más rápido que su promedio de 14 días.
+    <div className='text-[11px] text-amber-600 dark:text-amber-400 mt-1 leading-snug font-medium'>
+      🟡 PELEALO — ya pasó el filtro: {formatCopper(v.profitChosen)}+ y {v.gearVelocidad.toFixed(1)}× más rápido que su promedio (el mínimo es {UNID.goldEntry.velocityMin}×). No esperes un número más lindo, esto ya alcanza.
     </div>
   )
 }

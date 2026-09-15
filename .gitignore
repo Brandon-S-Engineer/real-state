@@ -42,7 +42,3 @@ next-env.d.ts
 
 # claude code local config
 .claude/
-
-# Datos de mercado locales (velas M1 en Parquet + cache de descarga) — pesan GB
-data/trading/
-.dukascopy-cache/

@@ -5,9 +5,7 @@ export const runtime = 'nodejs'
 export default auth((req) => {
   const isLoggedIn = !!req.auth
   const isAuthPage = req.nextUrl.pathname.startsWith('/login')
-  const isProtected =
-    req.nextUrl.pathname.startsWith('/dashboard') ||
-    req.nextUrl.pathname.startsWith('/trading')
+  const isProtected = req.nextUrl.pathname.startsWith('/dashboard')
 
   if (isProtected && !isLoggedIn) {
     return NextResponse.redirect(new URL('/login', req.url))
@@ -22,5 +20,5 @@ export default auth((req) => {
 
 export const config = {
   // Es una allowlist explícita: una sección que no figure acá queda pública.
-  matcher: ['/dashboard/:path*', '/trading/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/login'],
 }

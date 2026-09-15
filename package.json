@@ -9,11 +9,7 @@
     "lint": "eslint",
     "seed:sheets": "tsx scripts/seed-sheets.ts",
     "scrape": "tsx --tsconfig scripts/tsconfig.json scripts/scraper/index.ts",
-    "sync:gw2-items": "tsx --tsconfig scripts/tsconfig.json scripts/gw2/sync-items.ts",
-    "scan:gw2-market": "tsx --tsconfig scripts/tsconfig.json scripts/gw2/scan-market.ts",
-    "trading:fetch": "tsx --tsconfig scripts/tsconfig.json scripts/trading/fetch-bars.ts",
-    "sync:gw2-refinement": "tsx --tsconfig scripts/tsconfig.json scripts/gw2/sync-refinement.ts",
-    "prewarm:gw2-events": "tsx --tsconfig scripts/tsconfig.json scripts/gw2/prewarm-events.ts"
+    "trading:fetch": "tsx --tsconfig scripts/tsconfig.json scripts/trading/fetch-bars.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

@@ -1,5 +1,5 @@
 import TradingNav from '@/components/trading/trading-nav'
-import Gw2ThemeToggle from '@/components/gw2/gw2-theme-toggle'
+import ThemeToggle from '@/components/theme-toggle'
 
 export default function TradingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +10,7 @@ export default function TradingLayout({ children }: { children: React.ReactNode 
             <div className='h-7 w-7 rounded-md bg-foreground text-background flex items-center justify-center shrink-0 text-[13px] font-bold'>T</div>
             <span className='text-sm font-semibold'>Trading</span>
           </div>
-          <Gw2ThemeToggle />
+          <ThemeToggle />
         </div>
       </header>
       <TradingNav />

@@ -1,0 +1,303 @@
+// Extraído de prisma/schema.prisma del CRM (programming_crm) al separar GW2 en
+// su propio proyecto. Estos modelos ya NO están en el schema del CRM.
+//
+// Dependencia externa que quedó del lado del CRM: el enum ScrapeRunStatus
+// (RUNNING/COMPLETED/FAILED), usado por Gw2ItemSyncRun.status más abajo pero
+// definido y compartido con el modelo ScrapeRun del CRM (scraper de
+// propiedades) — hay que declararlo de nuevo acá o reemplazarlo por un enum
+// propio al montar el schema en el proyecto nuevo:
+//
+// enum ScrapeRunStatus {
+//   RUNNING
+//   COMPLETED
+//   FAILED
+// }
+//
+// ── GW2 Trading ──────────────────────────────────────────────────────────────
+// Fase 1: cache de metadata de ítems tradeable. Alimenta a todas las fases
+// siguientes (Extractor, Colector, Refinamiento) — se sincroniza vía
+// scripts/gw2/sync-items.ts, semanal por GitHub Actions.
+
+model Gw2Item {
+  id              Int      @id // ID de ítem de la API oficial de GW2 (no autogenerado)
+  name            String
+  icon            String?
+  rarity          String
+  level           Int      @default(0)
+  type            String
+  subtype         String?
+  vendorValue     Int      @default(0)
+  flags           Json     @default("[]") // incluye SoulBindOnUse/AccountBound — de ahí se deriva "sale unbound" sin seed manual
+  restrictions    Json     @default("[]")
+  details         Json? // objeto "details" crudo de la API (arma/armadura/upgrade component, infusion slots, etc.)
+  lastRefreshedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([name])
+  @@index([type])
+}
+
+model Gw2ItemSyncRun {
+  id            String          @id @default(cuid())
+  status        ScrapeRunStatus @default(RUNNING)
+  startedAt     DateTime        @default(now())
+  finishedAt    DateTime?
+  itemsUpserted Int             @default(0)
+  error         String?
+
+  @@index([startedAt])
+}
+
+// ── Fase 3: Extractor ────────────────────────────────────────────────────────
+// Todo lo comprable en el TP ya está listado por definición (no puede haber un
+// listing de un ítem soulbound) — el universo entero de Gw2Item ya garantiza
+// "sale unbound" sin necesidad de chequear flags. Lo que SÍ requiere seed
+// manual (no lo da la API) es qué upgrade trae cada arma/armadura y cuánto
+// rinde el salvage — se cargan a mano desde /dashboard/gw2/extractor/config.
+
+model ExtractorSourceItem {
+  id            String   @id @default(cuid())
+  sourceItemId  Int // Gw2Item.id — arma/armadura exótica a comprar
+  upgradeItemId Int // Gw2Item.id — sigilo/runa que se sabe que contiene
+  blacklisted   Boolean  @default(false)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([sourceItemId, upgradeItemId])
+  @@index([blacklisted])
+}
+
+model SalvageRate {
+  id            String   @id @default(cuid())
+  rarity        String
+  levelMin      Int      @default(0)
+  levelMax      Int      @default(80)
+  expectedValue Int // valor esperado del salvage, en cobre
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([rarity])
+}
+
+model ExtractorOpportunity {
+  id                 String   @id @default(cuid())
+  sourceItemId       Int
+  upgradeItemId      Int
+  precioCompraActual Int? // cobre — mejor ask actual del arma, null si no hay oferta
+  buyOrderSugerido   Int // cobre — precio máx. sugerido para garantizar el margen mínimo
+  mejorSalidaUpgrade Int // cobre — venta neta del upgrade (ya con la comisión del 15% del TP descontada)
+  salvageUsado       Int // cobre — valor esperado de salvage usado en el cálculo
+  valorTotal         Int // cobre — mejorSalidaUpgrade + salvageUsado
+  gananciaActual     Int? // cobre — valorTotal - precioCompraActual, null si no hay oferta
+  roiActual          Float?
+  soldDiario         Float? // promedio de Sold/día del upgrade (últimos días con datos) — null si no hay historial ingerido
+  liquidezDias       Float? // supply actual del upgrade / soldDiario — null si soldDiario es 0 o desconocido
+  computedAt         DateTime @default(now())
+
+  @@unique([sourceItemId, upgradeItemId])
+  @@index([gananciaActual])
+}
+
+// ── Escáner de mercado: Grandes Spreads + Demanda Subiendo ────────────────────
+// Escanea TODO el mercado tradeable en 2 etapas (precios actuales sobre ~28k
+// ítems → shortlist con Sold/Bought real de DataWars2). Una sola tabla rica
+// alimenta ambas vistas: "Grandes Spreads" (flipping — spread × volumen real,
+// filtrando basura sin transacciones) y "Demanda Subiendo" (momentum — demanda
+// que se disparó vs su base). Se recalcula con scripts/gw2/scan-market.ts.
+model Gw2MarketOpportunity {
+  id                 String   @id @default(cuid())
+  itemId             Int      @unique
+  bid                Int // mejor buy order actual (cobre)
+  ask                Int // mejor sell listing actual (cobre)
+  spread             Int // ask - bid
+  spreadPct          Float // spread / bid
+  supply             Int // unidades a la venta
+  demand             Int // buy orders abiertas
+  soldDiario         Float // instant-buys/día (promedio 7d, DataWars2)
+  boughtDiario       Float // buy orders llenadas/día
+  flujoDiario        Float // sold + bought — el filtro anti-ruido central
+  diasParaVender     Float? // supply / soldDiario
+  // Flipping: comprar al bid, vender al ask, 15% de impuesto en la venta.
+  profitFlip         Int // ask*0.85 - bid, por unidad (cobre)
+  roiFlip            Float // profitFlip / bid
+  oroPotencialDiario Int // profitFlip × min(sold, bought) — oro realizable por día capturando ambas patas
+  // Demanda subiendo: demanda reciente (últimas 24h) vs base (días previos).
+  demandChangePct    Float // (demanda reciente - base) / base
+  priceChangePct     Float // movimiento del precio de venta en la misma ventana (confirmación)
+  computedAt         DateTime @default(now())
+
+  @@index([oroPotencialDiario])
+  @@index([demandChangePct])
+  @@index([spreadPct])
+}
+
+// ── Favoritos: ítems que el operador quiere vigilar (ej. Black Lion Chests) ────
+model Gw2Favorite {
+  id        String   @id @default(cuid())
+  itemId    Int      @unique
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+// ── Refinamiento: convertir material base → refinado ──────────────────────────
+// Las recetas (ratios + ingredientes) las da la API (/v2/recipes, type
+// "Refinement") — se resuelven una vez con scripts/gw2/sync-refinement.ts. El
+// scanner combina estas recetas con precios en vivo y filtra mercados muertos.
+model Gw2RefinementRecipe {
+  recipeId     Int      @id // id de receta de la API
+  outputItemId Int      @unique
+  outputCount  Int      @default(1)
+  family       String // Metal | Cloth | Leather | Wood
+  ingredients  Json // [{ itemId, count }]
+  createdAt    DateTime @default(now())
+}
+
+// ── Legendarias: market-making sobre las que DE VERDAD se mueven ───────────────
+// El brief lo advierte: las legendarias muestran Demanda de miles (buy orders a
+// precios absurdos que nunca se llenan) contra Sold real de ~5/semana — mercado
+// muerto disfrazado de activo. Acá el énfasis es el volumen EJECUTADO (Sold y
+// Bought reales del order book), no la demanda fantasma. Y el spread tiene que
+// superar el 15% de impuesto del TP para que el flip deje algo.
+model Gw2LegendaryOpportunity {
+  id                 String   @id @default(cuid())
+  itemId             Int      @unique
+  bid                Int
+  ask                Int
+  spread             Int
+  spreadPct          Float
+  supply             Int // listings a la venta (stock)
+  demand             Int // buy orders abiertas (la mayoría fantasma)
+  soldSemana         Int // vendidos ejecutados en 7 días (REAL)
+  boughtSemana       Int // buy orders llenadas en 7 días (REAL)
+  soldDiario         Float
+  boughtDiario       Float
+  profitFlip         Int // ask×0.85 − bid — market-making neto (negativo si el spread no vence al impuesto)
+  roiFlip            Float
+  diasParaVender     Float? // supply / soldDiario
+  oroPotencialDiario Int // profitFlip × min(sold, bought)/día
+  phantomRatio       Float // demand / max(soldSemana,1) — alto = demanda fantasma
+  viable             Boolean // profitFlip>0 y volumen ejecutado real de ambos lados
+  computedAt         DateTime @default(now())
+
+  @@index([oroPotencialDiario])
+}
+
+model Gw2RefinementOpportunity {
+  id                 String   @id @default(cuid())
+  outputItemId       Int      @unique
+  family             String
+  // Estrategia paciente (la real): comprar mats con buy order al bid, vender el
+  // refinado listado al ask (15% de impuesto en la venta).
+  costoBuyOrder      Int // Σ(bid ingrediente × count), por unidad de refinado
+  ingresoListado     Int // ask refinado × 0.85
+  gananciaBuyOrder   Int // ingresoListado - costoBuyOrder
+  roiBuyOrder        Float
+  // Instantáneo garantizado: comprar mats ya (ask), tirar refinado al bid.
+  gananciaInstant    Int
+  refinedSoldDiario  Float // demanda real del refinado (DataWars2) — filtro anti-muerto
+  oroPotencialDiario Int // gananciaBuyOrder × refinedSoldDiario (throughput acotado por demanda)
+  computedAt         DateTime @default(now())
+
+  @@index([oroPotencialDiario])
+}
+
+// ── Armaduras: escáner automático de extracción + salvage ─────────────────────
+// El upgrade que trae cada arma/armadura SÍ lo da la API (details.suffix_item_id
+// de /v2/items, ya cacheado en Gw2Item.details) — nada de seed manual. Para
+// cada exótico tradeable con upgrade: comprar barato → extraer runa/sigilo
+// (Endless Extractor, gratis, sale unbound porque el ítem era tradeable) →
+// vender el upgrade → salvage del arma vacía por ectos. Todo automático.
+model Gw2ArmorOpportunity {
+  id               String   @id @default(cuid())
+  itemId           Int      @unique // arma/armadura base
+  suffixItemId     Int // runa/sigilo que trae (de details.suffix_item_id)
+  itemType         String // "Armor" | "Weapon"
+  armorAsk         Int? // precio de compra instantánea (mejor ask), null si sin oferta
+  armorBid         Int? // mejor buy order actual (bid), null si sin demanda
+  runaSellNeto     Int // venta neta del upgrade (ya con 15% del TP descontado)
+  salvageNeto      Int // valor neto del salvage en ectos (ya con 15% descontado)
+  valorTotal       Int // runaSellNeto + salvageNeto
+  gananciaInstant  Int? // valorTotal - armorAsk (comprar ya)
+  gananciaBuyOrder Int? // valorTotal - armorBid (poner buy order al bid — la estrategia real)
+  roiBuyOrder      Float?
+  itemSupply       Int      @default(0) // vendedores actuales del arma/armadura (unidades a la venta) — >0 obligatorio, si no es mercado desierto
+  itemDemand       Int      @default(0) // buy orders abiertas del arma/armadura
+  runaSupply       Int // unidades del upgrade listadas — proxy rápido de liquidez de salida
+  computedAt       DateTime @default(now())
+
+  @@index([gananciaBuyOrder])
+}
+
+// ── Fase 2 (revisada): historial de mercado ────────────────────────────────────
+// La API oficial de GW2 solo da estado actual (confirmado contra la doc real de
+// la wiki) — Sold/Bought histórico viene de DataWars2 (api.datawars2.ie, gratis,
+// sin key, ~350 muestras/día). El campo "source" deja la puerta abierta a que
+// más adelante un colector propio de 30s escriba en esta misma tabla con mayor
+// resolución, sin cambiar el resto del sistema que la consume.
+model Gw2ItemMarketHistory {
+  id              String   @id @default(cuid())
+  itemId          Int
+  periodStart     DateTime // inicio del bucket horario (campo "date" de DataWars2)
+  sold            Int // sell_sold — instant-buys contra listings (comprador con prisa)
+  bought          Int // buy_sold — fills contra buy orders (vendedor con prisa)
+  sellListed      Int
+  buyListed       Int
+  sellDelisted    Int
+  buyDelisted     Int
+  sellQuantityAvg Int
+  buyQuantityAvg  Int
+  sellPriceAvg    Int
+  buyPriceAvg     Int
+  sampleCount     Int // cuántas muestras agregó la fuente en este bucket
+  source          String   @default("datawars2")
+  createdAt       DateTime @default(now())
+
+  @@unique([itemId, periodStart])
+  @@index([itemId, periodStart])
+}
+
+// Historial DIARIO (fuente DataWars2) — cubre años hacia atrás. Separado del
+// horario (Gw2ItemMarketHistory, ventana de 7 días) porque su propósito es el
+// contrario: ver el ciclo largo de un ítem a través de varios festivales. Se
+// llena bajo demanda al abrir el detalle de un ítem y se refresca 1×/día.
+model Gw2ItemDailyHistory {
+  id              String   @id @default(cuid())
+  itemId          Int
+  date            DateTime // día (medianoche UTC, campo "date" de DataWars2 con type=day)
+  sold            Int // sell_sold
+  bought          Int // buy_sold
+  sellQuantityAvg Int // oferta promedio (supply)
+  buyQuantityAvg  Int // demanda promedio
+  sellPriceAvg    Int
+  buyPriceAvg     Int
+  sampleCount     Int
+  fetchedAt       DateTime @default(now())
+
+  @@unique([itemId, date])
+  @@index([itemId, date])
+}
+
+// Snapshot de precios actuales de TODO el TP (fuente: endpoint bulk de DataWars2,
+// 1 request para ~28k ítems). Las páginas leen de aquí en vez de pegarle a la API
+// en vivo por render — así cargan instantáneo. Se refresca en segundo plano con
+// un TTL corto. Es un cache derivado: se puede borrar y reconstruir sin pérdida.
+model Gw2CurrentPrice {
+  itemId    Int      @id
+  buyPrice  Int
+  buyQty    Int
+  sellPrice Int
+  sellQty   Int
+  fetchedAt DateTime @default(now())
+}
+
+// Order book (profundidad) por ítem, cacheado. Fuente: API oficial /commerce/listings.
+// Solo se usa en el detalle de un ítem; read-through con refresh en segundo plano.
+model Gw2OrderBook {
+  itemId    Int      @id
+  buys      Json
+  sells     Json
+  fetchedAt DateTime @default(now())
+}

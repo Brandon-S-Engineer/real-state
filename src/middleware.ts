@@ -7,7 +7,6 @@ export default auth((req) => {
   const isAuthPage = req.nextUrl.pathname.startsWith('/login')
   const isProtected =
     req.nextUrl.pathname.startsWith('/dashboard') ||
-    req.nextUrl.pathname.startsWith('/gw2') ||
     req.nextUrl.pathname.startsWith('/trading')
 
   if (isProtected && !isLoggedIn) {
@@ -23,5 +22,5 @@ export default auth((req) => {
 
 export const config = {
   // Es una allowlist explícita: una sección que no figure acá queda pública.
-  matcher: ['/dashboard/:path*', '/gw2/:path*', '/trading/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/trading/:path*', '/login'],
 }

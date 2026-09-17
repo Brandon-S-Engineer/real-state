@@ -46,6 +46,13 @@ export default async function CaseStudyPage({
       {/* Header */}
       <header className='mt-[26px]'>
         <div className='flex flex-wrap items-center gap-2.5'>
+          {project.tierLevel && (
+            <span
+              className='site-mono rounded-full px-3 py-[5px] text-xs font-semibold'
+              style={{ color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent)' }}>
+              Tier {project.tierLevel} · {project.tierLabel}
+            </span>
+          )}
           <span
             className='site-mono rounded-full px-3 py-[5px] text-xs font-semibold'
             style={{ color: 'var(--accent-fg)', background: 'var(--accent)' }}>

@@ -19,7 +19,7 @@ export default function WorkPage() {
           Every project is a real, running build.
         </h1>
         <p className='mt-[18px] text-[18px]' style={{ lineHeight: 1.55, color: 'var(--muted)' }}>
-          Three interactive demos per category — not screenshots, not mockups. The card previews
+          Interactive demos per category — not screenshots, not mockups. The card previews
           below are the actual products running. Click any one and use it.
         </p>
       </div>

@@ -55,6 +55,13 @@ export default function ProjectCard({ project }: { project: Project }) {
 
       {/* Body */}
       <div className='flex flex-1 flex-col p-6'>
+        {project.tierLevel && (
+          <span
+            className='site-mono mb-2.5 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase'
+            style={{ letterSpacing: '0.06em', color: 'var(--accent-fg)', background: 'var(--accent)' }}>
+            Tier {project.tierLevel} · {project.tierLabel}
+          </span>
+        )}
         <span className='site-mono text-[11px]' style={{ color: 'var(--accent)' }}>
           {project.niche}
         </span>

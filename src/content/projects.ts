@@ -51,10 +51,45 @@ export type Project = {
   demoUrl?: string
   loomUrl?: string
   featured: boolean
+  // Position on a category's complexity ladder (currently only "chatbot" is
+  // being rebuilt this way — cheap/simple at tier 1, advanced/expensive at
+  // tier 4). Undefined for categories/projects not yet on a ladder.
+  tierLevel?: 1 | 2 | 3 | 4
+  tierLabel?: string
 }
 
 export const projects: Project[] = [
-  // ── AI Chatbots & Agents ──────────────────────────────────────────────────
+  // ── AI Chatbots & Agents (complexity ladder, tier 1 → 4) ──────────────────
+  {
+    slug: 'lead-to-crm-automation',
+    title: 'Lead-to-CRM Automation',
+    tagline:
+      'Every lead captured, validated, saved, and answered automatically — and if a step fails, it retries and alerts a human instead of dying silently.',
+    niche: 'Automation · trigger → action (no AI)',
+    category: 'chatbot',
+    stripe: false,
+    clientType: 'A real-estate agency drowning in manual lead handling',
+    problem:
+      'Every lead was copied by hand into the CRM and the team pinged manually about it — slow, error-prone, and leads slipped through the cracks entirely.',
+    scope: [
+      'End-to-end flow: lead received → validated → saved to CRM → team notified → welcome email sent',
+      'Field validation before anything touches the CRM, so garbage submissions never pollute the pipeline',
+      'Automatic retries on every step — a flaky API or a dropped connection resolves itself, invisibly',
+      'Escalates to a human alert if retries run out, so a failure is loud instead of silent',
+      'Runs on a webhook trigger, 24/7 — no polling, no manual entry, no missed leads',
+    ],
+    stack: ['n8n', 'Webhooks', 'Postgres', 'Error handling'],
+    timeToBuild: 'Shipped in 2 days',
+    duration: '2 days',
+    outcome:
+      'Went from manual entry and lost leads to zero-loss, instant, 24/7 lead response.',
+    tags: ['automation', 'n8n', 'lead capture', 'CRM integration', 'webhooks', 'error handling', 'real estate'],
+    demoStatus: 'live',
+    demoUrl: '/demos/lead-to-crm-automation',
+    featured: false,
+    tierLevel: 1,
+    tierLabel: 'Pure automation (no AI)',
+  },
   {
     slug: 'ai-inventory-assistant',
     title: 'AI Inventory Assistant with Real Function-Calling',

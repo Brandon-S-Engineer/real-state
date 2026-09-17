@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getProject } from '@/content/projects'
 import DashboardDemo from '@/components/demos/saas-analytics-dashboard'
+import LeadToCrmAutomationDemo from '@/components/demos/lead-to-crm-automation'
 import InventoryAssistantDemo from '@/components/demos/ai-inventory-assistant'
 import MvpDemo from '@/components/demos/micro-saas-mvp'
 import SalesChatbotDemo from '@/components/demos/ai-sales-chatbot'
@@ -17,6 +18,7 @@ import MembershipDemo from '@/components/demos/membership-portal-mvp'
 // project in src/content/projects.ts flips to demoStatus: 'live'.
 const DEMOS: Record<string, ComponentType> = {
   // AI chatbots & agents
+  'lead-to-crm-automation': LeadToCrmAutomationDemo,
   'ai-inventory-assistant': InventoryAssistantDemo,
   'ai-sales-chatbot': SalesChatbotDemo,
   'ai-booking-agent': BookingAgentDemo,

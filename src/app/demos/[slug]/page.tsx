@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { getProject } from '@/content/projects'
 import DashboardDemo from '@/components/demos/saas-analytics-dashboard'
 import LeadToCrmAutomationDemo from '@/components/demos/lead-to-crm-automation'
+import SmartInboxRouterDemo from '@/components/demos/smart-inbox-router'
 import InventoryAssistantDemo from '@/components/demos/ai-inventory-assistant'
 import MvpDemo from '@/components/demos/micro-saas-mvp'
 import SalesChatbotDemo from '@/components/demos/ai-sales-chatbot'
@@ -19,6 +20,7 @@ import MembershipDemo from '@/components/demos/membership-portal-mvp'
 const DEMOS: Record<string, ComponentType> = {
   // AI chatbots & agents
   'lead-to-crm-automation': LeadToCrmAutomationDemo,
+  'smart-inbox-router': SmartInboxRouterDemo,
   'ai-inventory-assistant': InventoryAssistantDemo,
   'ai-sales-chatbot': SalesChatbotDemo,
   'ai-booking-agent': BookingAgentDemo,

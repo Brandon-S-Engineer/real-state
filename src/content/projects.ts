@@ -91,6 +91,36 @@ export const projects: Project[] = [
     tierLabel: 'Pure automation (no AI)',
   },
   {
+    slug: 'smart-inbox-router',
+    title: 'Smart Inbox Router',
+    tagline:
+      'An LLM reads every incoming message, classifies it into clean structured fields, and routes it — with a rules-based fallback if the model ever misbehaves.',
+    niche: 'Automation + LLM reasoning',
+    category: 'chatbot',
+    stripe: false,
+    clientType: 'A business whose team manually triages a flood of mixed incoming messages',
+    problem:
+      'Someone had to read every incoming message and decide where it went — hours a day, inconsistent between people, and slow to respond to anything urgent.',
+    scope: [
+      'LLM reads every incoming message and returns a clean, structured classification — category, urgency, sentiment, and a one-line summary',
+      'No tools, no actions taken by the model — it only judges, so its blast radius is small and its output is predictable',
+      'Schema-validated output with an automatic retry on a malformed response',
+      'Deterministic keyword-based fallback routes the message anyway if the model still can’t produce valid structure — degrades gracefully instead of breaking',
+      'Routes each message to the right queue automatically — support, sales, billing, or an escalation — based on the classification',
+    ],
+    stack: ['n8n', 'OpenAI', 'Webhooks'],
+    timeToBuild: 'Shipped in 3 days',
+    duration: '3 days',
+    outcome:
+      'Instant, consistent triage — the team only sees what’s theirs, already summarized.',
+    tags: ['automation', 'LLM classification', 'triage', 'n8n', 'OpenAI', 'structured output', 'inbox routing'],
+    demoStatus: 'live',
+    demoUrl: '/demos/smart-inbox-router',
+    featured: false,
+    tierLevel: 2,
+    tierLabel: 'AI-assisted automation (LLM judges)',
+  },
+  {
     slug: 'ai-inventory-assistant',
     title: 'AI Inventory Assistant with Real Function-Calling',
     tagline:

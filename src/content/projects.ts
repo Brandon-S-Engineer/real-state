@@ -121,6 +121,36 @@ export const projects: Project[] = [
     tierLabel: 'AI-assisted automation (LLM judges)',
   },
   {
+    slug: 'hybrid-inventory-agent',
+    title: 'Hybrid Inventory Agent',
+    tagline:
+      'One agent, two tools — semantic search for the fuzzy questions, live SQL for the exact ones, and it picks the right one every time.',
+    niche: 'AI agent + tools (RAG + structured search)',
+    category: 'chatbot',
+    stripe: false,
+    clientType: 'A multi-brand car dealership with both descriptive content and a live structured inventory',
+    problem:
+      'Customers ask both fuzzy questions ("something good for a family") and exact ones ("how many do you have under $30k") — a plain FAQ bot has no live data, and a pure-RAG bot guesses at numbers instead of counting rows.',
+    scope: [
+      'A single agent with two tools it chooses between per question, not a router that just picks a canned reply',
+      'Semantic search (RAG) over model descriptions and trim comparisons for descriptive, meaning-based questions',
+      'A live SQL tool over the real inventory table for exact, filterable, countable questions',
+      'Every answer is grounded and cited — retrieved passages for RAG, actual query rows for SQL, never a guessed number',
+      'Full tool-call trace visible per answer: which tool fired, why, and exactly what it returned',
+    ],
+    stack: ['Next.js', 'FastAPI', 'Pydantic AI', 'pgvector', 'Postgres', 'OpenAI'],
+    timeToBuild: 'Shipped in 5 days',
+    duration: '5 days',
+    outcome:
+      'One assistant that handles both the fuzzy and the exact — real data, cited sources, no hallucinated stock.',
+    tags: ['AI agent', 'RAG', 'SQL', 'tool use', 'hybrid search', 'pgvector', 'FastAPI', 'inventory'],
+    demoStatus: 'live',
+    demoUrl: '/demos/hybrid-inventory-agent',
+    featured: false,
+    tierLevel: 3,
+    tierLabel: 'Single agent with tools (RAG + SQL)',
+  },
+  {
     slug: 'ai-inventory-assistant',
     title: 'AI Inventory Assistant with Real Function-Calling',
     tagline:

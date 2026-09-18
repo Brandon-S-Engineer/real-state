@@ -151,6 +151,36 @@ export const projects: Project[] = [
     tierLabel: 'Single agent with tools (RAG + SQL)',
   },
   {
+    slug: 'deep-research-agent',
+    title: 'Deep Research Agent',
+    tagline:
+      'Ask a research question, get a cited report in minutes — a team of specialized AI researchers working in parallel, not one bot searching alone.',
+    niche: 'Multi-agent orchestration (parallel)',
+    category: 'chatbot',
+    stripe: false,
+    clientType: 'A business that needs a researched report — competitor pricing, market demand, acquisition risk — before every real decision',
+    problem:
+      'A good report meant one person searching a dozen sources, cross-referencing claims, and writing it up by hand — an hour or more per question, and it didn’t scale past whatever one person could get to that week.',
+    scope: [
+      'An orchestrator that reads the request and splits it into focused research sub-tasks',
+      'Several specialized worker agents dispatched at once, each digging into its own angle — running concurrently, not one after another',
+      'A synthesizer that merges every worker’s findings into a single structured report, each claim cited back to the worker that found it',
+      'The concurrency is the point: 3 workers running in parallel finish in the time of the slowest one, not the sum of all three',
+      'Full trace of the whole run — what was dispatched, what each worker found, and when — so the report is auditable, not a black box',
+    ],
+    stack: ['Next.js', 'FastAPI', 'Pydantic AI', 'asyncio', 'OpenAI'],
+    timeToBuild: 'Shipped in 6 days',
+    duration: '6 days',
+    outcome:
+      'A researched, cited report in minutes instead of hours — and it scales to any topic on demand.',
+    tags: ['AI agent', 'multi-agent', 'orchestration', 'parallel', 'research', 'asyncio', 'FastAPI'],
+    demoStatus: 'live',
+    demoUrl: '/demos/deep-research-agent',
+    featured: false,
+    tierLevel: 4,
+    tierLabel: 'Multi-agent system (parallel orchestration)',
+  },
+  {
     slug: 'ai-inventory-assistant',
     title: 'AI Inventory Assistant with Real Function-Calling',
     tagline:

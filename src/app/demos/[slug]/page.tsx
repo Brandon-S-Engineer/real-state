@@ -7,6 +7,7 @@ import DashboardDemo from '@/components/demos/saas-analytics-dashboard'
 import LeadToCrmAutomationDemo from '@/components/demos/lead-to-crm-automation'
 import SmartInboxRouterDemo from '@/components/demos/smart-inbox-router'
 import HybridInventoryAgentDemo from '@/components/demos/hybrid-inventory-agent'
+import DeepResearchAgentDemo from '@/components/demos/deep-research-agent'
 import InventoryAssistantDemo from '@/components/demos/ai-inventory-assistant'
 import MvpDemo from '@/components/demos/micro-saas-mvp'
 import SalesChatbotDemo from '@/components/demos/ai-sales-chatbot'
@@ -23,6 +24,7 @@ const DEMOS: Record<string, ComponentType> = {
   'lead-to-crm-automation': LeadToCrmAutomationDemo,
   'smart-inbox-router': SmartInboxRouterDemo,
   'hybrid-inventory-agent': HybridInventoryAgentDemo,
+  'deep-research-agent': DeepResearchAgentDemo,
   'ai-inventory-assistant': InventoryAssistantDemo,
   'ai-sales-chatbot': SalesChatbotDemo,
   'ai-booking-agent': BookingAgentDemo,

@@ -40,7 +40,7 @@ export const services: Service[] = [
       'Lead capture & handoff',
       'Conversation review panel',
     ],
-    work: 'ai-inventory-assistant',
+    work: 'hybrid-inventory-agent',
   },
   {
     name: 'SaaS Dashboard',

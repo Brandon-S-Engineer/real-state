@@ -298,6 +298,36 @@ export const projects: Project[] = [
     tierLabel: 'One-time payment (no recurring billing)',
   },
   {
+    slug: 'subscription-billing-dunning',
+    title: 'Subscription Billing & Dunning',
+    tagline:
+      'Recurring billing that recovers a failed card automatically — instead of quietly losing the customer.',
+    niche: 'Commerce · recurring subscription (dunning + retries)',
+    category: 'mvp',
+    stripe: true,
+    clientType: 'SaaS founders whose churn was hiding in silently failed card charges, not cancellations',
+    problem:
+      'Every month, a slice of renewal charges failed for reasons that had nothing to do with the customer wanting to leave — an expired card, a bank flagging the charge. The client\'s old setup cut off access on the first failed charge, quietly losing paying customers who never meant to churn.',
+    scope: [
+      'Stripe Billing subscriptions with a real active → past_due → active status state machine',
+      'Automatic retry (dunning) on a failed renewal — the customer keeps access during the grace period',
+      'Webhook-driven status sync, so the app\'s access flag always matches Stripe\'s subscription status',
+      'Customer-visible status (active / past due / retrying) instead of a silent cutoff',
+      'Same pattern extends to any recurring plan: seats, tiers, metered add-ons',
+    ],
+    stack: ['Next.js', 'Stripe Billing', 'Stripe Webhooks', 'Postgres'],
+    timeToBuild: 'Shipped in 3 days',
+    duration: '3 days',
+    outcome:
+      'Failed renewals recover automatically most of the time — the customer never notices, and never gets cut off first.',
+    tags: ['MVP', 'Stripe', 'subscriptions', 'dunning', 'webhooks', 'churn recovery'],
+    demoStatus: 'live',
+    demoUrl: '/demos/subscription-billing-dunning',
+    featured: false,
+    tierLevel: 2,
+    tierLabel: 'Recurring subscription (dunning + retries)',
+  },
+  {
     slug: 'micro-saas-mvp',
     title: 'AI SaaS MVP in a Week',
     tagline:

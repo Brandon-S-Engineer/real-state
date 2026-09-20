@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  Ban, BadgeDollarSign, Check, CreditCard, FileCheck2, Loader2, Lock, Mail, ShieldCheck, Unlock, Webhook,
+  Ban, BadgeDollarSign, Check, CreditCard, Crown, Download, FileCheck2, Loader2, Lock, Mail, ShieldCheck, Unlock, Webhook,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -46,6 +46,13 @@ const INITIAL_STATUSES: Record<StepId, StepStatus> = {
 
 const EVENT_ID = 'evt_3F9kQ2Lm8Xh1'
 
+const REPORT_ROWS = [
+  { key: 'score', label: 'ATS score', value: '82/100' },
+  { key: 'keywords', label: 'Keyword match', value: '76%' },
+  { key: 'formatting', label: 'Formatting issues', value: '3 found' },
+  { key: 'fix', label: 'Top fix', value: 'Add metrics to bullets' },
+]
+
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export default function OneTimeCheckoutUnlockDemo() {
@@ -54,6 +61,8 @@ export default function OneTimeCheckoutUnlockDemo() {
   const [simulateDuplicate, setSimulateDuplicate] = useState(false)
   const [phase, setPhase] = useState<'idle' | 'running' | 'done'>('idle')
   const [statuses, setStatuses] = useState<Record<StepId, StepStatus>>(INITIAL_STATUSES)
+  const [paid, setPaid] = useState(false)
+  const [revealed, setRevealed] = useState(0)
   const [duplicateHandled, setDuplicateHandled] = useState(false)
   const [log, setLog] = useState<LogLine[]>([])
   const [elapsed, setElapsed] = useState(0)
@@ -71,6 +80,8 @@ export default function OneTimeCheckoutUnlockDemo() {
     const started = Date.now()
     setPhase('running')
     setStatuses(INITIAL_STATUSES)
+    setPaid(false)
+    setRevealed(0)
     setDuplicateHandled(false)
     setLog([{ kind: 'info', text: `checkout.session.created — ${name.trim() || 'Customer'} <${email.trim() || 'no email'}> · $19.00` }])
 
@@ -81,7 +92,16 @@ export default function OneTimeCheckoutUnlockDemo() {
       if (runId.current !== id) return
       setStatuses((s) => ({ ...s, [step.id]: 'done' }))
       setLog((l) => [...l, { kind: 'ok', text: stepLogText(step.id) }])
+      if (step.id === 'access') setPaid(true)
     }
+    if (runId.current !== id) return
+
+    for (let i = 0; i < REPORT_ROWS.length; i++) {
+      await delay(240)
+      if (runId.current !== id) return
+      setRevealed(i + 1)
+    }
+    await delay(300)
     if (runId.current !== id) return
 
     if (simulateDuplicate) {
@@ -103,6 +123,7 @@ export default function OneTimeCheckoutUnlockDemo() {
   }
 
   const submitLabel = phase === 'running' ? 'Processing…' : phase === 'done' ? 'Buy another report' : 'Pay $19 & unlock'
+  const fullyUnlocked = revealed === REPORT_ROWS.length
 
   return (
     <div className='min-h-full' style={{ background: C.bg, color: C.fg }}>
@@ -140,68 +161,85 @@ export default function OneTimeCheckoutUnlockDemo() {
                   : `Paid and unlocked in ${(elapsed / 1000).toFixed(1)}s — one webhook, handled exactly once.`
                 : 'Fill this out, then check out to watch checkout → webhook → access run.'}
             </p>
-            <form onSubmit={run} className='mt-3 flex flex-col gap-2.5'>
-              <div className='rounded-lg p-2.5' style={{ background: phase === 'done' ? C.greenSoft : C.accentSoft }}>
-                <div className='flex items-center justify-between'>
-                  <span className='flex items-center gap-2 text-[13px] font-semibold'>
-                    <FileCheck2 className='h-4 w-4' style={{ color: phase === 'done' ? C.green : C.accent }} />
+            <form onSubmit={run} className='mt-3 flex flex-col gap-2'>
+              <div className='overflow-hidden rounded-lg' style={{ border: `1px solid ${fullyUnlocked ? C.green : C.border}` }}>
+                <div className='flex items-center justify-between px-2.5 py-2' style={{ background: fullyUnlocked ? C.greenSoft : C.accentSoft }}>
+                  <span className='flex items-center gap-2 text-[12.5px] font-semibold'>
+                    <FileCheck2 className='h-4 w-4' style={{ color: fullyUnlocked ? C.green : C.accent }} />
                     Resume ATS Score Report
                   </span>
-                  <span className='text-[13px] font-bold' style={{ color: phase === 'done' ? C.green : C.accent }}>
-                    {phase === 'done' ? 'Unlocked' : '$19'}
+                  <span className='shrink-0 text-[12.5px] font-bold' style={{ color: fullyUnlocked ? C.green : C.accent }}>
+                    {fullyUnlocked ? 'Unlocked' : paid ? 'Unlocking…' : '$19'}
                   </span>
                 </div>
-                <div className='mt-1.5 flex items-center gap-1.5 text-[11.5px]' style={{ color: C.muted }}>
-                  {phase === 'done' ? (
-                    <>
-                      <Check className='h-3 w-3 shrink-0' style={{ color: C.green }} />
-                      <span style={{ color: C.fg }}>ATS score: <b>82/100</b> — full breakdown + 12 fixes, ready to download</span>
-                    </>
+                <div className='relative flex flex-col gap-1 p-2.5' style={{ background: C.panel }}>
+                  {REPORT_ROWS.map((row, i) => {
+                    const unlocked = i < revealed
+                    return (
+                      <div key={row.key} className='flex items-center justify-between text-[11.5px]'>
+                        <span className='flex items-center gap-1.5' style={{ color: C.muted }}>
+                          {unlocked ? <Check className='h-3 w-3 shrink-0' style={{ color: C.green }} /> : <Lock className='h-3 w-3 shrink-0' />}
+                          {row.label}
+                        </span>
+                        <span className='font-semibold' style={{ color: unlocked ? C.fg : C.muted, filter: unlocked ? undefined : 'blur(3px)' }}>
+                          {row.value}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  {revealed === REPORT_ROWS.length ? (
+                    <button
+                      type='button'
+                      className='mt-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 text-[11.5px] font-semibold text-white'
+                      style={{ background: C.green }}>
+                      <Download className='h-3.5 w-3.5' /> Download PDF <Crown className='h-3.5 w-3.5' />
+                    </button>
                   ) : (
-                    <>
-                      <Lock className='h-3 w-3 shrink-0' />
-                      <span>ATS score: <b style={{ filter: 'blur(3px)' }}>82/100</b> — breakdown locked until purchase</span>
-                    </>
+                    !paid && (
+                      <span
+                        className='pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] font-bold uppercase'
+                        style={{ color: C.accent, opacity: 0.22, transform: 'rotate(-14deg)', letterSpacing: '0.18em' }}>
+                        preview · unlocks on purchase
+                      </span>
+                    )
                   )}
                 </div>
               </div>
-              <label className='flex flex-col gap-1.5 text-[12.5px] font-medium'>
-                Name
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className='rounded-lg px-3 py-2 text-[13.5px] outline-none'
-                  style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.fg }}
-                />
-              </label>
-              <label className='flex flex-col gap-1.5 text-[12.5px] font-medium'>
-                Email
-                <input
-                  type='email'
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className='rounded-lg px-3 py-2 text-[13.5px] outline-none'
-                  style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.fg }}
-                />
-              </label>
+
+              <div className='grid grid-cols-2 gap-2'>
+                <label className='flex flex-col gap-1 text-[12px] font-medium'>
+                  Name
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className='rounded-lg px-2.5 py-1.5 text-[13px] outline-none'
+                    style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.fg }}
+                  />
+                </label>
+                <label className='flex flex-col gap-1 text-[12px] font-medium'>
+                  Email
+                  <input
+                    type='email'
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className='rounded-lg px-2.5 py-1.5 text-[13px] outline-none'
+                    style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.fg }}
+                  />
+                </label>
+              </div>
 
               <button
                 type='button'
                 onClick={() => setSimulateDuplicate((v) => !v)}
-                className='mt-1.5 flex items-center justify-between gap-3 rounded-lg p-2.5 text-left'
+                className='flex items-center justify-between gap-3 rounded-lg p-2 text-left'
                 style={{ background: simulateDuplicate ? C.accentSoft : C.bg, border: `1px solid ${simulateDuplicate ? C.accent : C.border}` }}>
-                <span>
-                  <span className='block text-[12.5px] font-semibold'>Simulate a duplicate webhook</span>
-                  <span className='block text-[11px]' style={{ color: C.muted }}>
-                    Stripe can redeliver the same event — watch it get ignored, not reprocessed
-                  </span>
-                </span>
+                <span className='text-[11.5px] font-semibold'>Simulate a duplicate webhook</span>
                 <span
-                  className='relative h-6 w-10 shrink-0 rounded-full transition-colors'
+                  className='relative h-5 w-9 shrink-0 rounded-full transition-colors'
                   style={{ background: simulateDuplicate ? C.accent : C.border }}>
                   <span
-                    className='absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform'
-                    style={{ transform: simulateDuplicate ? 'translateX(17px)' : 'translateX(2px)' }}
+                    className='absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform'
+                    style={{ transform: simulateDuplicate ? 'translateX(15px)' : 'translateX(2px)' }}
                   />
                 </span>
               </button>
@@ -209,7 +247,7 @@ export default function OneTimeCheckoutUnlockDemo() {
               <button
                 type='submit'
                 disabled={phase === 'running'}
-                className='mt-1 inline-flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-[13.5px] font-semibold text-white disabled:opacity-50'
+                className='inline-flex items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-semibold text-white disabled:opacity-50'
                 style={{ background: C.accent }}>
                 {phase === 'running' ? <Loader2 className='h-4 w-4 animate-spin' /> : <CreditCard className='h-4 w-4' />}
                 {submitLabel}

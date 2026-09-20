@@ -268,6 +268,36 @@ export const projects: Project[] = [
 
   // ── MVPs — idea to paying product ─────────────────────────────────────────
   {
+    slug: 'one-time-checkout-unlock',
+    title: 'One-Time Purchase Unlock',
+    tagline:
+      'Pay once, get instant access — with a webhook handler that can never double-charge or double-grant.',
+    niche: 'Commerce · one-time payment (no recurring billing)',
+    category: 'mvp',
+    stripe: true,
+    clientType: 'Solo creators and small tool-builders selling a single deliverable, not a subscription',
+    problem:
+      'The client had one good product — a paid report — and just needed people to pay once and get instant access. The catch: Stripe can redeliver the same webhook event, and a naive handler will happily grant access (and send the receipt) twice.',
+    scope: [
+      'Stripe Checkout (hosted) for the one-time payment — no custom card form to maintain',
+      'Webhook handler that verifies the signature before trusting the payload',
+      'Idempotent event handling — dedupes by event ID, so a redelivered webhook can never double-grant access or double-send a receipt',
+      'Instant access delivery tied to the payment, no account system required',
+      'Same pattern extends to any pay-once deliverable: a report, a license key, a download',
+    ],
+    stack: ['Next.js', 'Stripe Checkout', 'Stripe Webhooks', 'Postgres'],
+    timeToBuild: 'Shipped in 2 days',
+    duration: '2 days',
+    outcome:
+      'Customers pay and get access in under 10 seconds — and a retried webhook can never charge or unlock twice.',
+    tags: ['MVP', 'Stripe', 'one-time payment', 'webhooks', 'idempotency', 'checkout'],
+    demoStatus: 'live',
+    demoUrl: '/demos/one-time-checkout-unlock',
+    featured: false,
+    tierLevel: 1,
+    tierLabel: 'One-time payment (no recurring billing)',
+  },
+  {
     slug: 'micro-saas-mvp',
     title: 'AI SaaS MVP in a Week',
     tagline:

@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  Ban, BadgeDollarSign, Check, CreditCard, FileCheck2, Loader2, Mail, ShieldCheck, Unlock, Webhook,
+  Ban, BadgeDollarSign, Check, CreditCard, FileCheck2, Loader2, Lock, Mail, ShieldCheck, Unlock, Webhook,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -131,22 +131,39 @@ export default function OneTimeCheckoutUnlockDemo() {
               className='flex items-center gap-1.5 text-[12px] font-bold tracking-wide uppercase'
               style={{ color: phase === 'done' ? C.green : C.muted, letterSpacing: '0.06em' }}>
               {phase === 'done' && (duplicateHandled ? <ShieldCheck className='h-3.5 w-3.5' /> : <Check className='h-3.5 w-3.5' />)}
-              {phase === 'done' ? (duplicateHandled ? 'Access granted — duplicate ignored' : 'Access granted') : 'New purchase'}
+              {phase === 'done' ? (duplicateHandled ? 'Duplicate webhook ignored' : 'Access granted') : 'New purchase'}
             </p>
             <p className='mt-1 text-[13px]' style={{ color: phase === 'done' ? C.fg : C.muted, lineHeight: 1.5 }}>
               {phase === 'done'
                 ? duplicateHandled
-                  ? 'Stripe re-sent the same webhook — already granted, so it was skipped. No double charge or email.'
+                  ? 'Stripe re-sent the same webhook — already granted, so it was skipped.'
                   : `Paid and unlocked in ${(elapsed / 1000).toFixed(1)}s — one webhook, handled exactly once.`
                 : 'Fill this out, then check out to watch checkout → webhook → access run.'}
             </p>
             <form onSubmit={run} className='mt-3 flex flex-col gap-2.5'>
-              <div className='flex items-center justify-between rounded-lg p-2.5' style={{ background: C.accentSoft }}>
-                <span className='flex items-center gap-2 text-[13px] font-semibold'>
-                  <FileCheck2 className='h-4 w-4' style={{ color: C.accent }} />
-                  Resume ATS Score Report
-                </span>
-                <span className='text-[13px] font-bold' style={{ color: C.accent }}>$19</span>
+              <div className='rounded-lg p-2.5' style={{ background: phase === 'done' ? C.greenSoft : C.accentSoft }}>
+                <div className='flex items-center justify-between'>
+                  <span className='flex items-center gap-2 text-[13px] font-semibold'>
+                    <FileCheck2 className='h-4 w-4' style={{ color: phase === 'done' ? C.green : C.accent }} />
+                    Resume ATS Score Report
+                  </span>
+                  <span className='text-[13px] font-bold' style={{ color: phase === 'done' ? C.green : C.accent }}>
+                    {phase === 'done' ? 'Unlocked' : '$19'}
+                  </span>
+                </div>
+                <div className='mt-1.5 flex items-center gap-1.5 text-[11.5px]' style={{ color: C.muted }}>
+                  {phase === 'done' ? (
+                    <>
+                      <Check className='h-3 w-3 shrink-0' style={{ color: C.green }} />
+                      <span style={{ color: C.fg }}>ATS score: <b>82/100</b> — full breakdown + 12 fixes, ready to download</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className='h-3 w-3 shrink-0' />
+                      <span>ATS score: <b style={{ filter: 'blur(3px)' }}>82/100</b> — breakdown locked until purchase</span>
+                    </>
+                  )}
+                </div>
               </div>
               <label className='flex flex-col gap-1.5 text-[12.5px] font-medium'>
                 Name

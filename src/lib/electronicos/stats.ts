@@ -6,39 +6,15 @@
 import { prisma } from '@/lib/db'
 import type { ElecListing, ElecSettings } from '@prisma/client'
 import type { SpecFlags } from './parse-specs'
+import { cleanPrices, isPriceUsable, median, percentile } from './math'
+
+export { cleanPrices, isPriceUsable, median, percentile }
 
 export async function getElecSettings(): Promise<ElecSettings> {
   return prisma.elecSettings.upsert({ where: { id: 'singleton' }, create: { id: 'singleton' }, update: {} })
 }
 
-export function percentile(sorted: number[], p: number): number | null {
-  if (!sorted.length) return null
-  if (sorted.length === 1) return sorted[0]
-  const idx = (sorted.length - 1) * p
-  const lo = Math.floor(idx)
-  const hi = Math.ceil(idx)
-  return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo))
-}
-
-export function median(values: number[]): number | null {
-  return percentile([...values].sort((a, b) => a - b), 0.5)
-}
-
 type PriceRow = Pick<ElecListing, 'id' | 'price' | 'flags' | 'configKey' | 'line' | 'chip' | 'zoneKind' | 'status' | 'daysOnMarket' | 'firstSeenAt' | 'postedAt' | 'lastSeenAt' | 'soldConfirmed' | 'ramGb' | 'ssdGb'>
-
-/** ¿El precio de este listing sirve para estadística? */
-export function isPriceUsable(l: Pick<ElecListing, 'price' | 'flags'>): boolean {
-  if (!l.price || l.price < 1500) return false
-  const f = (l.flags ?? {}) as SpecFlags
-  return !f.piezas && !f.nueva
-}
-
-/** Quita basura: <35% o >300% de la mediana cruda del grupo. */
-export function cleanPrices(prices: number[]): number[] {
-  const med = median(prices)
-  if (!med) return []
-  return prices.filter((p) => p >= med * 0.35 && p <= med * 3).sort((a, b) => a - b)
-}
 
 export function lineChipKey(l: { line: string | null; chip: string | null }): string | null {
   return l.line && l.chip ? `${l.line}|${l.chip}` : null

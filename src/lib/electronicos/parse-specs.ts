@@ -212,7 +212,7 @@ function detectFlags(t: string): SpecFlags {
   if (/\bdetalle|detallito|rayon|rayada|rayado|marcas de uso|desgaste/.test(t)) f.detalle = true
   if (/golpe|abollad|chocad|sumid/.test(t)) f.golpe = true
   if (/pantalla (rota|estrellada|danada|quebrada|con lineas|manchada)|display roto|lineas en (la )?pantalla|mancha en (la )?pantalla/.test(t)) f.pantallaRota = true
-  if (/(para|por) (piezas|refacciones)|refaccion|no enciende|no prende|no sirve|bloquead|icloud|\bmdm\b|placa danada/.test(t)) f.piezas = true
+  if (/(para|por) (piezas|refacciones)|\bpiezas\b|refaccion|no enciende|no prende|no sirve|bloquead|icloud|\bmdm\b|placa danada/.test(t)) f.piezas = true
   if (/\bsellad[ao]\b|sin abrir|nueva en caja|\bnueva\b(?! como)|\bnuevo\b(?! como)/.test(t) && !/como nuev|semi ?nuev|casi nuev/.test(t)) f.nueva = true
   if (/\bvendid[ao]\b|\bsold\b|ya se vendio/.test(t)) f.vendido = true
   return f

@@ -1,100 +1,45 @@
-# Real Estate Lead Catcher — Chrome Extension
+# MacBook Price Catcher — Chrome Extension
 
-Monitorea grupos de Facebook que tú elijas y genera alertas cuando alguien publique algo que matchee tus keywords. Sin scraping, sin ban: corre sobre tu sesión activa de Facebook mientras tú navegas normalmente.
+Captura **pasiva** de listings de MacBook (M1–M5 y Neo) en Facebook Marketplace y en grupos de Facebook, y los manda a **Precios Electrónicos** en el CRM (`/dashboard/electronicos`) para descubrir el precio real de mercado.
 
-## Cómo funciona
+No hace scroll, no hace click y no navega. Solo lee lo que tú abres y scrolleas.
 
-- **MutationObserver** detecta posts nuevos en el DOM mientras scrolleas — no scrapea ni hace clicks
-- **Reload programado con jitter** (cada 5-15 min, aleatorio por grupo) refresca cada tab cuando estás AFK
-- **Keywords positivas y negativas** filtran ruido
-- **Alertas** se acumulan con badge count en el ícono + lista en el popup
-- **Posts matched se resaltan** con borde verde y un badge "🎯" en la página de Facebook
-- **CRM integration**: con un click envías una alerta como `Cliente` nuevo a tu CRM personal
+> Esta carpeta nació como copia de la extensión de bienes raíces (`extension/`, que sigue intacta). El código de real estate que queda aquí (plantillas, autores, envío a Clientes) no se usa para MacBooks.
+
+## Qué captura
+
+| Dónde | Qué | Cómo |
+|---|---|---|
+| Búsqueda de Marketplace (`/marketplace/…/search?query=macbook`) | título, precio, precio anterior ("reduced from"), municipio, foto | `aria-label` de cada card |
+| Item abierto (diálogo o página) | + descripción, condición, coordenadas del mapa, vendedor, vendido/no disponible | `h1`, filas `[justify="all"]`, mapa estático |
+| Grupos configurados | posts que matchean las keywords (precio y specs se sacan del texto en el servidor) | observer de grupos existente |
+
+El servidor descarta Intel, accesorios, "busco/compro" e intercambios, parsea los specs y calcula el score de oportunidad.
 
 ## Instalación
 
-### 1. Genera una API key en tu CRM
+1. CRM → **API Keys** → nueva key → cópiala (`rsk_…`)
+2. `chrome://extensions` → Modo desarrollador → **Cargar descomprimida** → esta carpeta (`marketplace/`)
+3. Opciones (⚙ en el popup) → **Conexión al CRM**: URL + API key → **Probar conexión**
+4. (Grupos) agrega los grupos de compra-venta y carga **+ Pack MacBook** y **+ Pack ruido**
+5. Abre Marketplace, busca "macbook" y scrollea. El indicador abajo a la derecha muestra lo capturado.
 
-1. Abre el CRM: `http://localhost:3000` (o tu URL de producción)
-2. Login
-3. Sidebar → **API Keys** → **Nueva API key**
-4. Nómbrala "Extensión Chrome"
-5. **Copia la key inmediatamente** (`rsk_xxx…`) — no se vuelve a mostrar
+Tip: haz búsquedas separadas por zona (cambia la ubicación de Marketplace a Centro, Santa Fe, Polanco…) y **repite las mismas búsquedas en días distintos**. Así se detecta qué listings desaparecen, que es la señal de venta real.
 
-### 2. Carga la extensión en Chrome
+## Cuando Facebook cambie el DOM
 
-1. Abre `chrome://extensions/`
-2. Activa **Modo de desarrollador** (toggle arriba a la derecha)
-3. Click **Cargar descomprimida**
-4. Selecciona esta carpeta: `real-state/extension/`
-5. La extensión aparece en tu barra. Pin recomendado.
+Todos los selectores viven en **`content/mp-selectors.js`** (sin clases ofuscadas, solo `aria-label`, `role`, `href`).
 
-### 3. Configura
+1. En la página rota: popup → **Copiar layout para debug** (HTML sin clases ni estilos)
+2. Guárdalo en `fixtures/` (en `fixtures/raw/` si trae nombres de personas; esa carpeta no se versiona)
+3. Ajusta `content/mp-selectors.js`
+4. `npm run test:mp-selectors` para probar contra los fixtures
 
-Click en el ícono → ⚙️ (esquina superior derecha del popup) → se abre la página de opciones.
+## Archivos
 
-**Grupos monitoreados**
-- Click **+ Agregar grupo**
-- Ponle nombre descriptivo
-- Pega la URL completa del grupo de Facebook (ej. `https://www.facebook.com/groups/123456789/`)
-- Guarda
-
-**Keywords positivas**
-- Una por línea. Ejemplos:
-  ```
-  busco departamento
-  compro casa
-  presupuesto
-  interlomas
-  hipoteca
-  infonavit
-  ```
-
-**Keywords negativas** (opcional pero recomendado)
-- Filtran ruido. Ejemplos:
-  ```
-  rento
-  vendo mi
-  crypto
-  multinivel
-  ```
-
-**Conexión al CRM**
-- URL: `http://localhost:3000` (o tu URL de prod)
-- API Key: pega la `rsk_...` que generaste
-- Click **Probar conexión** — debería crear un cliente de prueba que puedes borrar
-
-### 4. Pruébala
-
-1. Abre uno de los grupos que configuraste en Facebook
-2. Scrollea normalmente
-3. Los posts que matcheen aparecerán con un borde verde + badge "🎯"
-4. El ícono de la extensión muestra el contador de alertas no leídas
-5. Click en el ícono → lista de alertas → click → te abre el post en Facebook
-
-## Seguridad
-
-- **Cero automation**: no scrolls, no clicks, no posts. Solo lee el DOM mientras tú navegas. Indistinguible de cualquier extensión tipo dark-theme o highlighter.
-- **Reloads con jitter**: cada tab se recarga entre 5-15 min con tiempo aleatorio. Patrón natural.
-- **Stagger entre tabs**: las recargas se distribuyen, no son simultáneas.
-
-## Permisos solicitados
-
-- `storage`: para guardar tus grupos, keywords y alertas localmente
-- `tabs`: para detectar en qué tab de FB estás y recargar grupos programadamente
-- `alarms`: para los reloads programados
-- `https://*.facebook.com/*`: para inyectar el observer en grupos
-- `http://localhost:3000/*`: para enviar leads a tu CRM (cambiable según despliegue)
-
-## Próximas fases
-
-- **Fase 2**: Panel flotante en la página de Facebook + templates de respuesta por bloques (3,600 combinaciones)
-- **Fase 3**: Botón "+ Lead a mi CRM" directo en alertas (ya hay endpoint listo)
-- **Fase 4**: Monitoreo de comentarios cuando abres un post + author intelligence + cross-group detection
-- **Fase 5**: Polish (pausas nocturnas, estadísticas, filtros)
-
-## Debug
-
-- `chrome://extensions/` → busca la extensión → **service worker** → abre consola para ver logs del background
-- En cualquier tab de FB → DevTools → consola → busca `[RS Lead Catcher]` para ver logs del content script
-- Storage: en DevTools del popup u options → Application tab → Storage → Extension storage
+- `content/mp-selectors.js`: configuración de selectores (lo único que se toca cuando FB cambia)
+- `content/mp-extract.js`: extracción pura (testeable con jsdom)
+- `content/marketplace.js`: observer, lotes cada 3 s, indicador en pantalla
+- `content/observer.js`: grupos (reenvía matches a Precios Electrónicos)
+- `background/service-worker.js`: `ELEC_INGEST` → `POST /api/electronicos/listings`
+- `fixtures/`: HTML real de FB (el del item está anonimizado)

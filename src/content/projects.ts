@@ -358,6 +358,36 @@ export const projects: Project[] = [
     tierLabel: 'Usage-based billing (metered + margin protection)',
   },
   {
+    slug: 'marketplace-split-payments',
+    title: 'Split Payments & Seller Payouts',
+    tagline:
+      'One charge, split automatically — and a seller mid-verification never loses the money or blocks the sale.',
+    niche: 'Commerce · marketplace split payments (Stripe Connect)',
+    category: 'mvp',
+    stripe: true,
+    clientType: 'Marketplace founders paying out independent sellers, creators, or contractors',
+    problem:
+      'The client\'s marketplace took payment on behalf of other people\'s products, but every seller was at a different stage of onboarding. A charge succeeding and a seller being ready to receive money are two separate events — paying out to an account mid-verification either fails the transfer or, worse, sends money somewhere no one can track.',
+    scope: [
+      'Stripe Connect accounts for sellers, with hosted onboarding for identity verification',
+      'Destination charges — the buyer is charged once, the platform fee and seller payout split automatically',
+      'Payouts held safely on the platform balance — never lost, never double-attempted — when a seller\'s account has pending requirements',
+      'The buyer\'s order confirms regardless of the seller\'s onboarding state, so one problem never blocks the other',
+      'Same pattern extends to any split: affiliates, contractors, revenue share',
+    ],
+    stack: ['Next.js', 'Stripe Connect', 'Stripe Webhooks', 'Postgres'],
+    timeToBuild: 'Shipped in 6 days',
+    duration: '6 days',
+    outcome:
+      'Every payment splits correctly and every seller gets paid the moment they\'re able to — nothing lost, nothing double-sent, nothing blocked on someone else\'s paperwork.',
+    tags: ['MVP', 'Stripe', 'Stripe Connect', 'marketplace', 'split payments', 'payouts'],
+    demoStatus: 'live',
+    demoUrl: '/demos/marketplace-split-payments',
+    featured: false,
+    tierLevel: 4,
+    tierLabel: 'Marketplace split payments (Stripe Connect)',
+  },
+  {
     slug: 'micro-saas-mvp',
     title: 'AI SaaS MVP in a Week',
     tagline:

@@ -11,6 +11,7 @@ import DeepResearchAgentDemo from '@/components/demos/deep-research-agent'
 import OneTimeCheckoutUnlockDemo from '@/components/demos/one-time-checkout-unlock'
 import SubscriptionBillingDunningDemo from '@/components/demos/subscription-billing-dunning'
 import UsageMeteredBillingDemo from '@/components/demos/usage-metered-billing'
+import MarketplaceSplitPaymentsDemo from '@/components/demos/marketplace-split-payments'
 import MvpDemo from '@/components/demos/micro-saas-mvp'
 import CrmDemo from '@/components/demos/ai-real-estate-crm'
 import DocExtractorDemo from '@/components/demos/ai-document-extractor'
@@ -33,6 +34,7 @@ const DEMOS: Record<string, ComponentType> = {
   'one-time-checkout-unlock': OneTimeCheckoutUnlockDemo,
   'subscription-billing-dunning': SubscriptionBillingDunningDemo,
   'usage-metered-billing': UsageMeteredBillingDemo,
+  'marketplace-split-payments': MarketplaceSplitPaymentsDemo,
   'micro-saas-mvp': MvpDemo,
   'assessment-paywall-mvp': AssessmentDemo,
   'membership-portal-mvp': MembershipDemo,

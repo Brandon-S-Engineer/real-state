@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Real Estate Lead Catcher — Configuración</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Real Estate Lead Catcher</h1>
+      <p class="subtitle">Configuración de monitoreo de grupos de Facebook</p>
+    </header>
+
+    <!-- Grupos -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Grupos monitoreados</h2>
+          <p class="hint">La extensión escanea posts cuando estés navegando en cualquiera de estos grupos.</p>
+        </div>
+        <button id="add-group-btn" class="btn-primary">+ Agregar grupo</button>
+      </div>
+
+      <div id="group-form" class="subcard hidden">
+        <div class="field">
+          <label>Nombre del grupo</label>
+          <input id="g-name" type="text" placeholder="Vecinos de Interlomas">
+        </div>
+        <div class="field">
+          <label>URL completa del grupo</label>
+          <input id="g-url" type="url" placeholder="https://www.facebook.com/groups/...">
+          <p class="hint">Cópiala directamente del navegador cuando estés en el grupo.</p>
+        </div>
+        <div class="field-row">
+          <label class="checkbox">
+            <input id="g-enabled" type="checkbox" checked>
+            <span>Activo</span>
+          </label>
+          <div class="field-inline">
+            <label>Reload cada</label>
+            <input id="g-interval" type="number" min="2" max="60" value="10">
+            <span>min (con jitter automático)</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="g-cancel" class="btn-ghost">Cancelar</button>
+          <button id="g-save" class="btn-primary">Guardar</button>
+        </div>
+      </div>
+
+      <ul id="groups-list" class="list"></ul>
+      <p id="groups-empty" class="empty hidden">No has agregado grupos todavía.</p>
+    </section>
+
+    <!-- Keywords positivas -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Keywords positivas</h2>
+          <p class="hint">Una palabra o frase por línea. Si el post contiene cualquiera, se dispara una alerta.</p>
+        </div>
+        <button id="load-positives-pack" class="btn-ghost" title="Agrega el pack curado de bienes raíces (compra/renta/financiamiento)">+ Pack BR</button>
+      </div>
+      <textarea id="kw-positive" rows="10" placeholder="busco departamento&#10;compro casa&#10;presupuesto&#10;interlomas&#10;hipoteca"></textarea>
+      <p class="hint">Tip: usa frases cortas. Mayúsculas, minúsculas y acentos no importan.</p>
+    </section>
+
+    <!-- Keywords negativas -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Keywords negativas <span class="badge-soon">descartan match</span></h2>
+          <p class="hint">Si el post contiene cualquiera de estas, NO se alerta (aunque tenga positivas).</p>
+        </div>
+        <button id="load-negatives-pack" class="btn-ghost" title="Agrega el pack de ruido típico (otros agentes, scams, off-topic)">+ Pack ruido</button>
+      </div>
+      <textarea id="kw-negative" rows="6" placeholder="rento&#10;vendo mi&#10;crypto&#10;multinivel"></textarea>
+    </section>
+
+    <!-- Templates de respuesta -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Plantillas de respuesta</h2>
+          <p class="hint">
+            Cada mensaje se compone aleatoriamente con UNA variante de cada bloque.
+            <strong>Sin IA</strong> — todo es texto que tú escribes.
+            Con los defaults hay ~3,600 combinaciones únicas.
+          </p>
+        </div>
+        <button id="templates-reset" class="btn-ghost">Restaurar defaults</button>
+      </div>
+
+      <div class="field">
+        <label>Tu zona principal (sustituye <code>{zona}</code> en las plantillas)</label>
+        <input id="tpl-zona" type="text" placeholder="Interlomas">
+      </div>
+
+      <p id="tpl-preview" class="preview-box">
+        <span class="muted">Vista previa: </span><span id="tpl-preview-text">—</span>
+        <button id="tpl-preview-regen" class="link-btn">🔄 Otro</button>
+      </p>
+
+      <div class="block-grid">
+        <div class="block-section">
+          <label>Saludo</label>
+          <p class="hint">Una variante por línea. Usa <code>{nombre}</code> donde va el nombre del lead.</p>
+          <textarea id="tpl-saludo" rows="6" placeholder="Hola {nombre}"></textarea>
+        </div>
+
+        <div class="block-section">
+          <label>Referencia al post <span class="optional">(opcional, 80% prob)</span></label>
+          <p class="hint">Frase que muestra que viste su publicación.</p>
+          <textarea id="tpl-referencia" rows="5" placeholder="vi tu publicación"></textarea>
+        </div>
+
+        <div class="block-section">
+          <label>Presentación</label>
+          <p class="hint">Quién eres. Usa <code>{zona}</code> donde apliques tu zona.</p>
+          <textarea id="tpl-presentacion" rows="5" placeholder="soy agente inmobiliario en {zona}"></textarea>
+        </div>
+
+        <div class="block-section">
+          <label>Oferta <span class="optional">(opcional, 85% prob)</span></label>
+          <p class="hint">Qué les ofreces.</p>
+          <textarea id="tpl-oferta" rows="4" placeholder="tengo opciones que podrían interesarte"></textarea>
+        </div>
+
+        <div class="block-section">
+          <label>Cierre</label>
+          <p class="hint">Call-to-action. Termina con signo de pregunta.</p>
+          <textarea id="tpl-cierre" rows="6" placeholder="¿te late agendar una llamada?"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRM -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Conexión al CRM</h2>
+          <p class="hint">Para enviar alertas como leads a tu CRM personal con un click.</p>
+        </div>
+      </div>
+      <div class="field">
+        <label>URL del CRM</label>
+        <input id="crm-url" type="url" placeholder="http://localhost:3000">
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input id="crm-key" type="password" placeholder="rsk_xxxxxxxxxxxx">
+        <p class="hint">Genérala en <code>/dashboard/api-keys</code> de tu CRM.</p>
+      </div>
+      <div class="actions">
+        <button id="crm-test" class="btn-ghost">Probar conexión</button>
+      </div>
+      <p id="crm-status" class="status"></p>
+    </section>
+
+    <div class="floating-save">
+      <span id="save-indicator" class="muted">Cambios guardados automáticamente</span>
+    </div>
+  </main>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

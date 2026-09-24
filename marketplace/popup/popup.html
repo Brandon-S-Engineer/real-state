@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Real Estate Lead Catcher</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1>Leads</h1>
+    <button id="open-options" class="icon-btn" title="Configuración">⚙</button>
+  </header>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>Grupos</h2>
+      <span id="groups-count" class="muted"></span>
+    </div>
+    <ul id="groups-list" class="list"></ul>
+    <p id="groups-empty" class="empty hidden">No has agregado grupos. <a href="#" id="open-options-link">Configurar →</a></p>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>Alertas</h2>
+      <button id="clear-dismissed" class="link-btn">Limpiar descartadas</button>
+    </div>
+
+    <div id="state-filters" class="filters">
+      <button class="filter-chip active" data-filter="all">Todas <span class="count" data-count="all">0</span></button>
+      <button class="filter-chip" data-filter="new">🆕 Nuevas <span class="count" data-count="new">0</span></button>
+      <button class="filter-chip" data-filter="viewed">👁 Vistas <span class="count" data-count="viewed">0</span></button>
+      <button class="filter-chip" data-filter="contacted">💬 Contactadas <span class="count" data-count="contacted">0</span></button>
+      <button class="filter-chip" data-filter="saved">📥 En CRM <span class="count" data-count="saved">0</span></button>
+      <button class="filter-chip" data-filter="dismissed">🗑 Descartadas <span class="count" data-count="dismissed">0</span></button>
+    </div>
+
+    <ul id="alerts-list" class="list"></ul>
+    <p id="alerts-empty" class="empty hidden">Sin alertas en este filtro.</p>
+  </section>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

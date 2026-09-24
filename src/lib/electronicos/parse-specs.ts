@@ -322,13 +322,24 @@ export function parseSpecs(title: string, description?: string | null): ParsedSp
   if (ramGb) conf += 0.2
   if (ssdGb) conf += 0.2
 
+  // impossible = la combinación no existe en ningún modelo real. Es un caso
+  // distinto a "confianza baja": no es que falte información, es que algo
+  // contradice al catálogo (p.ej. "M1" + 32GB — el M1 base tope es 16GB, así
+  // que probablemente el vendedor quiso decir M1 Pro/Max). Nunca se acepta en
+  // automático, sin importar cuántos otros campos sí se detectaron bien.
+  let impossible = false
   const entries = line && chip ? findEntries(line, chip) : []
   if (line && chip && entries.length === 0) {
     conf -= 0.3
+    impossible = true
     notes.push(`${chip} no existe en esa línea`)
   }
   if (entries.length) {
-    if (ramGb && !entries.some((e) => e.ram.includes(ramGb!))) { conf -= 0.15; notes.push(`${ramGb}GB RAM no existe para ${chip}`) }
+    if (ramGb && !entries.some((e) => e.ram.includes(ramGb!))) {
+      conf -= 0.35
+      impossible = true
+      notes.push(`${ramGb}GB RAM no existe para ${chip}`)
+    }
     if (ssdGb && !entries.some((e) => e.ssd.includes(ssdGb!))) { conf -= 0.1; notes.push(`SSD ${ssdGb}GB raro para ${chip}`) }
     if (year && !entries.some((e) => Math.abs(e.year - year) <= 1)) notes.push(`año ${year} no cuadra con ${chip}`)
     // Si solo hay una RAM posible (Neo), rellenar
@@ -348,7 +359,7 @@ export function parseSpecs(title: string, description?: string | null): ParsedSp
     batteryHealth: health,
     flags,
     parseConfidence: conf,
-    needsReview: conf < 0.7 || !line || !chip,
+    needsReview: impossible || conf < 0.7 || !line || !chip,
     configKey: null,
     notes,
   }

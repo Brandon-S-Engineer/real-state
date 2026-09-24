@@ -35,7 +35,11 @@ export default function ElecPreciosTable({
   const [q, setQ] = useState('')
   const [hideLow, setHideLow] = useState(false)
   const [onlyBudget, setOnlyBudget] = useState(false)
-  const [includeIncomplete, setIncludeIncomplete] = useState(false)
+  // Los posts de grupos casi nunca traen RAM/SSD — filtrar esos grupos por
+  // default deja la tabla casi vacía y esconde justo los grupos con más
+  // muestra (línea+chip agrupa bien aunque falte RAM/SSD). Por eso arranca
+  // mostrando todo; "Solo specs completos" es un filtro que el usuario prende.
+  const [onlyComplete, setOnlyComplete] = useState(false)
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'n', desc: true })
 
   const val = (r: PriceTableRow, k: SortKey) =>
@@ -47,7 +51,7 @@ export default function ElecPreciosTable({
               : r.avgDaysOnMarket ?? Infinity
 
   const filtered = useMemo(() => rows
-    .filter((r) => includeIncomplete || !r.configKey.includes('?'))
+    .filter((r) => !onlyComplete || !r.configKey.includes('?'))
     .filter((r) => !line || r.line === line)
     .filter((r) => !hideLow || r.confidence !== 'baja')
     .filter((r) => !q || configShort(r).toLowerCase().includes(q.toLowerCase()))
@@ -57,7 +61,7 @@ export default function ElecPreciosTable({
       return buy != null && buy >= BUDGET.min && buy <= BUDGET.max
     })
     .sort((a, b) => (sort.desc ? val(b, sort.key) - val(a, sort.key) : val(a, sort.key) - val(b, sort.key))),
-  [rows, line, q, hideLow, onlyBudget, includeIncomplete, sort])
+  [rows, line, q, hideLow, onlyBudget, onlyComplete, sort])
 
   const th = (label: string, key?: SortKey, title?: string) => (
     <th
@@ -92,8 +96,8 @@ export default function ElecPreciosTable({
         <Button variant={hideLow ? 'default' : 'outline'} size='sm' onClick={() => setHideLow((v) => !v)}>
           Ocultar poca data
         </Button>
-        <Button variant={includeIncomplete ? 'default' : 'outline'} size='sm' onClick={() => setIncludeIncomplete((v) => !v)} title='Incluir grupos sin RAM o SSD conocidos'>
-          Incluir specs incompletos
+        <Button variant={onlyComplete ? 'default' : 'outline'} size='sm' onClick={() => setOnlyComplete((v) => !v)} title='Ocultar grupos sin RAM o SSD conocidos (agrupados solo por línea+chip)'>
+          Solo specs completos
         </Button>
         <Button variant='outline' size='sm' className='ml-auto' onClick={exportCsv} disabled={!filtered.length}>CSV</Button>
       </div>

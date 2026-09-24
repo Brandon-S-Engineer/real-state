@@ -328,6 +328,36 @@ export const projects: Project[] = [
     tierLabel: 'Recurring subscription (dunning + retries)',
   },
   {
+    slug: 'usage-metered-billing',
+    title: 'Usage-Based Metered Billing',
+    tagline:
+      'Pay-per-use billing with a safety cap — so a runaway job never surprises the customer or eats your margin.',
+    niche: 'Commerce · usage-based billing (metered + margin protection)',
+    category: 'mvp',
+    stripe: true,
+    clientType: 'AI-SaaS founders billing per API call, per page, or per generation',
+    problem:
+      'The client billed per document processed, which works great until a client-side bug fires a job 30x its normal size in one go. Auto-billing the full overage would blindside the customer; silently eating the cost would blindside the client. Neither is acceptable at 2am with no one watching.',
+    scope: [
+      'Usage metering per unit (pages, calls, generations) against an included monthly allowance',
+      'Overage billed automatically per unit past the allowance — transparent, no surprise invoices',
+      'An anomaly check on every batch: a job far outside normal size auto-caps what gets billed and holds the rest',
+      'The account owner gets alerted on a capped batch instead of silently being billed or silently absorbing the cost',
+      'Same pattern extends to any metered resource: API calls, compute minutes, generated assets',
+    ],
+    stack: ['Next.js', 'Stripe Billing Meters', 'Stripe Webhooks', 'Postgres'],
+    timeToBuild: 'Shipped in 4 days',
+    duration: '4 days',
+    outcome:
+      'Usage bills itself correctly every day — and the one time a job misfired, it was capped and flagged instead of becoming a $140 surprise.',
+    tags: ['MVP', 'Stripe', 'usage-based billing', 'metered', 'webhooks', 'margin protection'],
+    demoStatus: 'live',
+    demoUrl: '/demos/usage-metered-billing',
+    featured: false,
+    tierLevel: 3,
+    tierLabel: 'Usage-based billing (metered + margin protection)',
+  },
+  {
     slug: 'micro-saas-mvp',
     title: 'AI SaaS MVP in a Week',
     tagline:

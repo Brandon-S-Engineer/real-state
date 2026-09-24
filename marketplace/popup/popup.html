@@ -2,14 +2,27 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Real Estate Lead Catcher</title>
+  <title>MacBook Price Catcher</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <header>
-    <h1>Leads</h1>
+    <h1>MacBook Catcher</h1>
     <button id="open-options" class="icon-btn" title="Configuración">⚙</button>
   </header>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>Marketplace</h2>
+      <button id="mp-toggle" class="link-btn"></button>
+    </div>
+    <p id="mp-stats" class="mp-stats muted">—</p>
+    <p id="mp-tab" class="mp-stats muted"></p>
+    <div class="mp-actions">
+      <button id="mp-open-crm" class="link-btn">Abrir Precios Electrónicos ↗</button>
+      <button id="mp-dump" class="link-btn" title="Copia el HTML (sin clases) de la página de FB abierta, para arreglar selectores">Copiar layout para debug</button>
+    </div>
+  </section>
 
   <section class="section">
     <div class="section-header">

@@ -441,7 +441,63 @@ async function refresh() {
   renderAlerts()
 }
 
+// ── Marketplace (MacBooks) ──────────────────────────────────────────────────
+
+async function activeFbTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  return tab?.url?.includes('facebook.com') ? tab : null
+}
+
+async function renderMarketplace() {
+  const { elecStats, mpEnabled } = await chrome.storage.local.get(['elecStats', 'mpEnabled'])
+  const on = mpEnabled !== false
+  $('mp-toggle').textContent = on ? '⏸ Pausar' : '▶ Reanudar'
+  const today = new Date().toISOString().slice(0, 10)
+  const st = elecStats?.day === today ? elecStats : null
+  $('mp-stats').textContent = st
+    ? `Hoy: ${st.sent} enviados · ${st.created} nuevos · ${st.skipped} descartados${st.alerts ? ` · 🎯 ${st.alerts} oportunidades` : ''}`
+    : on ? 'Hoy: nada enviado todavía' : 'Captura en pausa'
+
+  const tab = await activeFbTab()
+  if (!tab) { $('mp-tab').textContent = 'Abre Marketplace o un grupo en esta pestaña.'; return }
+  try {
+    const res = await chrome.tabs.sendMessage(tab.id, { type: 'MP_STATS' })
+    if (res?.ok && res.source) {
+      $('mp-tab').textContent = `Esta pestaña: ${res.source.name} — ${res.stats.seen} vistos, ${res.stats.sent} enviados${res.stats.lastError ? ` · ⚠ ${res.stats.lastError}` : ''}`
+    } else {
+      $('mp-tab').textContent = ''
+    }
+  } catch {
+    $('mp-tab').textContent = 'Recarga la pestaña de Facebook para activar la captura.'
+  }
+}
+
+async function dumpLayout() {
+  const tab = await activeFbTab()
+  if (!tab) { $('mp-dump').textContent = 'Abre Facebook primero'; return }
+  try {
+    const res = await chrome.tabs.sendMessage(tab.id, { type: 'MP_DUMP_LAYOUT' })
+    await navigator.clipboard.writeText(res.html)
+    $('mp-dump').textContent = `✓ Copiado (${Math.round(res.html.length / 1024)} KB)`
+  } catch (err) {
+    $('mp-dump').textContent = `✗ ${err.message}`.slice(0, 40)
+  }
+  setTimeout(() => { $('mp-dump').textContent = 'Copiar layout para debug' }, 2500)
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  renderMarketplace()
+  $('mp-toggle').addEventListener('click', async () => {
+    const { mpEnabled } = await chrome.storage.local.get('mpEnabled')
+    await chrome.storage.local.set({ mpEnabled: mpEnabled === false })
+    renderMarketplace()
+  })
+  $('mp-dump').addEventListener('click', dumpLayout)
+  $('mp-open-crm').addEventListener('click', async () => {
+    const s = await getSettings()
+    chrome.tabs.create({ url: `${(s.crmUrl || 'http://localhost:3000').replace(/\/$/, '')}/dashboard/electronicos` })
+  })
+
   await refresh()
 
   // Marcar todas las 'new' como 'viewed' al abrir (limpia el badge)

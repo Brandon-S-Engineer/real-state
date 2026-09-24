@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Real Estate Lead Catcher — Configuración</title>
+  <title>MacBook Price Catcher — Configuración</title>
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <main>
     <header>
-      <h1>Real Estate Lead Catcher</h1>
-      <p class="subtitle">Configuración de monitoreo de grupos de Facebook</p>
+      <h1>MacBook Price Catcher</h1>
+      <p class="subtitle">Captura pasiva de MacBooks en Marketplace y grupos de Facebook</p>
     </header>
 
     <!-- Grupos -->
@@ -60,9 +60,9 @@
           <h2>Keywords positivas</h2>
           <p class="hint">Una palabra o frase por línea. Si el post contiene cualquiera, se dispara una alerta.</p>
         </div>
-        <button id="load-positives-pack" class="btn-ghost" title="Agrega el pack curado de bienes raíces (compra/renta/financiamiento)">+ Pack BR</button>
+        <button id="load-positives-pack" class="btn-ghost" title="Agrega el pack de MacBook (modelos y chips)">+ Pack MacBook</button>
       </div>
-      <textarea id="kw-positive" rows="10" placeholder="busco departamento&#10;compro casa&#10;presupuesto&#10;interlomas&#10;hipoteca"></textarea>
+      <textarea id="kw-positive" rows="10" placeholder="macbook&#10;macbook pro&#10;m3&#10;m4"></textarea>
       <p class="hint">Tip: usa frases cortas. Mayúsculas, minúsculas y acentos no importan.</p>
     </section>
 
@@ -71,11 +71,11 @@
       <div class="card-header">
         <div>
           <h2>Keywords negativas <span class="badge-soon">descartan match</span></h2>
-          <p class="hint">Si el post contiene cualquiera de estas, NO se alerta (aunque tenga positivas).</p>
+          <p class="hint">Si el post contiene cualquiera de estas, NO se alerta. En Marketplace también filtran títulos.</p>
         </div>
-        <button id="load-negatives-pack" class="btn-ghost" title="Agrega el pack de ruido típico (otros agentes, scams, off-topic)">+ Pack ruido</button>
+        <button id="load-negatives-pack" class="btn-ghost" title="Agrega el pack de ruido (busco/compro, accesorios, reparaciones)">+ Pack ruido</button>
       </div>
-      <textarea id="kw-negative" rows="6" placeholder="rento&#10;vendo mi&#10;crypto&#10;multinivel"></textarea>
+      <textarea id="kw-negative" rows="6" placeholder="busco&#10;compro&#10;funda&#10;cargador"></textarea>
     </section>
 
     <!-- Templates de respuesta -->
@@ -140,7 +140,7 @@
       <div class="card-header">
         <div>
           <h2>Conexión al CRM</h2>
-          <p class="hint">Para enviar alertas como leads a tu CRM personal con un click.</p>
+          <p class="hint">Los listings de MacBook se mandan solos a "Precios Electrónicos".</p>
         </div>
       </div>
       <div class="field">

@@ -486,3 +486,7 @@ header h1 {
 }
 
 .hidden { display: none; }
+
+/* ── Marketplace (MacBooks) ─────────────────────────────────────────────── */
+.mp-stats { font-size: 12px; margin: 2px 0; }
+.mp-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; }

@@ -4,7 +4,7 @@ import {
   generateId, extractGroupSlug,
 } from '../shared/storage.js'
 import { DEFAULT_TEMPLATES, composeMessage, textToBlock } from '../shared/templates.js'
-import { PRESET_POSITIVES, PRESET_NEGATIVES } from '../shared/presets.js'
+import { MACBOOK_POSITIVES, MACBOOK_NEGATIVES } from '../shared/presets.js'
 
 function $(id) { return document.getElementById(id) }
 
@@ -159,7 +159,7 @@ function mergeUnique(existing, preset) {
 
 async function loadPositivesPack() {
   const current = $('kw-positive').value.split('\n').map((s) => s.trim()).filter(Boolean)
-  const merged = mergeUnique(current, PRESET_POSITIVES)
+  const merged = mergeUnique(current, MACBOOK_POSITIVES)
   const added = merged.length - current.length
   $('kw-positive').value = merged.join('\n')
   debounceSaveKeywords()
@@ -175,7 +175,7 @@ async function loadPositivesPack() {
 
 async function loadNegativesPack() {
   const current = $('kw-negative').value.split('\n').map((s) => s.trim()).filter(Boolean)
-  const merged = mergeUnique(current, PRESET_NEGATIVES)
+  const merged = mergeUnique(current, MACBOOK_NEGATIVES)
   const added = merged.length - current.length
   $('kw-negative').value = merged.join('\n')
   debounceSaveKeywords()
@@ -262,21 +262,17 @@ async function testCrm() {
   status.textContent = 'Probando...'
   status.className = 'status muted'
   try {
-    const res = await fetch(`${s.crmUrl.replace(/\/$/, '')}/api/clientes/inbox`, {
+    // Lote vacío: valida URL + API key sin crear nada
+    const res = await fetch(`${s.crmUrl.replace(/\/$/, '')}/api/electronicos/listings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${s.crmApiKey}`,
       },
-      body: JSON.stringify({
-        autor: '__test__',
-        textoPost: 'Test de conexión desde la extensión',
-        grupo: '__test__',
-      }),
+      body: JSON.stringify({ source: 'MARKETPLACE', sourceKey: 'test', sourceName: 'test', countsAsSession: false, listings: [] }),
     })
     if (res.ok) {
-      const data = await res.json()
-      status.textContent = `✓ Conectado. Se creó un cliente de prueba (puedes borrarlo): ${data.url}`
+      status.textContent = '✓ Conectado a Precios Electrónicos.'
       status.className = 'status ok'
     } else if (res.status === 401) {
       status.textContent = '✗ API key inválida o sesión no válida.'

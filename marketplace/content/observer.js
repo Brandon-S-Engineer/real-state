@@ -486,6 +486,8 @@
       matches,
       commentsCount: post.commentsCount,
       reactionsCount: post.reactionsCount,
+      // Primera foto del post (avatares son <image> SVG o miniaturas chicas)
+      imageUrl: Array.from(el.querySelectorAll('img[src*="scontent"]')).find((i) => (i.width || 0) >= 120)?.src ?? null,
     }
     chrome.runtime.sendMessage({ type: 'NEW_ALERT', alert }).catch((err) => {
       log('Error enviando alerta al background:', err)

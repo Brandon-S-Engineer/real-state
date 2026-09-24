@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Real Estate Lead Catcher",
-  "version": "0.1.0",
-  "description": "Captura leads de grupos de Facebook hacia tu CRM personal sin riesgo de ban.",
+  "name": "MacBook Price Catcher",
+  "version": "0.2.0",
+  "description": "Captura pasiva de listings de MacBook (Facebook Marketplace + grupos) hacia el CRM para descubrir precios de mercado.",
   "permissions": [
     "storage",
     "tabs",
@@ -21,11 +21,16 @@
       "matches": ["https://*.facebook.com/groups/*"],
       "js": ["content/observer.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.facebook.com/*"],
+      "js": ["content/mp-selectors.js", "content/mp-extract.js", "content/marketplace.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Real Estate Lead Catcher"
+    "default_title": "MacBook Price Catcher"
   },
   "options_page": "options/options.html"
 }

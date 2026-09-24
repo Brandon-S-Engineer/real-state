@@ -30,6 +30,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     setMarkedAsAgent(msg.authorId, msg.marked, msg.note).then(() => sendResponse({ ok: true }))
     return true
   }
+  if (msg.type === 'ELEC_INGEST') {
+    postElecListings(msg.payload).then((result) => sendResponse(result))
+    return true
+  }
   if (msg.type === 'SYNC_RELOAD_ALARMS') {
     syncReloadAlarms().then(() => sendResponse({ ok: true }))
     return true
@@ -99,6 +103,11 @@ async function handleNewAlert(alert) {
   ))
 
   await updateBadge()
+
+  // MacBooks: todo post que matchea en un grupo también va a "Precios
+  // Electrónicos" (el servidor extrae precio/specs del texto y descarta ruido).
+  forwardGroupPostToElec(alertToStore).catch(() => {})
+
   return { ok: true, deduped: false, autoDismissed: initialState === 'dismissed' }
 }
 
@@ -181,6 +190,71 @@ async function sendToCrm(alertId) {
   } catch (err) {
     return { ok: false, error: `No se pudo conectar: ${err.message}` }
   }
+}
+
+// ── Precios Electrónicos (MacBooks) ──────────────────────────────────────────
+
+async function postElecListings(payload) {
+  const settings = await getSettings()
+  if (!settings.crmUrl || !settings.crmApiKey) {
+    return { ok: false, error: 'CRM no configurado (opciones → Conexión al CRM)' }
+  }
+  try {
+    const res = await fetch(`${settings.crmUrl.replace(/\/$/, '')}/api/electronicos/listings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${settings.crmApiKey}`,
+      },
+      body: JSON.stringify(payload),
+    })
+    if (res.status === 401) return { ok: false, error: 'API key inválida' }
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` }
+    const data = await res.json()
+    await bumpElecStats(payload.listings.length, data)
+    return { ok: true, data }
+  } catch (err) {
+    return { ok: false, error: `No se pudo conectar: ${err.message}` }
+  }
+}
+
+async function bumpElecStats(sent, data) {
+  const { elecStats = {} } = await chrome.storage.local.get('elecStats')
+  const today = new Date().toISOString().slice(0, 10)
+  const base = elecStats.day === today ? elecStats : { day: today, sent: 0, created: 0, skipped: 0, alerts: 0 }
+  await chrome.storage.local.set({
+    elecStats: {
+      ...base,
+      sent: base.sent + sent,
+      created: base.created + (data.created ?? 0),
+      skipped: base.skipped + (data.skipped ?? 0),
+      alerts: base.alerts + (data.alertIds?.length ?? 0),
+      lastSentAt: Date.now(),
+    },
+  })
+}
+
+async function forwardGroupPostToElec(alert) {
+  if (alert.state === 'dismissed') return
+  const groups = await getGroups()
+  const group = groups.find((g) => g.id === alert.groupId)
+  const firstLine = (alert.text || '').split('\n').map((l) => l.trim()).find(Boolean) ?? 'Post de grupo'
+  await postElecListings({
+    source: 'FB_GROUP',
+    sourceKey: `fb:${group?.slug ?? alert.groupId}`,
+    sourceName: alert.groupName ?? 'Grupo',
+    countsAsSession: true,
+    listings: [{
+      externalId: alert.permalink ?? alert.id,
+      url: alert.permalink ?? group?.url ?? 'https://www.facebook.com/groups/',
+      title: firstLine.slice(0, 140),
+      description: alert.text,
+      imageUrl: alert.imageUrl ?? null,
+      sellerName: alert.author ?? null,
+      sellerId: alert.authorId ?? null,
+      postedAt: alert.postedAt ?? null,
+    }],
+  })
 }
 
 // ── Reload alarms (cadencia programada por grupo) ────────────────────────────

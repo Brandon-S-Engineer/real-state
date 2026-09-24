@@ -1,4 +1,45 @@
-// ── Keyword presets para bienes raíces ───────────────────────────────────────
+// ── Keyword presets ──────────────────────────────────────────────────────────
+//
+// MACBOOK_*: los que usa esta extensión (reventa de MacBooks).
+// PRESET_*: pack original de bienes raíces — se conserva por referencia; la
+// extensión de real estate vive en extension/.
+
+export const MACBOOK_POSITIVES = [
+  'macbook',
+  'mac book',
+  'macbook air',
+  'macbook pro',
+  'macbook neo',
+  'm1',
+  'm2',
+  'm3',
+  'm4',
+  'm5',
+  'apple laptop',
+  'laptop apple',
+]
+
+export const MACBOOK_NEGATIVES = [
+  'busco',
+  'compro',
+  'se compra',
+  'funda',
+  'cargador',
+  'reparación',
+  'reparacion',
+  'reparamos',
+  'servicio técnico',
+  'servicio tecnico',
+  'refacciones',
+  'para piezas',
+  'mica',
+  'teclado para',
+  'cambio de pantalla',
+  'cambio de batería',
+  'cambio de bateria',
+]
+
+// ── Bienes raíces (referencia) ──
 //
 // Listas curadas para arrancar rápido. El usuario puede agregar/quitar
 // individualmente después.

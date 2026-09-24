@@ -342,3 +342,167 @@ model UpworkSettings {
   updatedAt     DateTime @updatedAt
 }
 
+
+// ── Electrónicos (reventa de MacBooks) ───────────────────────────────────────
+//
+// Listings capturados pasivamente por la extensión `marketplace/` (Facebook
+// Marketplace + grupos). Los specs se parsean en el servidor
+// (src/lib/electronicos/parse-specs.ts) y se pueden corregir a mano desde la UI
+// (specsManual = true → el re-parseo ya no los toca).
+
+enum ElecSource {
+  FB_GROUP
+  MARKETPLACE
+}
+
+enum ElecListingStatus {
+  ACTIVO
+  DESAPARECIDO
+}
+
+enum ElecZoneKind {
+  COMPRA
+  VENTA
+  OTRA
+}
+
+model ElecListing {
+  id            String            @id @default(cuid())
+  externalId    String            @unique // "mp_<id>" o permalink del post del grupo
+  url           String
+  source        ElecSource
+  sourceKey     String // "mp:macbook pro" / "fb:<slug del grupo>" — para detectar "desaparecido"
+  sourceName    String
+  category      String            @default("MACBOOK")
+  title         String
+  description   String?
+  condition     String? // "Used - like new" (Marketplace)
+  price         Float?
+  originalPrice Float? // "reduced from" de Marketplace
+  currency      String            @default("MXN")
+  imageUrl      String?
+  locationText  String?
+  lat           Float?
+  lng           Float?
+  zoneId        String?
+  zoneKind      ElecZoneKind      @default(OTRA)
+  sellerName    String?
+  sellerId      String?
+  postedAt      DateTime?
+  postedText    String?
+  firstSeenAt   DateTime          @default(now())
+  lastSeenAt    DateTime          @default(now())
+  status        ElecListingStatus @default(ACTIVO)
+  disappearedAt DateTime?
+  soldConfirmed Boolean           @default(false) // FB mostró "Sold"/no disponible
+  daysOnMarket  Float?
+
+  // Specs parseados
+  line            String? // AIR_13 | AIR_15 | PRO_13 | PRO_14 | PRO_16 | NEO_13
+  chip            String? // "M1", "M3 Pro", "A18 Pro"...
+  ramGb           Int?
+  ssdGb           Int?
+  year            Int?
+  color           String?
+  batteryCycles   Int?
+  batteryHealth   Int?
+  flags           Json    @default("{}")
+  parseConfidence Float   @default(0)
+  needsReview     Boolean @default(true)
+  specsManual     Boolean @default(false)
+  configKey       String? // "PRO_14|M3 Pro|18|512"
+  parseNotes      String? // por qué la confianza es la que es
+
+  opportunityScore Float?
+  scoreReasons     Json      @default("[]")
+  comprado         Boolean   @default(false)
+  compradoAt       DateTime?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  zone         ElecZone?          @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  priceHistory ElecPriceHistory[]
+  trade        ElecTrade?
+
+  @@index([configKey])
+  @@index([status])
+  @@index([sourceKey])
+  @@index([opportunityScore])
+}
+
+model ElecPriceHistory {
+  id         String   @id @default(cuid())
+  listingId  String
+  price      Float
+  recordedAt DateTime @default(now())
+
+  listing ElecListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+}
+
+// Cada vez que la extensión reporta haber visto una fuente (búsqueda de
+// Marketplace o grupo) se registra/extiende una sesión. Un listing que no
+// reaparece en N sesiones posteriores (en días distintos) se marca DESAPARECIDO.
+model ElecCaptureSession {
+  id         String   @id @default(cuid())
+  sourceKey  String
+  startedAt  DateTime @default(now())
+  lastPingAt DateTime @default(now())
+  seenCount  Int      @default(0)
+
+  @@index([sourceKey, startedAt])
+}
+
+model ElecZone {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  kind      ElecZoneKind
+  keywords  Json         @default("[]") // municipios / colonias (sin acentos, minúsculas)
+  lat       Float?
+  lng       Float?
+  radiusKm  Float?
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  listings   ElecListing[]
+  tradesBuy  ElecTrade[]   @relation("TradeBuyZone")
+  tradesSell ElecTrade[]   @relation("TradeSellZone")
+}
+
+model ElecSettings {
+  id                String   @id @default("singleton")
+  minScoreAlert     Int      @default(7)
+  disappearSessions Int      @default(2) // sesiones (en días distintos) sin verlo
+  disappearMinHours Int      @default(48)
+  fastSaleDays      Int      @default(7)
+  windowDays        Int      @default(60) // ventana de datos para la tabla de precios
+  minSample         Int      @default(3)
+  updatedAt         DateTime @updatedAt
+}
+
+model ElecTrade {
+  id         String    @id @default(cuid())
+  listingId  String?   @unique
+  equipo     String
+  line       String?
+  chip       String?
+  ramGb      Int?
+  ssdGb      Int?
+  buyPrice   Float
+  buyDate    DateTime
+  buyZoneId  String?
+  sellPrice  Float?
+  sellDate   DateTime?
+  sellZoneId String?
+  costs      Float     @default(0) // traslados, reparaciones, etc.
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  listing  ElecListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  buyZone  ElecZone?    @relation("TradeBuyZone", fields: [buyZoneId], references: [id], onDelete: SetNull)
+  sellZone ElecZone?    @relation("TradeSellZone", fields: [sellZoneId], references: [id], onDelete: SetNull)
+}

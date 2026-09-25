@@ -6,6 +6,9 @@ import { getAlerts, setAlerts, getGroups, setGroups, getSettings } from '../shar
 import { recordAuthorPost, getAuthor, setMarkedAsAgent } from '../shared/authors.js'
 
 const RELOAD_ALARM_PREFIX = 'reload-group-'
+const MP_RELOAD_ALARM = 'mp-reload-search'
+const MP_RELOAD_MIN_MIN = 4
+const MP_RELOAD_MAX_MIN = 20
 
 // ── Message handling ─────────────────────────────────────────────────────────
 
@@ -300,16 +303,49 @@ chrome.alarms?.onAlarm.addListener(async (alarm) => {
   }
 })
 
+// ── Reload de Marketplace (búsqueda, cadencia aleatoria) ─────────────────────
+//
+// Vive aquí y no en el content script para que siga funcionando aunque la
+// pestaña esté en segundo plano o Chrome la haya suspendido (memory saver):
+// las alarmas despiertan al service worker aunque nadie esté viendo la pestaña.
+// Cada disparo reprograma el siguiente con un intervalo aleatorio nuevo (4–20
+// min), nunca un período fijo. Nunca toca una pestaña con un producto abierto.
+
+function scheduleMpReload() {
+  const minutes = MP_RELOAD_MIN_MIN + Math.random() * (MP_RELOAD_MAX_MIN - MP_RELOAD_MIN_MIN)
+  chrome.alarms.create(MP_RELOAD_ALARM, { delayInMinutes: minutes })
+}
+
+chrome.alarms?.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== MP_RELOAD_ALARM) return
+  scheduleMpReload() // siempre reprograma, pase lo que pase con este ciclo
+
+  const tabs = await chrome.tabs.query({ url: 'https://*.facebook.com/marketplace/*' })
+  for (const tab of tabs) {
+    if (!tab.id || !tab.url) continue
+    if (/\/marketplace\/item\/\d+/.test(tab.url)) continue // nunca sobre un producto abierto
+
+    // Pedirle al content script que vacíe su cola antes de recargar. Si
+    // responde que ahora es un producto abierto, respetarlo y no tocar la
+    // pestaña; si no responde (página aún cargando, script no inyectado),
+    // recargar directo.
+    const res = await chrome.tabs.sendMessage(tab.id, { type: 'MP_FORCE_RELOAD' }).catch(() => undefined)
+    if (res === undefined) await chrome.tabs.reload(tab.id).catch(() => {})
+  }
+})
+
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
 chrome.runtime.onInstalled.addListener(async () => {
   await updateBadge()
   await syncReloadAlarms()
+  await scheduleMpReload()
 })
 
 chrome.runtime.onStartup.addListener(async () => {
   await updateBadge()
   await syncReloadAlarms()
+  await scheduleMpReload()
 })
 
 // Re-sync alarmas si el usuario edita grupos o settings

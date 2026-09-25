@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import {
   ExternalLink, RefreshCw, Loader2, ChevronDown, ChevronRight, Bell, Copy, Download, Trash2,
-  Pencil, MessageSquare, ShoppingCart, AlertTriangle,
+  Pencil, MessageSquare, ShoppingCart, AlertTriangle, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -115,9 +115,12 @@ function notifyListing(l: ElecListingDTO) {
   n.onclick = () => { window.open(l.url, '_blank'); n.close() }
 }
 
-function AlertToastCard({ l }: { l: ElecListingDTO }) {
+function AlertToastCard({ l, onClose }: { l: ElecListingDTO; onClose: () => void }) {
   return (
-    <div role='alert' className='flex w-full items-start gap-3 rounded-lg border border-l-4 border-l-green-500 bg-background px-4 py-3 shadow-xl animate-in fade-in slide-in-from-bottom-4 zoom-in-95 duration-300'>
+    <div role='alert' className='relative flex w-full items-start gap-3 rounded-lg border border-l-4 border-l-green-500 bg-background px-4 py-3 pr-7 shadow-xl animate-in fade-in slide-in-from-bottom-4 zoom-in-95 duration-300'>
+      <button type='button' onClick={onClose} aria-label='Cerrar' className='absolute right-1.5 top-1.5 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'>
+        <X className='h-3.5 w-3.5' />
+      </button>
       <span className={cn('mt-0.5 flex h-8 w-8 shrink-0 animate-pulse items-center justify-center rounded-full', 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400')}>
         <Bell className='h-4 w-4' />
       </span>
@@ -271,7 +274,7 @@ export default function ElecListingsTable({
           const elite = (l.opportunityScore ?? 0) >= 9
           notifyListing(l)
           playAlertChime(elite)
-          toast.custom(() => <AlertToastCard l={l} />, { duration: elite ? Infinity : 10000 })
+          toast.custom((t) => <AlertToastCard l={l} onClose={() => toast.dismiss(t)} />, { duration: elite ? Infinity : 10000 })
         }
       } catch { /* reintenta en el próximo tick */ }
     }, 20000)

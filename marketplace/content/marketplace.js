@@ -189,6 +189,27 @@
     scanTimer = setTimeout(() => { scan(); scheduleFlush() }, 400)
   }
 
+  // ── Recarga periódica ────────────────────────────────────────────────────────
+  // El grid de resultados no siempre pinta en vivo los listings que se acaban
+  // de publicar; recargar cada rato agarra lo nuevo. Solo en resultados de
+  // búsqueda (nunca con un item abierto, para no interrumpir), intervalo
+  // aleatorio para no ser un patrón fijo. Si no toca recargar (item abierto,
+  // pausado, cola pendiente), reintenta más tarde en vez de perder el ciclo.
+  const RELOAD_MIN_MS = 4 * 60 * 1000
+  const RELOAD_MAX_MS = 5 * 60 * 1000
+
+  function scheduleReload() {
+    const delay = RELOAD_MIN_MS + Math.random() * (RELOAD_MAX_MS - RELOAD_MIN_MS)
+    setTimeout(async () => {
+      if (enabled && onMarketplace() && !isItemUrl() && currentSearch()) {
+        if (queue.length) await flush()
+        location.reload()
+        return
+      }
+      scheduleReload()
+    }, delay)
+  }
+
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === 'MP_DUMP_LAYOUT') {
       sendResponse({ ok: true, html: window.MPExtract.dumpLayout(document), url: location.href })
@@ -214,6 +235,7 @@
     log('activo en', location.href)
     new MutationObserver(scheduleScan).observe(document.body, { childList: true, subtree: true })
     scheduleScan()
+    scheduleReload()
     // FB es SPA: la URL cambia sin recargar (abrir/cerrar item, nueva búsqueda)
     let lastHref = location.href
     setInterval(() => { if (location.href !== lastHref) { lastHref = location.href; scheduleScan() } }, 1000)

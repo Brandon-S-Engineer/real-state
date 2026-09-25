@@ -35,6 +35,10 @@ export const DEFAULT_ZONES = [
     name: 'Toluca', kind: 'VENTA' as const, lat: 19.2826, lng: -99.6557, radiusKm: 12,
     keywords: ['toluca', 'metepec', 'zinacantepec'],
   },
+  {
+    name: 'Benito Juárez', kind: 'VENTA' as const, lat: 19.3781, lng: -99.1620, radiusKm: 4,
+    keywords: ['benito juarez', 'del valle', 'napoles', 'ciudad de los deportes', 'nochebuena', 'portales', 'narvarte'],
+  },
 ]
 
 /** Crea las zonas por defecto la primera vez (config, no datos de prueba). */

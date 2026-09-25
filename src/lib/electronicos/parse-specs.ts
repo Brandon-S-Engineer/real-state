@@ -218,12 +218,18 @@ function detectFlags(t: string): SpecFlags {
   return f
 }
 
+// Frases que en la práctica casi nadie usa para anunciar un Mac con chip Apple
+// (quien vende un M1+ pone "M1", "chip M2"…): son la forma en que se suele
+// anunciar un Intel viejo, aunque no digan el año ni "Intel" directamente.
+// Agregar aquí más términos conforme se detecten falsos negativos.
+const INTEL_ONLY_KEYWORDS = [/\bretina\b(?!\s*(display\s*)?xdr)/, /\bsuper ?drive\b/, /\bunibody\b/]
+
 function detectIntel(t: string, chip: string | null, year: number | null): boolean {
   if (chip) return false
   if (/\bintel\b|\bcore ?i[3579]\b|\bi[3579]\b|\bi[3579]-\d/.test(t)) return true
   if (/\b(mid|late|early) 20(0\d|1\d)\b/.test(t)) return true
   if (year !== null && year <= 2019) return true
-  if (/\bretina\b/.test(t) && year !== null && year < 2020) return true
+  if (!/liquid retina/.test(t) && INTEL_ONLY_KEYWORDS.some((re) => re.test(t))) return true
   return false
 }
 

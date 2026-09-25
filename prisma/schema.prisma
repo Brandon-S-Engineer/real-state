@@ -429,6 +429,8 @@ model ElecListing {
   @@index([status])
   @@index([sourceKey])
   @@index([opportunityScore])
+  @@index([lastSeenAt])
+  @@index([updatedAt])
 }
 
 model ElecPriceHistory {

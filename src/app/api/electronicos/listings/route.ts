@@ -11,10 +11,10 @@ import { requireSessionOrApiKey, CORS_HEADERS, corsOk } from '@/lib/api-auth'
 import { requireAdmin } from '@/lib/require-admin'
 import { ingestListings, ingestSchema } from '@/lib/electronicos/ingest'
 import { toListingDTO } from '@/lib/electronicos/serialize'
+import { parseCategory } from '@/lib/electronicos/categories'
 
 function categoryParam(req: Request) {
-  const c = new URL(req.url).searchParams.get('category')
-  return c === 'IPHONE' || c === 'MACBOOK' ? c : undefined
+  return parseCategory(new URL(req.url).searchParams.get('category'))
 }
 
 export function OPTIONS() {

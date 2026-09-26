@@ -1,7 +1,7 @@
 // ── Catálogo iPhone (11 en adelante) ─────────────────────────────────────────
 //
 // Fuente: Wikipedia (List of iPhone models + páginas de cada generación),
-// consultado 2026-09. Corte en el iPhone 11 = mismo corte que iOS 26; X/XS/XR
+// consultado 2026-09. Corte en el iPhone 11 = mismo corte que iOS 26 y 27; X/XS/XR
 // y anteriores se descartan como "viejo" (igual que Intel en MacBook).
 //
 // En iPhone el precio lo mueven modelo + almacenamiento; chip y RAM vienen

@@ -16,6 +16,12 @@ export type TradeDraft = Partial<Omit<ElecTradeDTO, 'id'>> & { id?: string }
 
 const today = () => new Date().toISOString().slice(0, 10)
 
+const EQUIPO_PLACEHOLDER: Record<Category, string> = {
+  MACBOOK: 'MacBook Air M2 16/512 medianoche',
+  IPHONE: 'iPhone 15 Pro 256 titanio natural',
+  IPAD: 'iPad Air 11" M2 128 + Pencil',
+}
+
 export function draftFromListing(l: ElecListingDTO): TradeDraft {
   return {
     category: l.category,
@@ -86,7 +92,7 @@ function TradeDialog({
         <div className='grid grid-cols-2 gap-3'>
           <div className='space-y-1.5 col-span-2'>
             <Label>Equipo</Label>
-            <Input value={f.equipo ?? ''} onChange={(e) => set({ equipo: e.target.value })} placeholder={category === 'IPHONE' ? 'iPhone 15 Pro 256 titanio natural' : 'MacBook Air M2 16/512 medianoche'} />
+            <Input value={f.equipo ?? ''} onChange={(e) => set({ equipo: e.target.value })} placeholder={EQUIPO_PLACEHOLDER[category]} />
           </div>
           <div className='space-y-1.5'>
             <Label>{meta.hasChip ? 'Línea' : 'Modelo'}</Label>

@@ -125,6 +125,9 @@ export function scoreListing(
   if (f.piezaGenerica) { score -= 1.5; reasons.push({ pts: -1.5, why: 'Pantalla/batería no original' }) }
   if (f.compania) { score -= 2; reasons.push({ pts: -2, why: 'Amarrado a compañía (no liberado) — vale menos' }) }
   if (f.liberado) { score += 0.3; reasons.push({ pts: 0.3, why: 'Liberado' }) }
+  if (f.conPencil) { score += 0.5; reasons.push({ pts: 0.5, why: 'Incluye Apple Pencil' }) }
+  if (f.conTeclado) { score += 0.5; reasons.push({ pts: 0.5, why: 'Incluye teclado' }) }
+  if (f.celular) { score += 0.3; reasons.push({ pts: 0.3, why: 'Wi-Fi + Cellular' }) }
   if (l.batteryHealth != null && l.batteryHealth < 80) { score -= 2; reasons.push({ pts: -2, why: `Batería ${l.batteryHealth}% (pide servicio)` }) }
   else if (l.batteryHealth != null && l.batteryHealth < 85) { score -= 1; reasons.push({ pts: -1, why: `Batería ${l.batteryHealth}%` }) }
   if (l.batteryCycles != null && l.batteryCycles > 800) { score -= 1; reasons.push({ pts: -1, why: `${l.batteryCycles} ciclos` }) }

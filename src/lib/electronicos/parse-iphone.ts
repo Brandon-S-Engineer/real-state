@@ -6,13 +6,12 @@
 
 import { IPHONE_CATALOG, iphoneEntry, type IphoneLine } from './iphone-catalog'
 import {
-  ACCESSORY_ANYWHERE_RE, ACCESSORY_RE, SWAP_RE, buildConfigKey, detectBattery, detectColor, detectFlags,
+  SWAP_RE, buildConfigKey, detectBattery, detectColor, detectFlags, isAccessoryTitle,
   normalizeText, type ParsedSpecs,
 } from './parse-specs'
 
 const WANTED_RE = /^(busco|compro|se busca|necesito|quien venda|alguien que venda)\b|\b(busco|compro) (un |una )?i ?phone\b/
-const SERVICE_RE = /\b(reparacion|reparamos|servicio tecnico|cambio de (pantalla|bateria|display|centro de carga))\b/
-const IPHONE_ACCESSORY_RE = /\b(funda|mica|cargador|cable|protector|estuche|case|carcasa|correa)s? (para|de|compatible|magsafe)\b|\bpara i ?phone\b/
+export const SERVICE_RE = /\b(reparacion|reparamos|servicio tecnico|cambio de (pantalla|bateria|display|centro de carga))\b/
 
 const SUFFIX: Record<string, string> = { 'pro max': '_PRO_MAX', promax: '_PRO_MAX', pm: '_PRO_MAX', max: '_PRO_MAX', pro: '_PRO', plus: '_PLUS', '+': '_PLUS', mini: '_MINI' }
 
@@ -54,7 +53,7 @@ function detectModel(t: string): ModelHit | null {
   return null
 }
 
-function detectStorage(titleN: string, all: string): number | null {
+export function detectStorage(titleN: string, all: string): number | null {
   for (const t of [titleN, all]) {
     const tb = t.match(/\b([12])\s*(?:tb|teras?)\b/)
     if (tb) return Number(tb[1]) * 1024
@@ -94,7 +93,7 @@ export function parseIphone(title: string, description?: string | null): ParsedS
   }
 
   if (!/\bi ?phone/.test(all)) return { ...base, excluded: 'no_relevante' }
-  if (ACCESSORY_RE.test(titleN) || ACCESSORY_ANYWHERE_RE.test(titleN) || IPHONE_ACCESSORY_RE.test(titleN)) return { ...base, excluded: 'accesorio' }
+  if (isAccessoryTitle(titleN, 'i ?phone')) return { ...base, excluded: 'accesorio' }
   if (SERVICE_RE.test(titleN)) return { ...base, excluded: 'accesorio' }
   if (WANTED_RE.test(titleN)) return { ...base, excluded: 'busqueda' }
   if (SWAP_RE.test(titleN)) return { ...base, excluded: 'intercambio' }

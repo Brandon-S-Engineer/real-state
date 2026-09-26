@@ -70,8 +70,11 @@ function suggestOffer(l: ElecListingDTO, ref: MarketRef | undefined) {
 }
 
 function sellerMessage(l: ElecListingDTO, offer: number | null) {
-  const known = l.category === 'IPHONE' ? !!l.line : !!(l.line && l.chip)
-  const what = known ? `${CATEGORY_META[l.category as Category]?.label ?? 'MacBook'} ${configShort(l).replace(/ · \?/g, '').replace(/ · /g, ' ')}` : l.title
+  const meta = CATEGORY_META[l.category as Category] ?? CATEGORY_META.MACBOOK
+  const known = meta.hasChip ? !!(l.line && l.chip) : !!l.line
+  const cfg = configShort(l).replace(/ · \?/g, '').replace(/ · /g, ' ')
+  // Algunas etiquetas ya traen el nombre ("iPad 9 (A13)") — no repetirlo
+  const what = known ? (cfg.startsWith(meta.label) ? cfg : `${meta.label} ${cfg}`) : l.title
   const base = `¡Hola! ¿Sigue disponible tu ${what}?`
   if (!offer || !l.price || offer >= l.price) return `${base} Me interesa, ¿podemos vernos hoy en una plaza? Pago en efectivo.`
   return `${base} Me interesa. ¿Aceptarías ${money(offer)} en efectivo? Puedo verte hoy en una plaza comercial.`

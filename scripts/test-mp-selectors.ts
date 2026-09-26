@@ -35,9 +35,11 @@ function check(name: string, cond: boolean, detail?: unknown) {
   check('search: precio + reducido', m1pro?.price === 17000 && m1pro?.originalPrice === 18500, m1pro)
   check('search: ubicación', m1pro?.locationText === 'La Magdalena Contreras, CDMX', m1pro?.locationText)
   check('search: foto', /^https:\/\/scontent/.test(m1pro?.imageUrl ?? ''))
-  const macbooks = cards.filter((c: any) => w.MP_CONFIG.titleMustMatch.test(c.title))
-  check('search: filtro MacBook descarta iPad/ASUS/cargadores Ugreen', macbooks.length < cards.length, `${macbooks.length}/${cards.length}`)
-  console.log(`  ${cards.length} cards, ${macbooks.length} MacBook`)
+  const apple = cards.filter((c: any) => w.MP_CONFIG.titleMustMatch.test(c.title))
+  const dropped = cards.filter((c: any) => !w.MP_CONFIG.titleMustMatch.test(c.title)).map((c: any) => c.title)
+  check('search: filtro descarta lo que no es MacBook/iPhone/iPad (ASUS, cargadores Ugreen…)', dropped.length > 0 && dropped.every((t: string) => !/mac\s?book|i\s?phone|i\s?pad/i.test(t)), dropped)
+  check('search: filtro deja pasar iPads', apple.some((c: any) => /i\s?pad/i.test(c.title)), apple.map((c: any) => c.title))
+  console.log(`  ${cards.length} cards, ${apple.length} Apple · descartados: ${dropped.join(' | ')}`)
 }
 
 // ── Item abierto (diálogo sobre la búsqueda) ────────────────────────────────

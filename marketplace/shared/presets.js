@@ -1,6 +1,6 @@
 // ── Keyword presets ──────────────────────────────────────────────────────────
 //
-// MACBOOK_* / IPHONE_*: los que usa esta extensión (reventa de MacBooks e iPhones).
+// MACBOOK_* / IPHONE_* / IPAD_*: los que usa esta extensión (reventa de equipos Apple).
 // PRESET_*: pack original de bienes raíces — se conserva por referencia; la
 // extensión de real estate vive en extension/.
 
@@ -33,6 +33,15 @@ export const IPHONE_POSITIVES = [
   'iphone air',
   'iphone se',
   'pro max',
+]
+
+export const IPAD_POSITIVES = [
+  'ipad',
+  'i pad',
+  'ipad pro',
+  'ipad air',
+  'ipad mini',
+  'apple pencil',
 ]
 
 export const MACBOOK_NEGATIVES = [

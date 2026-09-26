@@ -11,7 +11,7 @@ export const zoneSchema = z.object({
 })
 
 export const tradeSchema = z.object({
-  category: z.enum(['MACBOOK', 'IPHONE']).default('MACBOOK'),
+  category: z.enum(['MACBOOK', 'IPHONE', 'IPAD']).default('MACBOOK'),
   listingId: z.string().nullable().optional(),
   equipo: z.string().min(1),
   line: z.string().nullable().optional(),

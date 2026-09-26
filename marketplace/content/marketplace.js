@@ -3,7 +3,7 @@
 // Captura PASIVA: solo lee lo que tú abres/scrolleas. No hace scroll, no hace
 // click, no navega. MutationObserver + debounce, igual que el de grupos.
 //
-//   - Grid de búsqueda: cada card MacBook/iPhone → lote para el CRM (cuenta como
+//   - Grid de búsqueda: cada card MacBook/iPhone/iPad → lote para el CRM (cuenta como
 //     "sesión" de esa búsqueda, para detectar listings que desaparecen)
 //   - Item abierto: descripción, condición, coords, vendedor → enriquece
 //

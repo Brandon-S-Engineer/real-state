@@ -8,6 +8,7 @@
 // devuelve null (no-op) y el flujo usa solo el parser determinístico.
 
 import { CATALOG, MODEL_NUMBERS, findEntries, linesForChip, type Line } from './catalog'
+import type { IphoneLine } from './iphone-catalog'
 
 export type SpecFlags = {
   conCaja?: boolean
@@ -20,13 +21,18 @@ export type SpecFlags = {
   piezas?: boolean // para piezas / no enciende / bloqueada
   nueva?: boolean // sellada / sin abrir
   vendido?: boolean // el propio texto dice "vendido"
+  // iPhone
+  liberado?: boolean
+  compania?: boolean // amarrado a Telcel/AT&T/…
+  faceIdFalla?: boolean
+  piezaGenerica?: boolean // pantalla/batería no original o cambiada
 }
 
-export type ExcludedReason = 'no_macbook' | 'intel' | 'accesorio' | 'busqueda' | 'intercambio'
+export type ExcludedReason = 'no_relevante' | 'intel' | 'viejo' | 'accesorio' | 'busqueda' | 'intercambio'
 
 export type ParsedSpecs = {
   excluded: ExcludedReason | null
-  line: Line | null
+  line: Line | IphoneLine | null
   chip: string | null
   ramGb: number | null
   ssdGb: number | null
@@ -64,17 +70,19 @@ function normSsd(value: number, unit: string | undefined): number | null {
   return null
 }
 
+// MacBook: "PRO_14|M3 Pro|18|512" · iPhone: "IP_15_PRO|256" (chip/RAM vienen fijos por modelo)
 export function buildConfigKey(p: { line: string | null; chip: string | null; ramGb: number | null; ssdGb: number | null }): string | null {
+  if (p.line?.startsWith('IP_')) return `${p.line}|${p.ssdGb ?? '?'}`
   if (!p.line || !p.chip) return null
   return `${p.line}|${p.chip}|${p.ramGb ?? '?'}|${p.ssdGb ?? '?'}`
 }
 
 // ── Detecciones puntuales ─────────────────────────────────────────────────────
 
-const ACCESSORY_RE = /^(funda|cargador|teclado|teclados|pantalla|display|bateria|mouse|magic|estuche|protector|mica|skin|hub|adaptador|cable|bolsa|mochila|base|soporte|carcasa|cubierta|tapa|logic ?board|placa|board|bisagra)\b/
-const ACCESSORY_ANYWHERE_RE = /\b(funda|cargador|estuche|mochila|hub usb|adaptador) (para|de|compatible)\b|\bpara mac ?book\b/
-const WANTED_RE = /^(busco|compro|se busca|necesito|quien venda|alguien que venda)\b|\b(busco|compro) (una |un )?mac ?book\b/
-const SWAP_RE = /^cambio\b|\bcambio (mi )?mac ?book\b|\bintercambio\b/
+export const ACCESSORY_RE = /^(funda|cargador|teclado|teclados|pantalla|display|bateria|mouse|magic|estuche|protector|mica|skin|hub|adaptador|cable|bolsa|mochila|base|soporte|carcasa|cubierta|tapa|logic ?board|placa|board|bisagra)\b/
+export const ACCESSORY_ANYWHERE_RE = /\b(funda|cargador|estuche|mochila|hub usb|adaptador) (para|de|compatible)\b|\bpara mac ?book\b/
+export const WANTED_RE = /^(busco|compro|se busca|necesito|quien venda|alguien que venda)\b|\b(busco|compro) (una |un )?mac ?book\b/
+export const SWAP_RE = /^cambio\b|\bcambio (mi )?mac ?book\b|\bintercambio\b/
 
 function detectChip(t: string): string | null {
   if (/\bneo\b/.test(t) || /\ba18\b/.test(t)) return 'A18 Pro'
@@ -159,18 +167,19 @@ function detectRamSsd(t: string): { ram: number | null; ssd: number | null } {
   return { ram, ssd }
 }
 
-function detectYear(t: string): number | null {
+export function detectYear(t: string): number | null {
   const m = t.match(/\b(20(?:0\d|1\d|2[0-6]))\b/)
   return m ? Number(m[1]) : null
 }
 
-function detectBattery(t: string): { health: number | null; cycles: number | null } {
+export function detectBattery(t: string): { health: number | null; cycles: number | null } {
   let health: number | null = null
   let cycles: number | null = null
   const h =
     t.match(/(\d{2,3})\s*%\s*(?:de\s*)?(?:bat|condici|salud|health|vida|capacidad)/) ??
     t.match(/(?:bateria|salud|condicion|health|capacidad)[^\d%]{0,25}(\d{2,3})\s*%/) ??
-    t.match(/\b(\d{2,3})\s*%/)
+    t.match(/\b(\d{2,3})\s*%/) ??
+    t.match(/(?:salud de (?:la )?bateria|bateria)\s*(?:al|de|en|:)?\s*(\d{2,3})\b(?!\s*(?:gb|ciclos|mah))/)
   if (h) {
     const v = Number(h[1])
     if (v >= 50 && v <= 100) health = v
@@ -198,23 +207,41 @@ const COLORS: [RegExp, string][] = [
   [/indigo/, 'Índigo'],
 ]
 
-function detectColor(t: string): string | null {
+export function detectColor(t: string): string | null {
   for (const [re, name] of COLORS) if (re.test(t)) return name
   return null
 }
 
-function detectFlags(t: string): SpecFlags {
+// "Bloqueada por iCloud" sí es para piezas; "sin iCloud" / "libre de iCloud" es
+// justo lo contrario, por eso iCloud solo cuenta con contexto de bloqueo.
+const ICLOUD_LOCK = /icloud (bloquead|activ|puest|atorad|vinculad)|bloque(o|ad[oa]) (de|por|con) (icloud|cuenta|apple id)|con (icloud|cuenta) (de otra|ajena|puesta|activa)|pide (icloud|cuenta|contrasena)/
+
+export function detectFlags(t: string, category: 'MACBOOK' | 'IPHONE' = 'MACBOOK'): SpecFlags {
   const f: SpecFlags = {}
+  // "sin detalles" / "cero golpes" dicen lo contrario: se quitan antes de buscar defectos
+  const d = t.replace(/\b(sin|cero|0|nada de|ningun|ni un) (ningun |tipo de |algun )?(detalles?|detallitos?|rayon(es)?|rayas?|rayaduras?|marcas( de uso)?|golpes?|desgaste|abolladuras?)\b/g, ' ')
   if (/\b(con|en|incluye|y) (su )?caja\b|caja original|\bcon empaque\b/.test(t)) f.conCaja = true
   if (/\bfactura\b|\bticket\b/.test(t)) f.factura = true
   if (/apple ?care/.test(t)) f.appleCare = true
   if (/garantia/.test(t)) f.garantia = true
-  if (/\bdetalle|detallito|rayon|rayada|rayado|marcas de uso|desgaste/.test(t)) f.detalle = true
-  if (/golpe|abollad|chocad|sumid/.test(t)) f.golpe = true
+  if (/\bdetalle|detallito|rayon|rayada|rayado|marcas de uso|desgaste/.test(d)) f.detalle = true
+  if (/golpe|abollad|chocad|sumid/.test(d)) f.golpe = true
   if (/pantalla (rota|estrellada|danada|quebrada|con lineas|manchada)|display roto|lineas en (la )?pantalla|mancha en (la )?pantalla/.test(t)) f.pantallaRota = true
-  if (/(para|por) (piezas|refacciones)|\bpiezas\b|refaccion|no enciende|no prende|no sirve|bloquead|icloud|\bmdm\b|placa danada/.test(t)) f.piezas = true
+  // "no sirve el face id" es una falla puntual, no "para piezas"; "piezas originales" tampoco.
+  // En iPhone "bloqueado" a secas casi siempre es de compañía (Telcel), no iCloud.
+  const piezasRe = category === 'IPHONE'
+    ? /(para|por) (piezas|refacciones)|\bpiezas\b(?! (son )?original| cambiad)|refaccion|no (enciende|prende|sirve)\b(?! (el|la|los|las|su|bien) )|\bmdm\b|placa danada/
+    : /(para|por) (piezas|refacciones)|\bpiezas\b(?! (son )?original| cambiad)|refaccion|no (enciende|prende|sirve)\b(?! (el|la|los|las|su|bien) )|\bbloquead|\bmdm\b|placa danada/
+  if (piezasRe.test(t) || ICLOUD_LOCK.test(t)) f.piezas = true
   if (/\bsellad[ao]\b|sin abrir|nueva en caja|\bnueva\b(?! como)|\bnuevo\b(?! como)/.test(t) && !/como nuev|semi ?nuev|casi nuev/.test(t)) f.nueva = true
   if (/\bvendid[ao]\b|\bsold\b|ya se vendio/.test(t)) f.vendido = true
+
+  if (category === 'IPHONE') {
+    if (/\bliberad[oa]|\bdesbloquead|\bunlocked\b|cualquier (compania|operador)|todas las companias/.test(t)) f.liberado = true
+    else if (/\b(telcel|at ?& ?t|att|movistar|unefon|bait)\b|de compania|\bbloquead[oa] (a|con|para) /.test(t)) f.compania = true
+    if (/face ?id (no|fall|mal|danad)|sin face ?id|no (tiene|funciona|sirve|jala) (el )?face ?id/.test(t)) f.faceIdFalla = true
+    if (/(pantalla|display|bateria) (generica|no original|cambiad|remplazad|reemplazad)|pieza (desconocida|no original)|piezas no original|(mensaje|aviso) de (pieza|pantalla|bateria)/.test(t)) f.piezaGenerica = true
+  }
   return f
 }
 
@@ -246,7 +273,7 @@ export function parseSpecs(title: string, description?: string | null): ParsedSp
     parseConfidence: 0, needsReview: true, configKey: null, notes,
   }
 
-  if (!/mac ?book/.test(all)) return { ...base, excluded: 'no_macbook' }
+  if (!/mac ?book/.test(all)) return { ...base, excluded: 'no_relevante' }
   if (ACCESSORY_RE.test(titleN) || ACCESSORY_ANYWHERE_RE.test(titleN)) return { ...base, excluded: 'accesorio' }
   if (WANTED_RE.test(titleN)) return { ...base, excluded: 'busqueda' }
   if (SWAP_RE.test(titleN)) return { ...base, excluded: 'intercambio' }

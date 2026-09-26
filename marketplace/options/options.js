@@ -4,7 +4,7 @@ import {
   generateId, extractGroupSlug,
 } from '../shared/storage.js'
 import { DEFAULT_TEMPLATES, composeMessage, textToBlock } from '../shared/templates.js'
-import { MACBOOK_POSITIVES, MACBOOK_NEGATIVES } from '../shared/presets.js'
+import { MACBOOK_POSITIVES, MACBOOK_NEGATIVES, IPHONE_POSITIVES } from '../shared/presets.js'
 
 function $(id) { return document.getElementById(id) }
 
@@ -157,9 +157,9 @@ function mergeUnique(existing, preset) {
   return [...existing, ...additions]
 }
 
-async function loadPositivesPack() {
+async function loadPositivesPack(preset = MACBOOK_POSITIVES) {
   const current = $('kw-positive').value.split('\n').map((s) => s.trim()).filter(Boolean)
-  const merged = mergeUnique(current, MACBOOK_POSITIVES)
+  const merged = mergeUnique(current, preset)
   const added = merged.length - current.length
   $('kw-positive').value = merged.join('\n')
   debounceSaveKeywords()
@@ -311,7 +311,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Keywords
   $('kw-positive').addEventListener('input', debounceSaveKeywords)
   $('kw-negative').addEventListener('input', debounceSaveKeywords)
-  $('load-positives-pack').addEventListener('click', loadPositivesPack)
+  $('load-positives-pack').addEventListener('click', () => loadPositivesPack(MACBOOK_POSITIVES))
+  $('load-iphone-pack').addEventListener('click', () => loadPositivesPack(IPHONE_POSITIVES))
   $('load-negatives-pack').addEventListener('click', loadNegativesPack)
 
   // Templates

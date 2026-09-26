@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { PriceTableRow } from '@/lib/electronicos/stats'
-import { ConfidenceDot, LINES, LINE_LABEL, configShort, downloadFile, money, moneyK } from './shared'
+import { CATEGORY_META, ConfidenceDot, configShort, downloadFile, money, moneyK, type Category } from './shared'
 
 type SortKey = 'n' | 'spread' | 'buyMed' | 'sellMed' | 'exit' | 'days'
 
@@ -24,13 +24,15 @@ function Band({ b, fallbackNote }: { b: PriceTableRow['all']; fallbackNote?: boo
 }
 
 export default function ElecPreciosTable({
-  rows, windowDays, fastSaleDays, onOpenConfig,
+  category, rows, windowDays, fastSaleDays, onOpenConfig,
 }: {
+  category: Category
   rows: PriceTableRow[]
   windowDays: number
   fastSaleDays: number
   onOpenConfig: (configKey: string) => void
 }) {
+  const meta = CATEGORY_META[category]
   const [line, setLine] = useState('')
   const [q, setQ] = useState('')
   const [hideLow, setHideLow] = useState(false)
@@ -79,7 +81,7 @@ export default function ElecPreciosTable({
       `"${configShort(r)}"`, r.n, r.confidence, r.buy.p10, r.buy.p50, r.buy.p90, r.sell.p10, r.sell.p50, r.sell.p90,
       r.all.p25, r.all.p50, r.spread, r.spreadApprox, r.exitPrice, r.exitN, r.activeMedian, r.avgDaysOnMarket,
     ].map((v) => v ?? '').join(','))
-    downloadFile([header, ...lines].join('\n'), `precios-macbook-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8')
+    downloadFile([header, ...lines].join('\n'), `precios-${category.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8')
   }
 
   return (
@@ -88,7 +90,7 @@ export default function ElecPreciosTable({
         <Input placeholder='Buscar configuración...' value={q} onChange={(e) => setQ(e.target.value)} className='w-52' />
         <select value={line} onChange={(e) => setLine(e.target.value)} className='border rounded-md px-2 py-2 text-sm bg-background h-9'>
           <option value=''>Todos los modelos</option>
-          {LINES.map((l) => <option key={l} value={l}>{LINE_LABEL[l]}</option>)}
+          {meta.lines.map((l) => <option key={l} value={l}>{meta.lineLabel[l]}</option>)}
         </select>
         <Button variant={onlyBudget ? 'default' : 'outline'} size='sm' onClick={() => setOnlyBudget((v) => !v)} title='Compra P25 entre $25k y $35k'>
           Mi presupuesto ($25–35k)
@@ -96,7 +98,7 @@ export default function ElecPreciosTable({
         <Button variant={hideLow ? 'default' : 'outline'} size='sm' onClick={() => setHideLow((v) => !v)}>
           Ocultar poca data
         </Button>
-        <Button variant={onlyComplete ? 'default' : 'outline'} size='sm' onClick={() => setOnlyComplete((v) => !v)} title='Ocultar grupos sin RAM o SSD conocidos (agrupados solo por línea+chip)'>
+        <Button variant={onlyComplete ? 'default' : 'outline'} size='sm' onClick={() => setOnlyComplete((v) => !v)} title={meta.hasChip ? 'Ocultar grupos sin RAM o SSD conocidos (agrupados solo por línea+chip)' : 'Ocultar grupos sin almacenamiento conocido (agrupados solo por modelo)'}>
           Solo specs completos
         </Button>
         <Button variant='outline' size='sm' className='ml-auto' onClick={exportCsv} disabled={!filtered.length}>CSV</Button>

@@ -4,11 +4,12 @@ import { NextResponse } from 'next/server'
 import { tradeSchema } from '@/lib/electronicos/schemas'
 import { toTradeDTO } from '@/lib/electronicos/serialize'
 
-
-export async function GET() {
+export async function GET(req: Request) {
   const error = await requireAdmin()
   if (error) return error
+  const category = new URL(req.url).searchParams.get('category')
   const trades = await prisma.elecTrade.findMany({
+    where: category ? { category } : {},
     include: { listing: { select: { title: true, url: true } } },
     orderBy: { buyDate: 'desc' },
   })

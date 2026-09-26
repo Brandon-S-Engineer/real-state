@@ -7,7 +7,8 @@
 import { prisma } from '@/lib/db'
 import { Prisma, type ElecListing, type ElecSettings, type ElecZone } from '@prisma/client'
 import { z } from 'zod'
-import { parseSpecs, parsePriceFromText } from './parse-specs'
+import { parsePriceFromText } from './parse-specs'
+import { parseListing } from './categories'
 import { ensureDefaultZones, matchZone } from './zones'
 import { getElecSettings, indexGroups, loadWindowRows, scoreListing } from './stats'
 
@@ -174,7 +175,7 @@ async function upsertOne(input: IngestInput, raw: z.infer<typeof listingInputSch
 
   const title = raw.title.trim()
   const description = raw.description?.trim() || existing?.description || null
-  const specs = parseSpecs(title, description)
+  const specs = parseListing(title, description)
 
   if (specs.excluded) {
     // Si ya lo teníamos y ahora (con descripción completa) resulta Intel/accesorio, fuera.
@@ -194,6 +195,7 @@ async function upsertOne(input: IngestInput, raw: z.infer<typeof listingInputSch
   const specData = existing?.specsManual
     ? {}
     : {
+        category: specs.category,
         line: specs.line, chip: specs.chip, ramGb: specs.ramGb, ssdGb: specs.ssdGb, year: specs.year,
         color: specs.color, batteryCycles: specs.batteryCycles, batteryHealth: specs.batteryHealth,
         flags: specs.flags as Prisma.InputJsonValue, parseConfidence: specs.parseConfidence,
@@ -270,7 +272,7 @@ export async function reparseAndRescoreAll(): Promise<{ reparsed: number; scored
       await prisma.elecListing.update({ where: { id: l.id }, data: { zoneId: zone?.id ?? null, zoneKind: zone?.kind ?? 'OTRA' } })
       continue
     }
-    const s = parseSpecs(l.title, l.description)
+    const s = parseListing(l.title, l.description)
     if (s.excluded && !l.comprado) {
       await prisma.elecListing.delete({ where: { id: l.id } })
       removed++
@@ -279,6 +281,7 @@ export async function reparseAndRescoreAll(): Promise<{ reparsed: number; scored
     await prisma.elecListing.update({
       where: { id: l.id },
       data: {
+        category: s.category,
         line: s.line, chip: s.chip, ramGb: s.ramGb, ssdGb: s.ssdGb, year: s.year, color: s.color,
         batteryCycles: s.batteryCycles, batteryHealth: s.batteryHealth, flags: s.flags as Prisma.InputJsonValue,
         parseConfidence: s.parseConfidence, needsReview: s.needsReview, configKey: s.configKey,

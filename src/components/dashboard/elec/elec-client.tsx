@@ -6,6 +6,7 @@ import type { ElecSettings } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import type { ElecListingDTO, ElecTradeDTO, ElecZoneDTO } from '@/lib/electronicos/serialize'
 import type { PriceTableRow } from '@/lib/electronicos/stats'
+import { CATEGORY_META, type Category } from '@/lib/electronicos/categories'
 import ElecListingsTable from './listings-table'
 import ElecPreciosTable from './precios-table'
 import ElecTrades, { draftFromListing, type TradeDraft } from './trades'
@@ -20,12 +21,15 @@ const TABS = [
 type Tab = (typeof TABS)[number]['id']
 
 export default function ElecClient(props: {
+  category: Category
   listings: ElecListingDTO[]
   prices: PriceTableRow[]
   trades: ElecTradeDTO[]
   zones: ElecZoneDTO[]
   settings: ElecSettings
 }) {
+  const { category } = props
+  const meta = CATEGORY_META[category]
   const router = useRouter()
   const params = useSearchParams()
   const initialTab = (params.get('tab') as Tab) ?? 'precios'
@@ -41,14 +45,14 @@ export default function ElecClient(props: {
 
   const setTab = useCallback((t: Tab) => {
     setTabState(t)
-    router.replace(`/dashboard/electronicos?tab=${t}`, { scroll: false })
-  }, [router])
+    router.replace(`${meta.path}?tab=${t}`, { scroll: false })
+  }, [router, meta.path])
 
   // Precios frescos al entrar a la pestaña (los listings cambian por el polling)
   useEffect(() => {
     if (tab !== 'precios') return
-    fetch('/api/electronicos/precios').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setPrices(d.data) }).catch(() => {})
-  }, [tab])
+    fetch(`/api/electronicos/precios?category=${category}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setPrices(d.data) }).catch(() => {})
+  }, [tab, category])
 
   useEffect(() => {
     if (minScoreAlert === settings.minScoreAlert) return
@@ -67,9 +71,9 @@ export default function ElecClient(props: {
     <div className='p-6 space-y-6'>
       <div className='flex flex-wrap items-end justify-between gap-4'>
         <div>
-          <h1 className='text-xl font-semibold'>Precios Electrónicos</h1>
+          <h1 className='text-xl font-semibold'>{meta.label}</h1>
           <p className='text-sm text-muted-foreground mt-1'>
-            MacBooks M1–M5 y Neo · {listings.length} capturados · {active} activos · {prices.filter((p) => !p.configKey.includes('?')).length} configuraciones
+            {meta.subtitle} · {listings.length} capturados · {active} activos · {prices.filter((p) => !p.configKey.includes('?')).length} configuraciones
             {review > 0 && <> · <button className='underline underline-offset-2' onClick={() => setTab('listings')}>{review} por revisar</button></>}
           </p>
         </div>
@@ -88,6 +92,7 @@ export default function ElecClient(props: {
 
       {tab === 'precios' && (
         <ElecPreciosTable
+          category={category}
           rows={prices}
           windowDays={settings.windowDays}
           fastSaleDays={settings.fastSaleDays}
@@ -97,6 +102,7 @@ export default function ElecClient(props: {
       {/* Listings se monta siempre (oculto) para que el polling de alertas siga vivo en cualquier pestaña */}
       <div className={tab === 'listings' ? '' : 'hidden'}>
         <ElecListingsTable
+          category={category}
           listings={listings}
           setListings={setListings}
           minScoreAlert={minScoreAlert}
@@ -108,7 +114,7 @@ export default function ElecClient(props: {
         />
       </div>
       {tab === 'trades' && (
-        <ElecTrades trades={trades} setTrades={setTrades} zones={zones} listings={listings} draft={tradeDraft} setDraft={setTradeDraft} />
+        <ElecTrades category={category} trades={trades} setTrades={setTrades} zones={zones} listings={listings} draft={tradeDraft} setDraft={setTradeDraft} />
       )}
       {tab === 'config' && (
         <ElecConfig zones={zones} setZones={setZones} settings={settings} setSettings={setSettings} />

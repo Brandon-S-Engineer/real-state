@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>MacBook Price Catcher — Configuración</title>
+  <title>Apple Price Catcher — Configuración</title>
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <main>
     <header>
-      <h1>MacBook Price Catcher</h1>
-      <p class="subtitle">Captura pasiva de MacBooks en Marketplace y grupos de Facebook</p>
+      <h1>Apple Price Catcher</h1>
+      <p class="subtitle">Captura pasiva de MacBooks e iPhones en Marketplace y grupos de Facebook</p>
     </header>
 
     <!-- Grupos -->
@@ -60,9 +60,12 @@
           <h2>Keywords positivas</h2>
           <p class="hint">Una palabra o frase por línea. Si el post contiene cualquiera, se dispara una alerta.</p>
         </div>
-        <button id="load-positives-pack" class="btn-ghost" title="Agrega el pack de MacBook (modelos y chips)">+ Pack MacBook</button>
+        <div>
+          <button id="load-positives-pack" class="btn-ghost" title="Agrega el pack de MacBook (modelos y chips)">+ Pack MacBook</button>
+          <button id="load-iphone-pack" class="btn-ghost" title="Agrega el pack de iPhone (modelos)">+ Pack iPhone</button>
+        </div>
       </div>
-      <textarea id="kw-positive" rows="10" placeholder="macbook&#10;macbook pro&#10;m3&#10;m4"></textarea>
+      <textarea id="kw-positive" rows="10" placeholder="macbook&#10;macbook pro&#10;iphone&#10;pro max"></textarea>
       <p class="hint">Tip: usa frases cortas. Mayúsculas, minúsculas y acentos no importan.</p>
     </section>
 
@@ -140,7 +143,7 @@
       <div class="card-header">
         <div>
           <h2>Conexión al CRM</h2>
-          <p class="hint">Los listings de MacBook se mandan solos a "Precios Electrónicos".</p>
+          <p class="hint">Los listings de MacBook e iPhone se mandan solos a sus secciones del CRM.</p>
         </div>
       </div>
       <div class="field">

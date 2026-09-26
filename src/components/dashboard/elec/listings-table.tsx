@@ -16,14 +16,15 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { ElecListingDTO } from '@/lib/electronicos/serialize'
 import { cleanPrices, isPriceUsable, percentile } from '@/lib/electronicos/math'
+import { coarseKey, coarseLabel, parseConfigKey } from '@/lib/electronicos/categories'
 import {
-  CATALOG, LINES, LINE_LABEL, ScoreBadge, SpecsEditorDialog, ZoneBadge, configShort, daysAgo,
-  downloadFile, formatDays, formatSsd, money, scoreTier,
+  CATALOG, CATEGORY_META, ScoreBadge, SpecsEditorDialog, ZoneBadge, configShort, daysAgo,
+  downloadFile, formatDays, formatSsd, money, scoreTier, type Category,
 } from './shared'
 
 // ── Referencia de mercado (client-side, misma lógica que el score) ────────────
 
-type MarketRef = { p25: number; median: number; sellMedian: number; n: number; basis: 'config' | 'línea+chip' }
+type MarketRef = { p25: number; median: number; sellMedian: number; n: number; basis: string }
 
 function buildMarketRefs(listings: ElecListingDTO[], minSample: number): Map<string, MarketRef> {
   const byConfig = new Map<string, ElecListingDTO[]>()
@@ -31,19 +32,18 @@ function buildMarketRefs(listings: ElecListingDTO[], minSample: number): Map<str
   for (const l of listings) {
     if (!isPriceUsable(l)) continue
     if (l.configKey && !l.configKey.includes('?')) byConfig.set(l.configKey, [...(byConfig.get(l.configKey) ?? []), l])
-    if (l.line && l.chip) {
-      const k = `${l.line}|${l.chip}`
-      byLineChip.set(k, [...(byLineChip.get(k) ?? []), l])
-    }
+    const k = coarseKey(l)
+    if (k) byLineChip.set(k, [...(byLineChip.get(k) ?? []), l])
   }
   const refs = new Map<string, MarketRef>()
   for (const l of listings) {
     let group: ElecListingDTO[] = []
-    let basis: MarketRef['basis'] = 'config'
+    let basis = 'config'
     if (l.configKey && !l.configKey.includes('?')) group = (byConfig.get(l.configKey) ?? []).filter((x) => x.id !== l.id)
-    if (group.length < minSample && l.line && l.chip) {
-      group = (byLineChip.get(`${l.line}|${l.chip}`) ?? []).filter((x) => x.id !== l.id)
-      basis = 'línea+chip'
+    const k = coarseKey(l)
+    if (group.length < minSample && k) {
+      group = (byLineChip.get(k) ?? []).filter((x) => x.id !== l.id)
+      basis = coarseLabel(l.line)
     }
     if (group.length < minSample) continue
     const prices = cleanPrices(group.map((g) => g.price!))
@@ -70,7 +70,8 @@ function suggestOffer(l: ElecListingDTO, ref: MarketRef | undefined) {
 }
 
 function sellerMessage(l: ElecListingDTO, offer: number | null) {
-  const what = l.line && l.chip ? `MacBook ${configShort(l).replace(/ · \?/g, '')}` : l.title
+  const known = l.category === 'IPHONE' ? !!l.line : !!(l.line && l.chip)
+  const what = known ? `${CATEGORY_META[l.category as Category]?.label ?? 'MacBook'} ${configShort(l).replace(/ · \?/g, '').replace(/ · /g, ' ')}` : l.title
   const base = `¡Hola! ¿Sigue disponible tu ${what}?`
   if (!offer || !l.price || offer >= l.price) return `${base} Me interesa, ¿podemos vernos hoy en una plaza? Pago en efectivo.`
   return `${base} Me interesa. ¿Aceptarías ${money(offer)} en efectivo? Puedo verte hoy en una plaza comercial.`
@@ -194,16 +195,16 @@ type Filters = {
   configKey: string // viene de la tabla de precios
 }
 
-const FILTERS_KEY = 'elec-listings-filters'
+const filtersKey = (c: Category) => (c === 'MACBOOK' ? 'elec-listings-filters' : `elec-listings-filters-${c}`)
 const FILTERS_DEFAULT: Filters = {
   q: '', scoreMin: 0, line: '', chip: '', ram: '', ssd: '', zone: '', source: '',
   priceMin: '', priceMax: '', maxAgeDays: '', status: 'ACTIVO', review: false, configKey: '',
 }
 
-function loadStoredFilters(): Filters {
+function loadStoredFilters(c: Category): Filters {
   if (typeof window === 'undefined') return FILTERS_DEFAULT
   try {
-    const raw = window.localStorage.getItem(FILTERS_KEY)
+    const raw = window.localStorage.getItem(filtersKey(c))
     return raw ? { ...FILTERS_DEFAULT, ...(JSON.parse(raw) as Partial<Filters>) } : FILTERS_DEFAULT
   } catch { return FILTERS_DEFAULT }
 }
@@ -213,8 +214,9 @@ const sel = 'border rounded-md px-2 py-2 text-sm bg-background h-9'
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ElecListingsTable({
-  listings, setListings, minScoreAlert, onMinScoreAlertChange, minSample, configFilter, onClearConfigFilter, onRegisterTrade,
+  category, listings, setListings, minScoreAlert, onMinScoreAlertChange, minSample, configFilter, onClearConfigFilter, onRegisterTrade,
 }: {
+  category: Category
   listings: ElecListingDTO[]
   setListings: (fn: (prev: ElecListingDTO[]) => ElecListingDTO[]) => void
   minScoreAlert: number
@@ -225,13 +227,16 @@ export default function ElecListingsTable({
   onRegisterTrade: (l: ElecListingDTO) => void
 }) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'opportunityScore', desc: true }])
-  const [filters, setFilters] = useState<Filters>(loadStoredFilters)
+  const meta = CATEGORY_META[category]
+  const [filters, setFilters] = useState<Filters>(() => loadStoredFilters(category))
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [recalculating, setRecalculating] = useState(false)
   const [purging, setPurging] = useState(false)
   const [editing, setEditing] = useState<ElecListingDTO | null>(null)
 
-  useEffect(() => { window.localStorage.setItem(FILTERS_KEY, JSON.stringify(filters)) }, [filters])
+  useEffect(() => {
+    try { window.localStorage.setItem(filtersKey(category), JSON.stringify(filters)) } catch { /* modo privado */ }
+  }, [filters, category])
   useEffect(() => {
     if (configFilter) setFilters((f) => ({ ...f, configKey: configFilter, status: '' }))
   }, [configFilter])
@@ -259,7 +264,7 @@ export default function ElecListingsTable({
       try {
         const since = cursorRef.current
         cursorRef.current = new Date().toISOString()
-        const res = await fetch(`/api/electronicos/listings?since=${encodeURIComponent(since)}`)
+        const res = await fetch(`/api/electronicos/listings?category=${category}&since=${encodeURIComponent(since)}`)
         if (!res.ok) return
         const { data } = (await res.json()) as { data: ElecListingDTO[] }
         if (!data.length) return
@@ -279,15 +284,15 @@ export default function ElecListingsTable({
       } catch { /* reintenta en el próximo tick */ }
     }, 20000)
     return () => clearInterval(interval)
-  }, [setListings])
+  }, [setListings, category])
 
   const reload = useCallback(async () => {
-    const res = await fetch('/api/electronicos/listings')
+    const res = await fetch(`/api/electronicos/listings?category=${category}`)
     if (res.ok) {
       const { data } = await res.json()
       setListings(() => data)
     }
-  }, [setListings])
+  }, [setListings, category])
 
   const handleRecalcular = async () => {
     setRecalculating(true)
@@ -309,7 +314,7 @@ export default function ElecListingsTable({
     if (!confirm(`¿Borrar ${listings.length - keep} listings capturados${keep ? ` (se conservan ${keep} comprados)` : ''}? No se puede deshacer.`)) return
     setPurging(true)
     try {
-      const res = await fetch('/api/electronicos/listings', { method: 'DELETE' })
+      const res = await fetch(`/api/electronicos/listings?category=${category}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
       const d = await res.json()
       toast.success(`${d.deleted} borrados${d.kept ? ` — ${d.kept} conservados` : ''}`)
@@ -517,19 +522,21 @@ export default function ElecListingsTable({
         </select>
         <select value={filters.line} onChange={(e) => set({ line: e.target.value })} className={sel}>
           <option value=''>Modelo</option>
-          {LINES.map((l) => <option key={l} value={l}>{LINE_LABEL[l]}</option>)}
+          {meta.lines.map((l) => <option key={l} value={l}>{meta.lineLabel[l]}</option>)}
         </select>
-        <select value={filters.chip} onChange={(e) => set({ chip: e.target.value })} className={sel}>
-          <option value=''>Chip</option>
-          {chips.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select value={filters.ram} onChange={(e) => set({ ram: e.target.value })} className={sel}>
-          <option value=''>RAM</option>
-          {[8, 16, 18, 24, 32, 36, 48, 64].map((r) => <option key={r} value={r}>{r}GB</option>)}
-        </select>
+        {meta.hasChip && <>
+          <select value={filters.chip} onChange={(e) => set({ chip: e.target.value })} className={sel}>
+            <option value=''>Chip</option>
+            {chips.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.ram} onChange={(e) => set({ ram: e.target.value })} className={sel}>
+            <option value=''>RAM</option>
+            {[8, 16, 18, 24, 32, 36, 48, 64].map((r) => <option key={r} value={r}>{r}GB</option>)}
+          </select>
+        </>}
         <select value={filters.ssd} onChange={(e) => set({ ssd: e.target.value })} className={sel}>
-          <option value=''>SSD</option>
-          {[256, 512, 1024, 2048, 4096].map((s) => <option key={s} value={s}>{formatSsd(s)}</option>)}
+          <option value=''>{meta.storageLabel}</option>
+          {meta.storageOptions.map((s) => <option key={s} value={s}>{formatSsd(s)}</option>)}
         </select>
         <select value={filters.zone} onChange={(e) => set({ zone: e.target.value })} className={sel}>
           <option value=''>Zona</option>
@@ -581,20 +588,20 @@ export default function ElecListingsTable({
           {filtered.length} listing{filtered.length !== 1 ? 's' : ''}{filtered.length !== listings.length && ` de ${listings.length}`}
           {filters.configKey && (
             <span className='ml-2 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs'>
-              {configShort({ line: filters.configKey.split('|')[0], chip: filters.configKey.split('|')[1], ramGb: Number(filters.configKey.split('|')[2]) || null, ssdGb: Number(filters.configKey.split('|')[3]) || null })}
+              {configShort(parseConfigKey(filters.configKey))}
               <button onClick={() => { set({ configKey: '' }); onClearConfigFilter() }} className='hover:text-foreground'>✕</button>
             </span>
           )}
         </div>
         <div className='flex gap-2'>
           <Button variant='outline' size='sm' disabled={!filtered.length} onClick={() => {
-            downloadFile(JSON.stringify({ generado: new Date().toISOString(), listings: filtered.map((l) => exportRow(l, refs.get(l.id))) }, null, 2), `macbooks-${new Date().toISOString().slice(0, 10)}.json`, 'application/json')
+            downloadFile(JSON.stringify({ generado: new Date().toISOString(), listings: filtered.map((l) => exportRow(l, refs.get(l.id))) }, null, 2), `${category.toLowerCase()}s-${new Date().toISOString().slice(0, 10)}.json`, 'application/json')
             toast.success(`${filtered.length} listings descargados — pégaselos a Claude`)
           }}>
             <Download className='h-3.5 w-3.5 mr-1.5' />
             Descargar {filtered.length || ''} para Claude
           </Button>
-          <Button variant='outline' size='sm' disabled={!filtered.length} onClick={() => downloadFile(toCsv(filtered.map((l) => exportRow(l, refs.get(l.id)))), `macbooks-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8')}>
+          <Button variant='outline' size='sm' disabled={!filtered.length} onClick={() => downloadFile(toCsv(filtered.map((l) => exportRow(l, refs.get(l.id)))), `${category.toLowerCase()}s-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8')}>
             CSV
           </Button>
         </div>
@@ -618,7 +625,7 @@ export default function ElecListingsTable({
             {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className='px-4 py-12 text-center text-muted-foreground'>
-                  {listings.length ? 'No hay listings con esos filtros' : 'Aún no hay capturas — abre Marketplace con la extensión activa y scrollea una búsqueda de MacBook'}
+                  {listings.length ? 'No hay listings con esos filtros' : `Aún no hay capturas — ${meta.emptyHint}`}
                 </td>
               </tr>
             ) : table.getRowModel().rows.map((row) => {

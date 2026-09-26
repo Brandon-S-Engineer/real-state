@@ -1,6 +1,6 @@
 // ── Keyword presets ──────────────────────────────────────────────────────────
 //
-// MACBOOK_*: los que usa esta extensión (reventa de MacBooks).
+// MACBOOK_* / IPHONE_*: los que usa esta extensión (reventa de MacBooks e iPhones).
 // PRESET_*: pack original de bienes raíces — se conserva por referencia; la
 // extensión de real estate vive en extension/.
 
@@ -17,6 +17,22 @@ export const MACBOOK_POSITIVES = [
   'm5',
   'apple laptop',
   'laptop apple',
+]
+
+export const IPHONE_POSITIVES = [
+  'iphone',
+  'i phone',
+  'iphone 11',
+  'iphone 12',
+  'iphone 13',
+  'iphone 14',
+  'iphone 15',
+  'iphone 16',
+  'iphone 17',
+  'iphone 18',
+  'iphone air',
+  'iphone se',
+  'pro max',
 ]
 
 export const MACBOOK_NEGATIVES = [
@@ -37,6 +53,8 @@ export const MACBOOK_NEGATIVES = [
   'cambio de pantalla',
   'cambio de batería',
   'cambio de bateria',
+  'protector',
+  'cambio de centro de carga',
 ]
 
 // ── Bienes raíces (referencia) ──

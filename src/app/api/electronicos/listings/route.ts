@@ -12,6 +12,11 @@ import { requireAdmin } from '@/lib/require-admin'
 import { ingestListings, ingestSchema } from '@/lib/electronicos/ingest'
 import { toListingDTO } from '@/lib/electronicos/serialize'
 
+function categoryParam(req: Request) {
+  const c = new URL(req.url).searchParams.get('category')
+  return c === 'IPHONE' || c === 'MACBOOK' ? c : undefined
+}
+
 export function OPTIONS() {
   return corsOk()
 }
@@ -41,10 +46,10 @@ export async function GET(req: Request) {
   const error = await requireAdmin()
   if (error) return error
 
-  const { searchParams } = new URL(req.url)
-  const since = searchParams.get('since')
+  const since = new URL(req.url).searchParams.get('since')
+  const category = categoryParam(req)
   const rows = await prisma.elecListing.findMany({
-    where: since ? { updatedAt: { gte: new Date(since) } } : {},
+    where: { ...(since ? { updatedAt: { gte: new Date(since) } } : {}), ...(category ? { category } : {}) },
     include: { zone: true },
     orderBy: { lastSeenAt: 'desc' },
     take: 2000,
@@ -52,12 +57,14 @@ export async function GET(req: Request) {
   return NextResponse.json({ data: rows.map(toListingDTO) })
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
   const error = await requireAdmin()
   if (error) return error
 
-  const { count } = await prisma.elecListing.deleteMany({ where: { comprado: false, trade: null } })
-  await prisma.elecCaptureSession.deleteMany({})
-  const kept = await prisma.elecListing.count()
+  const category = categoryParam(req)
+  const { count } = await prisma.elecListing.deleteMany({ where: { comprado: false, trade: null, ...(category ? { category } : {}) } })
+  // Las sesiones no tienen categoría; solo se limpian al purgar todo
+  if (!category) await prisma.elecCaptureSession.deleteMany({})
+  const kept = await prisma.elecListing.count({ where: category ? { category } : {} })
   return NextResponse.json({ ok: true, deleted: count, kept })
 }

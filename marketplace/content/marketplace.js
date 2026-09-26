@@ -3,7 +3,7 @@
 // Captura PASIVA: solo lee lo que tú abres/scrolleas. No hace scroll, no hace
 // click, no navega. MutationObserver + debounce, igual que el de grupos.
 //
-//   - Grid de búsqueda: cada card MacBook → lote para el CRM (cuenta como
+//   - Grid de búsqueda: cada card MacBook/iPhone → lote para el CRM (cuenta como
 //     "sesión" de esa búsqueda, para detectar listings que desaparecen)
 //   - Item abierto: descripción, condición, coords, vendedor → enriquece
 //
@@ -25,7 +25,7 @@
   const stats = { seen: 0, sent: 0, created: 0, skipped: 0, lastError: null, lastSentAt: null }
 
   function log(...args) {
-    console.log('%c[MacBook Catcher]', 'color:#0ea5e9;font-weight:600', ...args)
+    console.log('%c[Apple Catcher]', 'color:#0ea5e9;font-weight:600', ...args)
   }
 
   function normalize(s) {
@@ -168,7 +168,7 @@
       document.body.appendChild(statusEl)
     }
     const src = currentSearch() ?? lastSearch
-    statusEl.innerHTML = `<strong>💻 MacBook Catcher${enabled ? '' : ' (pausado)'}</strong><br>
+    statusEl.innerHTML = `<strong>🍏 Apple Catcher${enabled ? '' : ' (pausado)'}</strong><br>
       ${src ? `${escapeHtml(src.name)}<br>` : ''}
       Vistos ${stats.seen} · enviados ${stats.sent} · nuevos ${stats.created}
       ${queue.length ? ` · en cola ${queue.length}` : ''}

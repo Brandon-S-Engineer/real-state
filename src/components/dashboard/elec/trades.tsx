@@ -10,7 +10,7 @@ import { Pencil, Plus, Trash2, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { ElecListingDTO, ElecTradeDTO, ElecZoneDTO } from '@/lib/electronicos/serialize'
-import { CATALOG, LINES, LINE_LABEL, configShort, money } from './shared'
+import { CATALOG, CATEGORY_META, configShort, money, type Category } from './shared'
 
 export type TradeDraft = Partial<Omit<ElecTradeDTO, 'id'>> & { id?: string }
 
@@ -18,6 +18,7 @@ const today = () => new Date().toISOString().slice(0, 10)
 
 export function draftFromListing(l: ElecListingDTO): TradeDraft {
   return {
+    category: l.category,
     listingId: l.id,
     equipo: l.title.slice(0, 120),
     line: l.line, chip: l.chip, ramGb: l.ramGb, ssdGb: l.ssdGb,
@@ -29,8 +30,9 @@ export function draftFromListing(l: ElecListingDTO): TradeDraft {
 }
 
 function TradeDialog({
-  draft, zones, listings, onClose, onSaved,
+  category, draft, zones, listings, onClose, onSaved,
 }: {
+  category: Category
   draft: TradeDraft | null
   zones: ElecZoneDTO[]
   listings: ElecListingDTO[]
@@ -42,6 +44,7 @@ function TradeDialog({
   useEffect(() => { if (draft) setF(draft) }, [draft])
   if (!draft) return null
 
+  const meta = CATEGORY_META[category]
   const set = (p: TradeDraft) => setF((x) => ({ ...x, ...p }))
   const num = (v: string) => (v === '' ? null : Number(v))
   const sel = 'w-full border rounded-md px-3 py-2 text-sm bg-background'
@@ -54,6 +57,7 @@ function TradeDialog({
     setSaving(true)
     try {
       const body = {
+        category,
         listingId: f.listingId || null,
         equipo: f.equipo,
         line: f.line || null, chip: f.chip || null, ramGb: f.ramGb ?? null, ssdGb: f.ssdGb ?? null,
@@ -82,15 +86,16 @@ function TradeDialog({
         <div className='grid grid-cols-2 gap-3'>
           <div className='space-y-1.5 col-span-2'>
             <Label>Equipo</Label>
-            <Input value={f.equipo ?? ''} onChange={(e) => set({ equipo: e.target.value })} placeholder='MacBook Air M2 16/512 medianoche' />
+            <Input value={f.equipo ?? ''} onChange={(e) => set({ equipo: e.target.value })} placeholder={category === 'IPHONE' ? 'iPhone 15 Pro 256 titanio natural' : 'MacBook Air M2 16/512 medianoche'} />
           </div>
           <div className='space-y-1.5'>
-            <Label>Línea</Label>
+            <Label>{meta.hasChip ? 'Línea' : 'Modelo'}</Label>
             <select value={f.line ?? ''} onChange={(e) => set({ line: e.target.value || null })} className={sel}>
               <option value=''>?</option>
-              {LINES.map((l) => <option key={l} value={l}>{LINE_LABEL[l]}</option>)}
+              {meta.lines.map((l) => <option key={l} value={l}>{meta.lineLabel[l]}</option>)}
             </select>
           </div>
+          {meta.hasChip && <>
           <div className='space-y-1.5'>
             <Label>Chip</Label>
             <select value={f.chip ?? ''} onChange={(e) => set({ chip: e.target.value || null })} className={sel}>
@@ -102,8 +107,9 @@ function TradeDialog({
             <Label>RAM (GB)</Label>
             <Input type='number' value={f.ramGb ?? ''} onChange={(e) => set({ ramGb: num(e.target.value) })} />
           </div>
+          </>}
           <div className='space-y-1.5'>
-            <Label>SSD (GB)</Label>
+            <Label>{meta.storageLabel} (GB)</Label>
             <Input type='number' value={f.ssdGb ?? ''} onChange={(e) => set({ ssdGb: num(e.target.value) })} />
           </div>
 
@@ -180,8 +186,9 @@ function Stat({ label, value, sub, tone }: { label: string; value: string; sub?:
 }
 
 export default function ElecTrades({
-  trades, setTrades, zones, listings, draft, setDraft,
+  category, trades, setTrades, zones, listings, draft, setDraft,
 }: {
+  category: Category
   trades: ElecTradeDTO[]
   setTrades: (fn: (prev: ElecTradeDTO[]) => ElecTradeDTO[]) => void
   zones: ElecZoneDTO[]
@@ -272,6 +279,7 @@ export default function ElecTrades({
       </div>
 
       <TradeDialog
+        category={category}
         draft={draft}
         zones={zones}
         listings={listings}

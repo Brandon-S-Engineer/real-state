@@ -65,8 +65,8 @@
     },
 
     // ── Filtro de relevancia ──────────────────────────────────────────────────
-    // Solo se manda al CRM lo que parece MacBook. El servidor vuelve a filtrar
-    // (Intel, accesorios, "busco") con el parser completo.
-    titleMustMatch: /mac\s?book/i,
+    // Solo se manda al CRM lo que parece MacBook o iPhone. El servidor vuelve a
+    // filtrar (Intel, iPhones viejos, accesorios, "busco") con el parser completo.
+    titleMustMatch: /mac\s?book|i\s?phone/i,
   }
 })()

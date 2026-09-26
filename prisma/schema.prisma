@@ -431,6 +431,7 @@ model ElecListing {
   @@index([opportunityScore])
   @@index([lastSeenAt])
   @@index([updatedAt])
+  @@index([category])
 }
 
 model ElecPriceHistory {
@@ -487,6 +488,7 @@ model ElecSettings {
 
 model ElecTrade {
   id         String    @id @default(cuid())
+  category   String    @default("MACBOOK")
   listingId  String?   @unique
   equipo     String
   line       String?

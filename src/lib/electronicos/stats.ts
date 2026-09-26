@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db'
 import type { ElecListing, ElecSettings } from '@prisma/client'
 import type { SpecFlags } from './parse-specs'
 import { cleanPrices, isPriceUsable, median, percentile } from './math'
+import { coarseKey, coarseLabel, type Category } from './categories'
 
 export { cleanPrices, isPriceUsable, median, percentile }
 
@@ -15,10 +16,6 @@ export async function getElecSettings(): Promise<ElecSettings> {
 }
 
 type PriceRow = Pick<ElecListing, 'id' | 'price' | 'flags' | 'configKey' | 'line' | 'chip' | 'zoneKind' | 'status' | 'daysOnMarket' | 'firstSeenAt' | 'postedAt' | 'lastSeenAt' | 'soldConfirmed' | 'ramGb' | 'ssdGb'>
-
-export function lineChipKey(l: { line: string | null; chip: string | null }): string | null {
-  return l.line && l.chip ? `${l.line}|${l.chip}` : null
-}
 
 export type GroupIndex = {
   byConfig: Map<string, PriceRow[]>
@@ -31,16 +28,16 @@ export function indexGroups(rows: PriceRow[]): GroupIndex {
   for (const r of rows) {
     if (!isPriceUsable(r)) continue
     if (r.configKey) byConfig.set(r.configKey, [...(byConfig.get(r.configKey) ?? []), r])
-    const lc = lineChipKey(r)
+    const lc = coarseKey(r)
     if (lc) byLineChip.set(lc, [...(byLineChip.get(lc) ?? []), r])
   }
   return { byConfig, byLineChip }
 }
 
-export async function loadWindowRows(settings: ElecSettings): Promise<PriceRow[]> {
+export async function loadWindowRows(settings: ElecSettings, category?: Category): Promise<PriceRow[]> {
   const since = new Date(Date.now() - settings.windowDays * 86_400_000)
   return prisma.elecListing.findMany({
-    where: { lastSeenAt: { gte: since } },
+    where: { lastSeenAt: { gte: since }, ...(category ? { category } : {}) },
     select: {
       id: true, price: true, flags: true, configKey: true, line: true, chip: true, zoneKind: true, status: true,
       daysOnMarket: true, firstSeenAt: true, postedAt: true, lastSeenAt: true, soldConfirmed: true, ramGb: true, ssdGb: true,
@@ -76,11 +73,11 @@ export function scoreListing(
     groupLabel = 'su configuración'
   }
   if (group.length < settings.minSample) {
-    const lc = lineChipKey(l)
+    const lc = coarseKey(l)
     const alt = lc ? (idx.byLineChip.get(lc) ?? []).filter((r) => r.id !== l.id) : []
     if (alt.length >= settings.minSample) {
       group = alt
-      groupLabel = 'línea+chip (poca data exacta)'
+      groupLabel = `${coarseLabel(l.line)} (poca data exacta)`
     }
   }
   if (group.length < settings.minSample) {
@@ -124,7 +121,12 @@ export function scoreListing(
   if (f.conCaja) { score += 0.3; reasons.push({ pts: 0.3, why: 'Con caja' }) }
   if (f.factura) { score += 0.3; reasons.push({ pts: 0.3, why: 'Con factura' }) }
   if (f.appleCare) { score += 0.5; reasons.push({ pts: 0.5, why: 'AppleCare' }) }
-  if (l.batteryHealth != null && l.batteryHealth < 85) { score -= 1; reasons.push({ pts: -1, why: `Batería ${l.batteryHealth}%` }) }
+  if (f.faceIdFalla) { score -= 3; reasons.push({ pts: -3, why: 'Face ID no funciona' }) }
+  if (f.piezaGenerica) { score -= 1.5; reasons.push({ pts: -1.5, why: 'Pantalla/batería no original' }) }
+  if (f.compania) { score -= 2; reasons.push({ pts: -2, why: 'Amarrado a compañía (no liberado) — vale menos' }) }
+  if (f.liberado) { score += 0.3; reasons.push({ pts: 0.3, why: 'Liberado' }) }
+  if (l.batteryHealth != null && l.batteryHealth < 80) { score -= 2; reasons.push({ pts: -2, why: `Batería ${l.batteryHealth}% (pide servicio)` }) }
+  else if (l.batteryHealth != null && l.batteryHealth < 85) { score -= 1; reasons.push({ pts: -1, why: `Batería ${l.batteryHealth}%` }) }
   if (l.batteryCycles != null && l.batteryCycles > 800) { score -= 1; reasons.push({ pts: -1, why: `${l.batteryCycles} ciclos` }) }
   if (f.vendido) { score -= 5; reasons.push({ pts: -5, why: 'El post dice "vendido"' }) }
 

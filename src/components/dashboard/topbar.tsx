@@ -31,34 +31,64 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/profile': 'Profile',
 }
 
-const NOTIFICATIONS = [
-  { title: 'New user signup', desc: 'A new member joined the workspace', ago: '2m ago' },
-  { title: 'Security alert', desc: 'Unusual login from new device', ago: '1h ago' },
-  { title: 'Weekly report ready', desc: 'Your usage summary is available', ago: '3h ago' },
-]
+type ElecAlert = {
+  id: string
+  category: 'MACBOOK' | 'IPHONE' | 'IPAD'
+  label: string
+  title: string
+  config: string
+  price: number | null
+  url: string
+  score: number | null
+  lastSeenAt: string
+}
+
+const SEEN_KEY = 'topbar-seen-alerts'
+
+function loadSeen(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try { return new Set(JSON.parse(window.localStorage.getItem(SEEN_KEY) ?? '[]')) } catch { return new Set() }
+}
+
+function saveSeen(ids: Set<string>) {
+  try { window.localStorage.setItem(SEEN_KEY, JSON.stringify([...ids].slice(-200))) } catch { /* modo privado */ }
+}
+
+function timeAgo(iso: string) {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (mins < 1) return 'ahora'
+  if (mins < 60) return `${mins}m`
+  if (mins < 1440) return `${Math.round(mins / 60)}h`
+  return `${Math.round(mins / 1440)}d`
+}
+
+const money = (n: number | null) => (n == null ? '—' : `$${Math.round(n).toLocaleString('es-MX')}`)
 
 function DropdownMenu({
   trigger,
   children,
   align = 'end',
+  onOpenChange,
 }: {
   trigger: React.ReactNode
   children: React.ReactNode
   align?: 'end' | 'start'
+  onOpenChange?: (open: boolean) => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const toggle = () => setOpen((o) => { const next = !o; onOpenChange?.(next); return next })
   useEffect(() => {
     if (!open) return
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); onOpenChange?.(false) }
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
-  }, [open])
+  }, [open, onOpenChange])
   return (
     <div className="relative inline-block" ref={ref}>
-      <div onClick={() => setOpen((o) => !o)}>{trigger}</div>
+      <div onClick={toggle}>{trigger}</div>
       {open && (
         <div
           className={cn(
@@ -112,6 +142,28 @@ export default function TopBar({
 
   const pageTitle = PAGE_TITLES[pathname] ?? ''
 
+  const [alerts, setAlerts] = useState<ElecAlert[]>([])
+  const [seen, setSeen] = useState<Set<string>>(() => loadSeen())
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/electronicos/alerts')
+        if (res.ok) setAlerts((await res.json()).data)
+      } catch { /* reintenta en el próximo tick */ }
+    }
+    load()
+    const interval = setInterval(load, 20000)
+    return () => clearInterval(interval)
+  }, [])
+  const unseenCount = alerts.filter((a) => !seen.has(a.id)).length
+  const markAllSeen = () => {
+    if (!alerts.length) return
+    const next = new Set(seen)
+    for (const a of alerts) next.add(a.id)
+    setSeen(next)
+    saveSeen(next)
+  }
+
   return (
     <header className="h-14 border-b border-border bg-background/80 backdrop-blur-md flex items-center gap-3 px-5 sticky top-0 z-30">
       <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="-ml-1.5">
@@ -144,27 +196,40 @@ export default function TopBar({
         </Button>
       )}
 
-      {/* Notifications */}
+      {/* Notifications: oportunidades MacBook/iPhone/iPad con score ≥ el umbral configurado en Listings */}
       <DropdownMenu
+        onOpenChange={(open) => { if (open) markAllSeen() }}
         trigger={
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500" />
+            {unseenCount > 0 && <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500" />}
           </Button>
         }
       >
-        <div className="w-[320px] p-0">
+        <div className="w-[340px] p-0">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-            <span className="text-sm font-medium">Notifications</span>
-            <span className="text-xs text-muted-foreground">{NOTIFICATIONS.length} new</span>
+            <span className="text-sm font-medium">Oportunidades</span>
+            <span className="text-xs text-muted-foreground">{alerts.length}</span>
           </div>
           <div className="max-h-[320px] overflow-y-auto p-1">
-            {NOTIFICATIONS.map((n, i) => (
-              <div key={i} className="px-2 py-2 hover:bg-muted/60 rounded-sm cursor-pointer">
-                <div className="text-sm font-medium">{n.title}</div>
-                <div className="text-xs text-muted-foreground">{n.desc}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">{n.ago}</div>
-              </div>
+            {alerts.length === 0 && (
+              <div className="px-2 py-6 text-center text-xs text-muted-foreground">Sin oportunidades por ahora</div>
+            )}
+            {alerts.map((a) => (
+              <Link
+                key={a.id}
+                href={a.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-2 py-2 hover:bg-muted/60 rounded-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium truncate">{a.title}</span>
+                  <span className="shrink-0 text-[10px] font-medium rounded-full px-1.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">{a.score}/10</span>
+                </div>
+                <div className="text-xs text-muted-foreground truncate">{a.label} · {a.config} · {money(a.price)}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">{timeAgo(a.lastSeenAt)}</div>
+              </Link>
             ))}
           </div>
         </div>

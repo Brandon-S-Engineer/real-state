@@ -13,8 +13,8 @@ import ElecTrades, { draftFromListing, type TradeDraft } from './trades'
 import ElecConfig from './config'
 
 const TABS = [
-  { id: 'precios', label: 'Precios' },
   { id: 'listings', label: 'Listings' },
+  { id: 'precios', label: 'Precios' },
   { id: 'trades', label: 'Mis trades' },
   { id: 'config', label: 'Zonas y ajustes' },
 ] as const
@@ -32,8 +32,8 @@ export default function ElecClient(props: {
   const meta = CATEGORY_META[category]
   const router = useRouter()
   const params = useSearchParams()
-  const initialTab = (params.get('tab') as Tab) ?? 'precios'
-  const [tab, setTabState] = useState<Tab>(TABS.some((t) => t.id === initialTab) ? initialTab : 'precios')
+  const initialTab = (params.get('tab') as Tab) ?? 'listings'
+  const [tab, setTabState] = useState<Tab>(TABS.some((t) => t.id === initialTab) ? initialTab : 'listings')
   const [listings, setListings] = useState(props.listings)
   const [prices, setPrices] = useState(props.prices)
   const [trades, setTrades] = useState(props.trades)

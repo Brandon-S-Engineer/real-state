@@ -2,7 +2,7 @@
 
 Captura **pasiva** de listings de MacBook (M1–M5 y Neo), iPhone (11 en adelante) e iPad (los que soporta iPadOS 27) en Facebook Marketplace y en grupos de Facebook, y los manda al CRM (`/dashboard/macbook`, `/dashboard/iphone`, `/dashboard/ipad`) para descubrir el precio real de mercado.
 
-No hace scroll ni click. Lo único automático es recargar la pestaña de resultados de Marketplace cada 4–20 min (aleatorio, nunca con un producto abierto) para agarrar lo recién publicado.
+No hace scroll, no hace click y no navega. Solo lee lo que tú abres y scrolleas.
 
 > Esta carpeta nació como copia de la extensión de bienes raíces (`extension/`, que sigue intacta). El código de real estate que queda aquí (plantillas, autores, envío a Clientes) no se usa para MacBooks.
 

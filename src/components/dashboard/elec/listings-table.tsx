@@ -230,6 +230,8 @@ export default function ElecListingsTable({
   onRegisterTrade: (l: ElecListingDTO) => void
 }) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'opportunityScore', desc: true }])
+  // El header de Precio itera entre 3 modos en vez del asc/desc genérico de la tabla
+  const [priceSortMode, setPriceSortMode] = useState<'desc' | 'asc' | 'market'>('desc')
   const meta = CATEGORY_META[category]
   const [filters, setFilters] = useState<Filters>(() => loadStoredFilters(category))
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -416,7 +418,16 @@ export default function ElecListingsTable({
     {
       accessorKey: 'price',
       header: 'Precio',
-      sortingFn: (a, b) => (a.original.price ?? 0) - (b.original.price ?? 0),
+      sortingFn: (a, b) => {
+        if (priceSortMode === 'market') {
+          const delta = (row: typeof a) => {
+            const ref = refs.get(row.original.id)
+            return ref && row.original.price != null ? (row.original.price - ref.median) / ref.median : Infinity
+          }
+          return delta(a) - delta(b)
+        }
+        return (a.original.price ?? 0) - (b.original.price ?? 0)
+      },
       cell: ({ row }) => {
         const l = row.original
         const ref = refs.get(l.id)
@@ -462,26 +473,8 @@ export default function ElecListingsTable({
       },
     },
     {
-      accessorKey: 'source',
-      header: 'Fuente',
-      cell: ({ row }) => (
-        <span className='text-xs text-muted-foreground truncate max-w-[120px] inline-block' title={row.original.sourceName}>
-          {row.original.source === 'MARKETPLACE' ? 'Marketplace' : row.original.sourceName}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'comprado',
-      header: 'Comprado',
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <Switch checked={row.original.comprado} onChange={(v) => patch(row.original, { comprado: v }, { comprado: v })} />
-        </div>
-      ),
-    },
-    {
-      id: 'actions',
-      header: '',
+      id: 'links',
+      header: 'Links',
       cell: ({ row }) => {
         const l = row.original
         const btn = 'p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-foreground transition-colors'
@@ -493,6 +486,15 @@ export default function ElecListingsTable({
           </div>
         )
       },
+    },
+    {
+      accessorKey: 'comprado',
+      header: 'Comprado',
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Switch checked={row.original.comprado} onChange={(v) => patch(row.original, { comprado: v }, { comprado: v })} />
+        </div>
+      ),
     },
   ]
 
@@ -615,12 +617,25 @@ export default function ElecListingsTable({
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className='border-b bg-muted/50'>
-                {hg.headers.map((header) => (
-                  <th key={header.id} onClick={header.column.getToggleSortingHandler()} className='px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap'>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                    {header.column.getIsSorted() === 'asc' ? ' ↑' : header.column.getIsSorted() === 'desc' ? ' ↓' : ''}
-                  </th>
-                ))}
+                {hg.headers.map((header) => {
+                  const isPrice = header.column.id === 'price'
+                  const onClick = isPrice
+                    ? () => {
+                      const next = priceSortMode === 'desc' ? 'asc' : priceSortMode === 'asc' ? 'market' : 'desc'
+                      setPriceSortMode(next)
+                      setSorting([{ id: 'price', desc: next !== 'asc' }])
+                    }
+                    : header.column.getToggleSortingHandler()
+                  const active = header.column.getIsSorted()
+                  return (
+                    <th key={header.id} onClick={onClick} className='px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap'>
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {isPrice && active
+                        ? (priceSortMode === 'market' ? ' vs mercado ↓' : priceSortMode === 'asc' ? ' ↑' : ' ↓')
+                        : active === 'asc' ? ' ↑' : active === 'desc' ? ' ↓' : ''}
+                    </th>
+                  )
+                })}
               </tr>
             ))}
           </thead>

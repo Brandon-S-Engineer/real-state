@@ -189,10 +189,6 @@
     scanTimer = setTimeout(() => { scan(); scheduleFlush() }, 400)
   }
 
-  // La recarga periódica la programa el service worker (chrome.alarms), no
-  // este script: así sigue funcionando aunque la pestaña esté en segundo plano
-  // o Chrome la haya suspendido. Este listener solo atiende la orden y manda
-  // lo que tenga en cola antes de recargar.
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === 'MP_DUMP_LAYOUT') {
       sendResponse({ ok: true, html: window.MPExtract.dumpLayout(document), url: location.href })
@@ -201,11 +197,6 @@
     if (msg.type === 'MP_STATS') {
       sendResponse({ ok: true, stats: { ...stats, queued: queue.length }, source: currentSearch() ?? lastSearch })
       return false
-    }
-    if (msg.type === 'MP_FORCE_RELOAD') {
-      if (isItemUrl()) { sendResponse({ ok: false, reason: 'item' }); return false }
-      ;(async () => { if (queue.length) await flush(); sendResponse({ ok: true }); location.reload() })()
-      return true
     }
     return false
   })

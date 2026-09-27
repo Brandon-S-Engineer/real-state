@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils'
 
 const NAV_SECTIONS = [
   {
-    label: 'Platform',
     items: [
       { href: '/dashboard/propiedades', label: 'Propiedades', icon: Building2 },
       { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
@@ -25,27 +24,25 @@ const NAV_SECTIONS = [
   },
 ]
 
-export default function Sidebar({ collapsed = false, orgName = 'Edith' }: { collapsed?: boolean; orgName?: string }) {
+export default function Sidebar({ collapsed = false, orgName = 'CRM' }: { collapsed?: boolean; orgName?: string }) {
   const pathname = usePathname()
 
   return (
     <aside className={cn('h-screen border-r border-border bg-sidebar text-sidebar-foreground flex flex-col sticky top-0 transition-[width] duration-200 shrink-0', collapsed ? 'w-14' : 'w-[170px]')}>
       {/* Logo */}
       <div className={cn('flex items-center gap-2.5 px-4 h-14 border-b border-border', collapsed && 'justify-center px-0')}>
-        <div className='h-7 w-7 rounded-md bg-foreground text-background flex items-center justify-center shrink-0 text-[13px] font-bold'>E</div>
+        <div className='h-7 w-7 rounded-md bg-foreground text-background flex items-center justify-center shrink-0 text-[13px] font-bold'>{orgName.charAt(0)}</div>
         {!collapsed && (
           <div className='flex-1 min-w-0'>
             <div className='text-sm font-semibold truncate'>{orgName}</div>
-            <div className='text-[11px] text-muted-foreground truncate'>Administrador</div>
           </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className='flex-1 p-2 space-y-0.5 overflow-y-auto'>
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.label}>
-            {!collapsed && <div className='px-2 pt-3 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider'>{section.label}</div>}
+      <nav className='flex-1 p-2 space-y-0.5 overflow-y-auto pt-3'>
+        {NAV_SECTIONS.map((section, i) => (
+          <div key={i}>
             {section.items.map((item) => {
               const Icon = item.icon
               const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname === item.href || pathname.startsWith(item.href + '/')

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { CATALOG, LINE_LABEL, LINES, formatSsd } from '@/lib/electronicos/catalog'
 import { CATEGORY_META, configShort, lineLabel, type Category } from '@/lib/electronicos/categories'
 import { iphoneEntry } from '@/lib/electronicos/iphone-catalog'
+import { ipadEntry } from '@/lib/electronicos/ipad-catalog'
 import type { ElecListingDTO } from '@/lib/electronicos/serialize'
 
 export { LINE_LABEL, LINES, formatSsd, CATALOG, CATEGORY_META, configShort, lineLabel }
@@ -115,7 +116,7 @@ export function SpecsEditorDialog({
   const meta = CATEGORY_META[listing.category as Category] ?? CATEGORY_META.MACBOOK
   const chipsForLine = Array.from(new Set(CATALOG.filter((e) => !line || e.line === line).flatMap((e) => e.chips)))
   const entry = CATALOG.find((e) => e.line === line && e.chips.includes(chip))
-  const storageOpts = meta.hasChip ? (entry?.ssd ?? SSD_OPTIONS) : (iphoneEntry(line)?.storage ?? meta.storageOptions)
+  const storageOpts = meta.hasChip ? (entry?.ssd ?? SSD_OPTIONS) : (iphoneEntry(line)?.storage ?? ipadEntry(line)?.storage ?? meta.storageOptions)
 
   const save = async () => {
     setSaving(true)
@@ -177,13 +178,15 @@ export function SpecsEditorDialog({
             </select>
           </div>
           </>}
-          <div className={cn('space-y-1.5', !meta.hasChip && 'col-span-2')}>
-            <Label>{meta.storageLabel}</Label>
-            <select value={ssd} onChange={(e) => setSsd(e.target.value)} className={sel}>
-              <option value=''>?</option>
-              {storageOpts.map((s) => <option key={s} value={s}>{formatSsd(s)}</option>)}
-            </select>
-          </div>
+          {meta.hasStorage && (
+            <div className={cn('space-y-1.5', !meta.hasChip && 'col-span-2')}>
+              <Label>{meta.storageLabel}</Label>
+              <select value={ssd} onChange={(e) => setSsd(e.target.value)} className={sel}>
+                <option value=''>?</option>
+                {storageOpts.map((s) => <option key={s} value={s}>{formatSsd(s)}</option>)}
+              </select>
+            </div>
+          )}
           <div className='space-y-1.5 col-span-2'>
             <Label>Precio (MXN)</Label>
             <Input type='number' value={price} onChange={(e) => setPrice(e.target.value)} />

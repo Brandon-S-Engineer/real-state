@@ -10,6 +10,7 @@
 import { CATALOG, MODEL_NUMBERS, findEntries, linesForChip, type Line } from './catalog'
 import type { IphoneLine } from './iphone-catalog'
 import type { IpadLine } from './ipad-catalog'
+import type { AudioLine } from './audio-catalog'
 
 export type SpecFlags = {
   conCaja?: boolean
@@ -33,13 +34,13 @@ export type SpecFlags = {
   celular?: boolean // Wi-Fi + Cellular
 }
 
-export type DeviceCategory = 'MACBOOK' | 'IPHONE' | 'IPAD'
+export type DeviceCategory = 'MACBOOK' | 'IPHONE' | 'IPAD' | 'AUDIO'
 
-export type ExcludedReason = 'no_relevante' | 'intel' | 'viejo' | 'accesorio' | 'busqueda' | 'intercambio'
+export type ExcludedReason = 'no_relevante' | 'intel' | 'viejo' | 'gama_baja' | 'replica' | 'accesorio' | 'busqueda' | 'intercambio'
 
 export type ParsedSpecs = {
   excluded: ExcludedReason | null
-  line: Line | IphoneLine | IpadLine | null
+  line: Line | IphoneLine | IpadLine | AudioLine | null
   chip: string | null
   ramGb: number | null
   ssdGb: number | null
@@ -82,8 +83,14 @@ export function isStorageOnlyLine(line: string | null | undefined): boolean {
   return !!line && (line.startsWith('IP_') || line.startsWith('IPD_'))
 }
 
-// MacBook: "PRO_14|M3 Pro|18|512" · iPhone/iPad: "IP_15_PRO|256" / "IPD_AIR_11_M2|128"
+/** Audífonos (AUD_…): el modelo solo define el precio, no hay más specs. */
+export function isModelOnlyLine(line: string | null | undefined): boolean {
+  return !!line && line.startsWith('AUD_')
+}
+
+// MacBook: "PRO_14|M3 Pro|18|512" · iPhone/iPad: "IP_15_PRO|256" / "IPD_AIR_11_M2|128" · Audífonos: "AUD_AIRPODS_PRO_3"
 export function buildConfigKey(p: { line: string | null; chip: string | null; ramGb: number | null; ssdGb: number | null }): string | null {
+  if (isModelOnlyLine(p.line)) return p.line
   if (isStorageOnlyLine(p.line)) return `${p.line}|${p.ssdGb ?? '?'}`
   if (!p.line || !p.chip) return null
   return `${p.line}|${p.chip}|${p.ramGb ?? '?'}|${p.ssdGb ?? '?'}`
@@ -92,7 +99,7 @@ export function buildConfigKey(p: { line: string | null; chip: string | null; ra
 // ── Detecciones puntuales ─────────────────────────────────────────────────────
 
 export const ACCESSORY_RE = /^(funda|cargador|teclado|teclados|pantalla|display|bateria|mouse|magic|estuche|protector|mica|skin|hub|adaptador|cable|bolsa|mochila|base|soporte|carcasa|cubierta|tapa|logic ?board|placa|board|bisagra)\b/
-const ACCESSORY_START_RE = /^(apple )?(pencil|lapiz|case|cristal|templado|correa|airpods|cover)\b/
+const ACCESSORY_START_RE = /^(apple )?(pencil|lapiz|case|cristal|templado|correa|cover)\b/
 const ACCESSORY_WORDS = 'funda|cargador|estuche|mochila|hub|adaptador|mica|cable|protector|case|carcasa|teclado|keyboard|lapiz|pencil|soporte|correa|cristal'
 
 /**
@@ -255,7 +262,7 @@ export function detectFlags(t: string, category: DeviceCategory = 'MACBOOK'): Sp
   if (/pantalla (rota|estrellada|danada|quebrada|con lineas|manchada)|display roto|lineas en (la )?pantalla|mancha en (la )?pantalla/.test(t)) f.pantallaRota = true
   // "no sirve el face id" es una falla puntual, no "para piezas"; "piezas originales" tampoco.
   // En iPhone "bloqueado" a secas casi siempre es de compañía (Telcel), no iCloud.
-  const piezasRe = category === 'IPHONE'
+  const piezasRe = category === 'IPHONE' || category === 'AUDIO'
     ? /(para|por) (piezas|refacciones)|\bpiezas\b(?! (son )?original| cambiad)|refaccion|no (enciende|prende|sirve)\b(?! (el|la|los|las|su|bien) )|\bmdm\b|placa danada/
     : /(para|por) (piezas|refacciones)|\bpiezas\b(?! (son )?original| cambiad)|refaccion|no (enciende|prende|sirve)\b(?! (el|la|los|las|su|bien) )|\bbloquead|\bmdm\b|placa danada/
   if (piezasRe.test(t) || ICLOUD_LOCK.test(t)) f.piezas = true

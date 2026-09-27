@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { PriceTableRow } from '@/lib/electronicos/stats'
+import { marginTarget } from '@/lib/electronicos/math'
 import { CATEGORY_META, ConfidenceDot, configShort, downloadFile, money, moneyK, type Category } from './shared'
 
 type SortKey = 'n' | 'spread' | 'buyMed' | 'sellMed' | 'exit' | 'days'
@@ -92,15 +93,15 @@ export default function ElecPreciosTable({
           <option value=''>Todos los modelos</option>
           {meta.lines.map((l) => <option key={l} value={l}>{meta.lineLabel[l]}</option>)}
         </select>
-        <Button variant={onlyBudget ? 'default' : 'outline'} size='sm' onClick={() => setOnlyBudget((v) => !v)} title='Compra P25 entre $25k y $35k'>
+        {category !== 'AUDIO' && <Button variant={onlyBudget ? 'default' : 'outline'} size='sm' onClick={() => setOnlyBudget((v) => !v)} title='Compra P25 entre $25k y $35k'>
           Mi presupuesto ($25–35k)
-        </Button>
+        </Button>}
         <Button variant={hideLow ? 'default' : 'outline'} size='sm' onClick={() => setHideLow((v) => !v)}>
           Ocultar poca data
         </Button>
-        <Button variant={onlyComplete ? 'default' : 'outline'} size='sm' onClick={() => setOnlyComplete((v) => !v)} title={meta.hasChip ? 'Ocultar grupos sin RAM o SSD conocidos (agrupados solo por línea+chip)' : 'Ocultar grupos sin almacenamiento conocido (agrupados solo por modelo)'}>
+        {meta.hasStorage && <Button variant={onlyComplete ? 'default' : 'outline'} size='sm' onClick={() => setOnlyComplete((v) => !v)} title={meta.hasChip ? 'Ocultar grupos sin RAM o SSD conocidos (agrupados solo por línea+chip)' : 'Ocultar grupos sin almacenamiento conocido (agrupados solo por modelo)'}>
           Solo specs completos
-        </Button>
+        </Button>}
         <Button variant='outline' size='sm' className='ml-auto' onClick={exportCsv} disabled={!filtered.length}>CSV</Button>
       </div>
 
@@ -131,7 +132,7 @@ export default function ElecPreciosTable({
                 {rows.length ? 'Nada con esos filtros' : 'Aún no hay suficientes capturas para armar precios'}
               </td></tr>
             ) : filtered.map((r) => {
-              const good = r.spread != null && r.spread >= BUDGET.target
+              const good = r.spread != null && r.spread >= (category === 'AUDIO' ? marginTarget(r.line, r.sell.p50 ?? r.all.p50 ?? 0) : BUDGET.target)
               return (
                 <tr
                   key={r.configKey}

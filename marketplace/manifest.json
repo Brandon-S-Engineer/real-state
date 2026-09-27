@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Apple Price Catcher",
-  "version": "0.5.1",
-  "description": "Captura pasiva de listings de MacBook, iPhone e iPad (Facebook Marketplace + grupos) hacia el CRM para descubrir precios de mercado.",
+  "version": "0.6.0",
+  "description": "Captura pasiva de listings de MacBook, iPhone, iPad y audífonos (Facebook Marketplace + grupos) hacia el CRM para descubrir precios de mercado.",
   "permissions": [
     "storage",
     "tabs",

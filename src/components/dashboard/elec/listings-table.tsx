@@ -15,7 +15,7 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { ElecListingDTO } from '@/lib/electronicos/serialize'
-import { cleanPrices, isPriceUsable, percentile } from '@/lib/electronicos/math'
+import { cleanPrices, isPriceUsable, marginTarget, percentile } from '@/lib/electronicos/math'
 import { coarseKey, coarseLabel, parseConfigKey } from '@/lib/electronicos/categories'
 import {
   CATALOG, CATEGORY_META, ScoreBadge, SpecsEditorDialog, ZoneBadge, configShort, daysAgo,
@@ -60,10 +60,12 @@ function buildMarketRefs(listings: ElecListingDTO[], minSample: number): Map<str
   return refs
 }
 
-/** Oferta que deja ≥ $2,500 contra la mediana de venta (redondeada a $500). */
+/** Oferta que deja ≥ $2,500 contra la mediana de venta (redondeada a $500); en audífonos, su margen meta (redondeada a $100). */
 function suggestOffer(l: ElecListingDTO, ref: MarketRef | undefined) {
   if (!ref || !l.price) return null
-  const target = Math.floor((ref.sellMedian - 2500) / 500) * 500
+  const audio = l.category === 'AUDIO'
+  const step = audio ? 100 : 500
+  const target = Math.floor((ref.sellMedian - (audio ? marginTarget(l.line, ref.sellMedian) : 2500)) / step) * step
   const offer = Math.min(l.price, target)
   if (offer <= 0) return null
   return { offer, margin: ref.sellMedian - offer }
@@ -540,10 +542,12 @@ export default function ElecListingsTable({
             {[8, 16, 18, 24, 32, 36, 48, 64].map((r) => <option key={r} value={r}>{r}GB</option>)}
           </select>
         </>}
-        <select value={filters.ssd} onChange={(e) => set({ ssd: e.target.value })} className={sel}>
-          <option value=''>{meta.storageLabel}</option>
-          {meta.storageOptions.map((s) => <option key={s} value={s}>{formatSsd(s)}</option>)}
-        </select>
+        {meta.hasStorage && (
+          <select value={filters.ssd} onChange={(e) => set({ ssd: e.target.value })} className={sel}>
+            <option value=''>{meta.storageLabel}</option>
+            {meta.storageOptions.map((s) => <option key={s} value={s}>{formatSsd(s)}</option>)}
+          </select>
+        )}
         <select value={filters.zone} onChange={(e) => set({ zone: e.target.value })} className={sel}>
           <option value=''>Zona</option>
           <option value='COMPRA'>Compra</option>

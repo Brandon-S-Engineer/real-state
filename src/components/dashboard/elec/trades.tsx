@@ -20,6 +20,7 @@ const EQUIPO_PLACEHOLDER: Record<Category, string> = {
   MACBOOK: 'MacBook Air M2 16/512 medianoche',
   IPHONE: 'iPhone 15 Pro 256 titanio natural',
   IPAD: 'iPad Air 11" M2 128 + Pencil',
+  AUDIO: 'AirPods Pro 3 / Sony WH-1000XM6 plata',
 }
 
 export function draftFromListing(l: ElecListingDTO): TradeDraft {
@@ -114,10 +115,12 @@ function TradeDialog({
             <Input type='number' value={f.ramGb ?? ''} onChange={(e) => set({ ramGb: num(e.target.value) })} />
           </div>
           </>}
-          <div className='space-y-1.5'>
-            <Label>{meta.storageLabel} (GB)</Label>
-            <Input type='number' value={f.ssdGb ?? ''} onChange={(e) => set({ ssdGb: num(e.target.value) })} />
-          </div>
+          {meta.hasStorage && (
+            <div className='space-y-1.5'>
+              <Label>{meta.storageLabel} (GB)</Label>
+              <Input type='number' value={f.ssdGb ?? ''} onChange={(e) => set({ ssdGb: num(e.target.value) })} />
+            </div>
+          )}
 
           <div className='col-span-2 text-xs font-medium text-muted-foreground pt-1'>Compra</div>
           <div className='space-y-1.5'>

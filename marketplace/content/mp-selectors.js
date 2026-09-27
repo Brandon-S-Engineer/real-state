@@ -65,8 +65,9 @@
     },
 
     // ── Filtro de relevancia ──────────────────────────────────────────────────
-    // Solo se manda al CRM lo que parece MacBook, iPhone o iPad. El servidor
-    // vuelve a filtrar (Intel, equipos viejos, accesorios, "busco") con el parser.
-    titleMustMatch: /mac\s?book|i\s?phone|i\s?pad(?!os)/i,
+    // Solo se manda al CRM lo que parece MacBook, iPhone, iPad o audífonos tope
+    // de gama. El servidor vuelve a filtrar (equipos viejos, réplicas, gama baja,
+    // accesorios, "busco") con el parser. "Sony" a secas no: son TVs, PS5…
+    titleMustMatch: /mac\s?book|i\s?phone|i\s?pad(?!os)|air\s?pods|1000\s?x\s?m|\bx\s?m[3-6]\b|quiet\s?comfort|\bqc\s?ultra|\bbose\b/i,
   }
 })()

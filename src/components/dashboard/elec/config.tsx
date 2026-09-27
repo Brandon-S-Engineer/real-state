@@ -129,7 +129,7 @@ export default function ElecConfig({
             <h2 className='text-base font-semibold'>Zonas</h2>
             <p className='text-sm text-muted-foreground'>
               Se asigna por coordenadas del mapa de Marketplace (lat/lng + radio) y, si no hay, por keywords en la ubicación.
-              Zonas y ajustes son los mismos para MacBook, iPhone y iPad.
+              Zonas y ajustes son los mismos para todas las categorías.
             </p>
           </div>
           <Button size='sm' variant='outline' onClick={() => setAdding({ name: '', kind: 'VENTA', keywordsText: '', lat: null, lng: null, radiusKm: 3, active: true })}>

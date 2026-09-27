@@ -6,7 +6,7 @@
 import { prisma } from '@/lib/db'
 import type { ElecListing, ElecSettings } from '@prisma/client'
 import type { SpecFlags } from './parse-specs'
-import { cleanPrices, isPriceUsable, median, percentile } from './math'
+import { cleanPrices, isPriceUsable, marginTarget, median, percentile } from './math'
 import { coarseKey, coarseLabel, type Category } from './categories'
 
 export { cleanPrices, isPriceUsable, median, percentile }
@@ -101,11 +101,12 @@ export function scoreListing(
   const sellPrices = cleanPrices(group.filter((r) => r.zoneKind === 'VENTA').map((r) => r.price!))
   const sellMed = sellPrices.length >= 2 ? percentile(sellPrices, 0.5)! : med
   const margin = sellMed - price
-  if (margin >= 2000) {
+  const target = marginTarget(l.line, sellMed)
+  if (margin >= target) {
     score += 1
     reasons.push({ pts: 1, why: `Margen potencial ${fmt(margin)} vs mediana ${sellPrices.length >= 2 ? 'de venta' : 'general'} ${fmt(sellMed)}` })
   } else {
-    reasons.push({ pts: 0, why: `Margen potencial ${fmt(margin)} (meta: $2,000+)` })
+    reasons.push({ pts: 0, why: `Margen potencial ${fmt(margin)} (meta: ${fmt(target)}+)` })
   }
 
   if (l.originalPrice && l.originalPrice > price) {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Settings, Car, LogOut, Megaphone, BookOpen, Building2, MapPin, Users, Key, Briefcase, Laptop, Smartphone, Tablet } from 'lucide-react'
+import { Settings, Car, LogOut, Megaphone, BookOpen, Building2, MapPin, Users, Key, Briefcase, Laptop, Smartphone, Tablet, Headphones } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +18,7 @@ const NAV_SECTIONS = [
       { href: '/dashboard/macbook', label: 'MacBook', icon: Laptop },
       { href: '/dashboard/iphone', label: 'iPhone', icon: Smartphone },
       { href: '/dashboard/ipad', label: 'iPad', icon: Tablet },
+      { href: '/dashboard/audifonos', label: 'Audífonos', icon: Headphones },
       { href: '/dashboard/api-keys', label: 'API Keys', icon: Key },
       { href: '/dashboard/profile', label: 'Perfil', icon: Settings },
     ],

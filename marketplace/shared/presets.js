@@ -44,6 +44,19 @@ export const IPAD_POSITIVES = [
   'apple pencil',
 ]
 
+export const AUDIO_POSITIVES = [
+  'airpods',
+  'air pods',
+  'airpods pro',
+  'airpods max',
+  'xm5',
+  'xm6',
+  '1000xm5',
+  '1000xm6',
+  'quietcomfort ultra',
+  'qc ultra',
+]
+
 export const MACBOOK_NEGATIVES = [
   'busco',
   'compro',

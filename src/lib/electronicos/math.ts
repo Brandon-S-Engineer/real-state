@@ -13,6 +13,15 @@ export function median(values: number[]): number | null {
   return percentile([...values].sort((a, b) => a - b), 0.5)
 }
 
+/**
+ * Margen meta por trade. $2,000 fijo para equipos grandes; en audífonos eso
+ * sería 30–40% del equipo, así que se usa el 25% de la mediana de venta.
+ */
+export function marginTarget(line: string | null | undefined, sellMedian: number): number {
+  if (line?.startsWith('AUD_')) return Math.max(500, Math.round((sellMedian * 0.25) / 100) * 100)
+  return 2000
+}
+
 /** Quita basura: <35% o >300% de la mediana cruda del grupo. */
 export function cleanPrices(prices: number[]): number[] {
   const med = median(prices)
@@ -20,8 +29,11 @@ export function cleanPrices(prices: number[]): number[] {
   return prices.filter((p) => p >= med * 0.35 && p <= med * 3).sort((a, b) => a - b)
 }
 
-export function isPriceUsable(l: { price: number | null; flags: unknown }): boolean {
-  if (!l.price || l.price < 1500) return false
+// Audífonos son equipos de $1.5–9k: un AirPods 4 real usado cae abajo del piso general de $1,500
+const priceFloor = (line?: string | null) => (line?.startsWith('AUD_') ? 800 : 1500)
+
+export function isPriceUsable(l: { price: number | null; flags: unknown; line?: string | null }): boolean {
+  if (!l.price || l.price < priceFloor(l.line)) return false
   const f = (l.flags ?? {}) as { piezas?: boolean; nueva?: boolean }
   return !f.piezas && !f.nueva
 }

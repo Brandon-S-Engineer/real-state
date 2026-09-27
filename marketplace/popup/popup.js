@@ -441,7 +441,7 @@ async function refresh() {
   renderAlerts()
 }
 
-// ── Marketplace (MacBook / iPhone / iPad) ──────────────────────────────────────────────────
+// ── Marketplace (MacBook / iPhone / iPad / Audífonos) ──────────────────────────────────────────────────
 
 async function activeFbTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })

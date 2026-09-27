@@ -230,8 +230,9 @@ export default function ElecListingsTable({
   onRegisterTrade: (l: ElecListingDTO) => void
 }) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'opportunityScore', desc: true }])
-  // El header de Precio itera entre 3 modos en vez del asc/desc genérico de la tabla
-  const [priceSortMode, setPriceSortMode] = useState<'desc' | 'asc' | 'market'>('desc')
+  // El header de Precio itera 4 estados en vez del asc/desc genérico de la tabla:
+  // neutro (vuelve al orden por score) → menor a mayor → mayor a menor → mejor descuento vs mercado primero
+  const [priceSortMode, setPriceSortMode] = useState<'neutro' | 'asc' | 'desc' | 'market'>('neutro')
   const meta = CATEGORY_META[category]
   const [filters, setFilters] = useState<Filters>(() => loadStoredFilters(category))
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -394,28 +395,6 @@ export default function ElecListingsTable({
       cell: ({ row }) => <ScoreBadge score={row.original.opportunityScore} />,
     },
     {
-      accessorKey: 'title',
-      header: 'Listing',
-      cell: ({ row }) => {
-        const l = row.original
-        return (
-          <div className='flex items-center gap-3 max-w-[420px]'>
-            {l.imageUrl
-              ? <img src={l.imageUrl} alt='' referrerPolicy='no-referrer' className='h-10 w-10 rounded object-cover shrink-0 bg-muted' />
-              : <div className='h-10 w-10 rounded bg-muted shrink-0' />}
-            <div className='min-w-0'>
-              <div className='font-medium text-sm truncate'>{l.title}</div>
-              <div className='text-xs text-muted-foreground truncate flex items-center gap-1'>
-                {l.needsReview && <AlertTriangle className='h-3 w-3 text-amber-500 shrink-0' />}
-                {configShort(l)}
-                {l.batteryHealth ? ` · 🔋${l.batteryHealth}%` : ''}
-              </div>
-            </div>
-          </div>
-        )
-      },
-    },
-    {
       accessorKey: 'price',
       header: 'Precio',
       sortingFn: (a, b) => {
@@ -442,6 +421,28 @@ export default function ElecListingsTable({
                   {delta > 0 ? '+' : ''}{Math.round(delta * 100)}% vs mercado
                 </span>
               )}
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'title',
+      header: 'Listing',
+      cell: ({ row }) => {
+        const l = row.original
+        return (
+          <div className='flex items-center gap-3 max-w-[420px]'>
+            {l.imageUrl
+              ? <img src={l.imageUrl} alt='' referrerPolicy='no-referrer' className='h-10 w-10 rounded object-cover shrink-0 bg-muted' />
+              : <div className='h-10 w-10 rounded bg-muted shrink-0' />}
+            <div className='min-w-0'>
+              <div className='font-medium text-sm truncate'>{l.title}</div>
+              <div className='text-xs text-muted-foreground truncate flex items-center gap-1'>
+                {l.needsReview && <AlertTriangle className='h-3 w-3 text-amber-500 shrink-0' />}
+                {configShort(l)}
+                {l.batteryHealth ? ` · 🔋${l.batteryHealth}%` : ''}
+              </div>
             </div>
           </div>
         )
@@ -621,9 +622,11 @@ export default function ElecListingsTable({
                   const isPrice = header.column.id === 'price'
                   const onClick = isPrice
                     ? () => {
-                      const next = priceSortMode === 'desc' ? 'asc' : priceSortMode === 'asc' ? 'market' : 'desc'
+                      const next = priceSortMode === 'neutro' ? 'asc' : priceSortMode === 'asc' ? 'desc' : priceSortMode === 'desc' ? 'market' : 'neutro'
                       setPriceSortMode(next)
-                      setSorting([{ id: 'price', desc: next !== 'asc' }])
+                      if (next === 'neutro') setSorting([{ id: 'opportunityScore', desc: true }])
+                      // market: menor a mayor % vs mediana (el descuento más grande primero, no el peor sobreprecio)
+                      else setSorting([{ id: 'price', desc: next === 'desc' }])
                     }
                     : header.column.getToggleSortingHandler()
                   const active = header.column.getIsSorted()
@@ -631,7 +634,7 @@ export default function ElecListingsTable({
                     <th key={header.id} onClick={onClick} className='px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap'>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {isPrice && active
-                        ? (priceSortMode === 'market' ? ' vs mercado ↓' : priceSortMode === 'asc' ? ' ↑' : ' ↓')
+                        ? (priceSortMode === 'market' ? ' mejor desc. ↓' : priceSortMode === 'asc' ? ' ↑' : ' ↓')
                         : active === 'asc' ? ' ↑' : active === 'desc' ? ' ↓' : ''}
                     </th>
                   )

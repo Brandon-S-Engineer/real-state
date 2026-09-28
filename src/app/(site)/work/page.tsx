@@ -28,7 +28,7 @@ export default function WorkPage() {
         {CATEGORIES.map((cat, i) => {
           const items = getProjectsByCategory(cat.id)
           return (
-            <div key={cat.id}>
+            <div key={cat.id} id={cat.id} className='scroll-mt-24'>
               <div className='flex flex-wrap items-end justify-between gap-3'>
                 <div>
                   <span className='site-mono text-[11px]' style={{ color: 'var(--muted)' }}>

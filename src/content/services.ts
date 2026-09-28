@@ -1,74 +1,106 @@
-// Productized, fixed-price offers. Mirrors the highest-weighted Upwork niches so
-// each service maps to a matching demo/case study in the proposal.
+// Productized, fixed-price offers. AI is the lead offer and mirrors the
+// "AI Chatbots & Agents" complexity ladder 1:1 — every tier maps to its live
+// demo in /work, so a buyer can see exactly what each level does before
+// paying for it. Timeline and stack are read from the linked project so the
+// two pages can never drift apart.
 
-export type Service = {
+import { getProject } from './projects'
+
+export type AiService = {
+  tier: 1 | 2 | 3 | 4
+  // Plain-language name — a non-technical buyer should get it instantly.
   name: string
+  // The situation that means "this is your tier".
+  pickIf: string
+  // Outcomes, not features.
+  youGet: string[]
   price: string
-  timeline: string
-  summary: string
-  includes: string[]
-  // slug of the related case study, if any
-  work?: string
+  // slug of the matching case study / live demo
+  work: string
 }
 
-export const services: Service[] = [
+export const aiServices: AiService[] = [
   {
-    name: 'MVP in a Week',
-    price: 'from $2,500',
-    timeline: '5–7 days',
-    summary:
-      'A real, payable product: landing, auth, billing, and your core feature — live and deployed.',
-    includes: [
-      'Marketing landing page',
-      'Auth & user accounts',
-      'Stripe subscriptions',
-      'Your one core feature',
-      'Deployed on Vercel',
+    tier: 1,
+    name: 'Workflow Automation',
+    pickIf: 'your team copies the same data between tools by hand, every day.',
+    youGet: [
+      'Leads, orders, or forms flow into your tools automatically',
+      'Failed steps retry and alert a human — nothing lost silently',
+      'Runs 24/7 with zero manual entry',
     ],
-    work: 'micro-saas-mvp',
+    price: 'from $600',
+    work: 'lead-to-crm-automation',
   },
   {
-    name: 'AI Chatbot / Agent Integration',
-    price: 'from $1,200',
-    timeline: '3–5 days',
-    summary:
-      'An embeddable assistant that answers from your data, with citations and human handoff.',
-    includes: [
-      'RAG over your knowledge base',
-      'Embeddable widget (one snippet)',
-      'Streaming responses + citations',
-      'Lead capture & handoff',
-      'Conversation review panel',
+    tier: 2,
+    name: 'AI Triage & Sorting',
+    pickIf: 'someone reads every message or ticket just to decide where it goes.',
+    youGet: [
+      'AI reads, classifies, and summarizes every item',
+      'Each one routed to the right person or queue instantly',
+      'A safe fallback if the AI ever misbehaves',
     ],
+    price: 'from $1,000',
+    work: 'smart-inbox-router',
+  },
+  {
+    tier: 3,
+    name: 'AI Assistant on Your Data',
+    pickIf: 'customers or staff ask questions your docs and database already answer.',
+    youGet: [
+      'Answers from your documents and your live data',
+      'Every answer cites its source — no invented numbers',
+      'See exactly how each answer was found',
+    ],
+    price: 'from $2,200',
     work: 'hybrid-inventory-agent',
   },
   {
-    name: 'SaaS Dashboard',
-    price: 'from $1,800',
-    timeline: '4–6 days',
-    summary:
-      'A production admin panel with auth, charts, and CRUD your team will actually use.',
-    includes: [
-      'Role-based authentication',
-      'KPI cards & charts',
-      'Filterable data tables + CRUD',
-      'Responsive, dark/light',
-      'One-click deploy',
+    tier: 4,
+    name: 'Multi-Agent Research System',
+    pickIf: 'a decision needs many sources researched and combined into one report.',
+    youGet: [
+      'A team of AI agents researching in parallel',
+      'One structured report, every claim cited',
+      'Full audit trail of what each agent did',
     ],
-    work: 'saas-analytics-dashboard',
+    price: 'from $3,800',
+    work: 'deep-research-agent',
+  },
+]
+
+export function getAiServiceDetails(s: AiService) {
+  const p = getProject(s.work)
+  return {
+    timeline: p?.duration ?? '',
+    tierLabel: p?.tierLabel ?? '',
+    stack: p?.stack ?? [],
+  }
+}
+
+// Secondary offers — the product around the AI. Kept deliberately compact.
+export type OtherService = {
+  name: string
+  summary: string
+  price: string
+  // anchor on the /work page
+  workAnchor: string
+}
+
+export const otherServices: OtherService[] = [
+  {
+    name: 'Payments & Billing',
+    summary:
+      'One-time checkout, subscriptions, usage billing, or marketplace payouts — the money side of your product, built on Stripe.',
+    price: 'from $1,000',
+    workAnchor: 'mvp',
   },
   {
-    name: 'Landing Page + Integration',
-    price: 'from $800',
-    timeline: '2–4 days',
+    name: 'Dashboards & Internal Tools',
     summary:
-      'A pixel-perfect, fast marketing site — Figma-to-code — wired to the tools you use.',
-    includes: [
-      'Figma-to-code, pixel-perfect',
-      'Fully responsive & accessible',
-      'Forms, analytics, CRM/email wiring',
-      'SEO & OG metadata',
-      'Deployed & handed off',
-    ],
+      'Admin panels, CRMs, and ops tools with auth, charts, and tables your team actually uses.',
+    price: 'from $1,800',
+    workAnchor: 'dashboard',
   },
 ]

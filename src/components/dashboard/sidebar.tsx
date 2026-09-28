@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Settings, Car, LogOut, Megaphone, BookOpen, Building2, MapPin, Users, Key, Briefcase, Laptop, Smartphone, Tablet, Headphones } from 'lucide-react'
+import { Settings, Car, LogOut, Megaphone, BookOpen, Building2, MapPin, Users, Key, Briefcase, Laptop, Smartphone, Tablet, Headphones, Wallet } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 
 const NAV_SECTIONS = [
   {
     items: [
+      { href: '/dashboard/finanzas', label: 'Finanzas', icon: Wallet },
       { href: '/dashboard/propiedades', label: 'Propiedades', icon: Building2 },
       { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
       { href: '/dashboard/zonas', label: 'Zonas', icon: MapPin },

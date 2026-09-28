@@ -510,3 +510,30 @@ model ElecTrade {
   buyZone  ElecZone?    @relation("TradeBuyZone", fields: [buyZoneId], references: [id], onDelete: SetNull)
   sellZone ElecZone?    @relation("TradeSellZone", fields: [sellZoneId], references: [id], onDelete: SetNull)
 }
+
+// ── Finanzas ────────────────────────────────────────────────────────────────
+// Ingresos/egresos capturados a mano (reventa, software, otros). La ganancia
+// de ElecTrade (compras/ventas de equipos) se suma aparte al calcular el mes,
+// para no capturarla dos veces.
+model FinanceEntry {
+  id        String   @id @default(cuid())
+  date      DateTime
+  kind      String // INGRESO | EGRESO
+  area      String // REVENTA | SOFTWARE | OTRO
+  category  String
+  amount    Float // en la moneda original
+  currency  String   @default("MXN")
+  fxRate    Float    @default(1) // MXN por unidad de `currency`
+  amountMxn Float
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
+
+model FinanceSettings {
+  id          String   @id @default("singleton")
+  monthlyGoal Float    @default(80000)
+  updatedAt   DateTime @updatedAt
+}

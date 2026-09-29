@@ -13,6 +13,8 @@ export type LadderItem = {
   tierLabel: string
   stack: string[]
   tagline: string
+  // title of the concrete example project shown in the demo stage
+  exampleTitle: string
   demoUrl: string
 }
 
@@ -189,8 +191,9 @@ export default function ServicesLadder({ items, calendlyUrl }: { items: LadderIt
                     className='site-mono block text-[10.5px] font-bold uppercase'
                     style={{ letterSpacing: '0.06em', color: on ? 'var(--accent)' : 'var(--muted)' }}>
                     Level {s.tier}
+                    <span className='hidden sm:inline'> · Example</span>
                   </span>
-                  <span className='block text-[13px] leading-snug font-semibold'>{s.name}</span>
+                  <span className='block text-[13px] leading-snug font-semibold'>{s.exampleTitle}</span>
                 </span>
               </button>
             )
@@ -234,7 +237,7 @@ export default function ServicesLadder({ items, calendlyUrl }: { items: LadderIt
           <iframe
             key={current.demoUrl}
             src={`${current.demoUrl}?embed=1`}
-            title={`Live demo — Level ${current.tier}: ${current.name}`}
+            title={`Live demo — Level ${current.tier} example: ${current.exampleTitle}`}
             loading='lazy'
             className='block w-full'
             style={{ height: 560, border: 0, background: 'var(--bg-2)' }}

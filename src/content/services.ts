@@ -8,7 +8,8 @@ import { getProject } from './projects'
 
 export type AiService = {
   tier: 1 | 2 | 3 | 4
-  // Plain-language name — a non-technical buyer should get it instantly.
+  // Plain-language capability name — neutral on purpose: it's what adapts to
+  // the client's business, while the linked demo is one concrete example.
   name: string
   // The situation that means "this is your tier".
   pickIf: string
@@ -34,8 +35,8 @@ export const aiServices: AiService[] = [
   },
   {
     tier: 2,
-    name: 'AI Triage & Sorting',
-    pickIf: 'someone reads every message or ticket just to decide where it goes.',
+    name: 'AI Classification & Routing',
+    pickIf: 'people spend hours reading things just to decide what happens next.',
     youGet: [
       'AI reads, classifies, and summarizes every item',
       'Each one routed to the right person or queue instantly',
@@ -46,8 +47,8 @@ export const aiServices: AiService[] = [
   },
   {
     tier: 3,
-    name: 'AI Assistant on Your Data',
-    pickIf: 'customers or staff ask questions your docs and database already answer.',
+    name: 'AI Agent on Your Data',
+    pickIf: 'the answers already exist in your docs or database, but finding them takes a person.',
     youGet: [
       'Answers from your documents and your live data',
       'Every answer cites its source — no invented numbers',
@@ -58,11 +59,11 @@ export const aiServices: AiService[] = [
   },
   {
     tier: 4,
-    name: 'Multi-Agent Research System',
-    pickIf: 'a decision needs many sources researched and combined into one report.',
+    name: 'Multi-Agent Systems',
+    pickIf: 'the job is too big for one AI — it needs several specialists working together.',
     youGet: [
-      'A team of AI agents researching in parallel',
-      'One structured report, every claim cited',
+      'Specialized agents working in parallel',
+      'Their results merged into one reliable output',
       'Full audit trail of what each agent did',
     ],
     price: 'from $3,800',

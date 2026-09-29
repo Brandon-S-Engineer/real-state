@@ -19,6 +19,7 @@ export default function ServicesPage() {
       ...s,
       ...getAiServiceDetails(s),
       tagline: p?.tagline ?? '',
+      exampleTitle: p?.title ?? '',
       demoUrl: p?.demoUrl ?? `/demos/${s.work}`,
     }
   })

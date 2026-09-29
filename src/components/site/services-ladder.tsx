@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowRight, Check, ExternalLink } from 'lucide-react'
 
 export type LadderItem = {
@@ -17,6 +17,9 @@ export type LadderItem = {
   exampleTitle: string
   demoUrl: string
 }
+
+// Stage iframe height — the budget every demo is designed to fit on desktop.
+const FRAME_MIN = 560
 
 // Desktop staircase: each tier starts a step higher than the one before.
 const STEP_OFFSET = ['lg:pt-[96px]', 'lg:pt-[64px]', 'lg:pt-[32px]', 'lg:pt-0']
@@ -40,13 +43,39 @@ function LevelBars({ tier }: { tier: number }) {
 
 export default function ServicesLadder({ items, calendlyUrl }: { items: LadderItem[]; calendlyUrl: string }) {
   const [active, setActive] = useState(0)
+  const [frameH, setFrameH] = useState(FRAME_MIN)
   const stageRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLIFrameElement>(null)
   const current = items[active]
 
-  function showDemo(i: number) {
+  function select(i: number) {
+    // same level = same iframe, nothing reloads, so keep its fitted height
+    if (i === active) return
     setActive(i)
+    setFrameH(FRAME_MIN)
+  }
+
+  function showDemo(i: number) {
+    select(i)
     stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+
+  // The iframe grows to fit its demo so it never scrolls internally (demos
+  // are same-origin). Grow-only: demo pages are min-h-screen, so their
+  // height never reads smaller than the frame itself.
+  function fitFrame(frame: HTMLIFrameElement) {
+    const win = frame.contentWindow as (Window & typeof globalThis) | null
+    const doc = frame.contentDocument
+    if (!win || !doc || doc.readyState !== 'complete' || doc.URL === 'about:blank') return
+    const fit = () => setFrameH((h) => Math.max(h, doc.documentElement.scrollHeight))
+    fit()
+    new win.ResizeObserver(fit).observe(doc.body)
+  }
+
+  // The first demo can finish loading before hydration attaches onLoad.
+  useEffect(() => {
+    if (frameRef.current) fitFrame(frameRef.current)
+  }, [])
 
   return (
     <>
@@ -178,7 +207,7 @@ export default function ServicesLadder({ items, calendlyUrl }: { items: LadderIt
                 type='button'
                 role='tab'
                 aria-selected={on}
-                onClick={() => setActive(i)}
+                onClick={() => select(i)}
                 className='flex cursor-pointer items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-colors'
                 style={{
                   background: on ? 'var(--card)' : 'transparent',
@@ -239,8 +268,11 @@ export default function ServicesLadder({ items, calendlyUrl }: { items: LadderIt
             src={`${current.demoUrl}?embed=1`}
             title={`Live demo — Level ${current.tier} example: ${current.exampleTitle}`}
             loading='lazy'
+            ref={frameRef}
+            onLoad={(e) => fitFrame(e.currentTarget)}
+            scrolling='no'
             className='block w-full'
-            style={{ height: 560, border: 0, background: 'var(--bg-2)' }}
+            style={{ height: frameH, border: 0, background: 'var(--bg-2)' }}
           />
         </div>
       </div>

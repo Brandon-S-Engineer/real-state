@@ -144,32 +144,32 @@ export default function LeadToCrmAutomationDemo() {
                   : `Received, validated, saved, notified, and emailed — in ${(elapsed / 1000).toFixed(1)}s, zero manual work.`
                 : 'Fill this out like a visitor would, then submit — watch it move through the automation on the right.'}
             </p>
-            <form onSubmit={run} className='mt-4 flex flex-col gap-3'>
-              <label className='flex flex-col gap-1.5 text-[12.5px] font-medium'>
+            <form onSubmit={run} className='mt-3 flex flex-col gap-2.5'>
+              <label className='flex flex-col gap-1 text-[12.5px] font-medium'>
                 Name
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className='rounded-lg px-3 py-2 text-[13.5px] outline-none'
+                  className='rounded-lg px-3 py-1.5 text-[13.5px] outline-none'
                   style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.fg }}
                 />
               </label>
-              <label className='flex flex-col gap-1.5 text-[12.5px] font-medium'>
+              <label className='flex flex-col gap-1 text-[12.5px] font-medium'>
                 Email
                 <input
                   type='email'
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className='rounded-lg px-3 py-2 text-[13.5px] outline-none'
+                  className='rounded-lg px-3 py-1.5 text-[13.5px] outline-none'
                   style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.fg }}
                 />
               </label>
-              <label className='flex flex-col gap-1.5 text-[12.5px] font-medium'>
+              <label className='flex flex-col gap-1 text-[12.5px] font-medium'>
                 Property interest
                 <input
                   value={interest}
                   onChange={(e) => setInterest(e.target.value)}
-                  className='rounded-lg px-3 py-2 text-[13.5px] outline-none'
+                  className='rounded-lg px-3 py-1.5 text-[13.5px] outline-none'
                   style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.fg }}
                 />
               </label>
@@ -177,12 +177,12 @@ export default function LeadToCrmAutomationDemo() {
               <button
                 type='button'
                 onClick={() => setSimulateFailure((v) => !v)}
-                className='mt-1.5 flex items-center justify-between gap-3 rounded-lg p-2.5 text-left'
+                className='mt-1 flex items-center justify-between gap-3 rounded-lg p-2.5 text-left'
                 style={{ background: simulateFailure ? C.amberSoft : C.bg, border: `1px solid ${simulateFailure ? C.amber : C.border}` }}>
                 <span>
                   <span className='block text-[12.5px] font-semibold'>Simulate a failure</span>
                   <span className='block text-[11px]' style={{ color: C.muted }}>
-                    Makes the Slack notification step fail, to show the retry + alert path
+                    Forces the Slack step to fail
                   </span>
                 </span>
                 <span
@@ -214,7 +214,7 @@ export default function LeadToCrmAutomationDemo() {
               Automation flow
             </p>
             <div className='relative mt-1.5 flex flex-col'>
-              <div className='absolute top-4 bottom-4 left-[17px] w-[2px]' style={{ background: C.border }} />
+              <div className='absolute top-4 bottom-4 left-[15px] w-[2px]' style={{ background: C.border }} />
               {STEPS.map((step) => {
                 const status = statuses[step.id]
                 const Icon =
@@ -243,9 +243,9 @@ export default function LeadToCrmAutomationDemo() {
                     : status === 'done' ? 'done'
                     : 'escalated → alert sent'
                 return (
-                  <div key={step.id} className='relative flex items-start gap-3 py-1.5'>
+                  <div key={step.id} className='relative flex items-start gap-3 py-1'>
                     <span
-                      className='relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full'
+                      className='relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full'
                       style={{
                         background: circleBg,
                         color: status === 'pending' ? C.muted : 'white',
@@ -253,7 +253,7 @@ export default function LeadToCrmAutomationDemo() {
                       }}>
                       <Icon className={`h-4 w-4 ${spin ? 'animate-spin' : ''}`} />
                     </span>
-                    <div className='pt-1'>
+                    <div className='pt-0.5'>
                       <p className='text-[13px] font-semibold'>{step.label}</p>
                       <p className='text-[11px]' style={{ color: captionColor }}>{caption}</p>
                     </div>

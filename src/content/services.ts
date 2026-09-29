@@ -1,8 +1,6 @@
 // Productized, fixed-price offers. AI is the lead offer and mirrors the
 // "AI Chatbots & Agents" complexity ladder 1:1 — every tier maps to its live
-// demo in /work, so a buyer can see exactly what each level does before
-// paying for it. Timeline and stack are read from the linked project so the
-// two pages can never drift apart.
+// demo, so a buyer can see exactly what each level does before paying for it.
 
 import { getProject } from './projects'
 
@@ -35,7 +33,8 @@ export const aiServices: AiService[] = [
   },
   {
     tier: 2,
-    name: 'AI Classification & Routing',
+    // soft hyphen: only breaks in the narrow mobile hero staircase
+    name: 'AI Classi\u00ADfication & Routing',
     pickIf: 'people spend hours reading things just to decide what happens next.',
     youGet: [
       'AI reads, classifies, and summarizes every item',
@@ -71,13 +70,32 @@ export const aiServices: AiService[] = [
   },
 ]
 
-export function getAiServiceDetails(s: AiService) {
-  const p = getProject(s.work)
-  return {
-    timeline: p?.duration ?? '',
-    tierLabel: p?.tierLabel ?? '',
-    stack: p?.stack ?? [],
-  }
+// A service joined with its linked project — everything the ladder cards and
+// the live demo stage render. Timeline, tier label, and stack come from the
+// project so Services, Home, and Work can never drift apart.
+export type LadderItem = AiService & {
+  timeline: string
+  tierLabel: string
+  stack: string[]
+  tagline: string
+  // title of the concrete example project shown in the demo stage
+  exampleTitle: string
+  demoUrl: string
+}
+
+export function getLadderItems(): LadderItem[] {
+  return aiServices.map((s) => {
+    const p = getProject(s.work)
+    return {
+      ...s,
+      timeline: p?.duration ?? '',
+      tierLabel: p?.tierLabel ?? '',
+      stack: p?.stack ?? [],
+      tagline: p?.tagline ?? '',
+      exampleTitle: p?.title ?? '',
+      demoUrl: p?.demoUrl ?? `/demos/${s.work}`,
+    }
+  })
 }
 
 // Secondary offers — the product around the AI. Kept deliberately compact.

@@ -491,5 +491,3 @@ export function getRelatedProjects(slug: string, limit = 2): Project[] {
     .sort((a, b) => (a.demoStatus === 'live' ? -1 : 1) - (b.demoStatus === 'live' ? -1 : 1))
     .slice(0, limit)
 }
-
-export const featuredProjects = projects.filter((p) => p.featured)

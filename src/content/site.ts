@@ -8,31 +8,25 @@ export const site = {
   // clients actually search for.
   tagline: 'Production-ready AI web apps in days, not months.',
   subhead:
-    'I build MVPs, AI agents, and SaaS dashboards on Next.js — fixed price, fixed timeline, shipped fast.',
+    'From simple automations to multi-agent systems — fixed price, fixed timeline, and a live demo of every level you can try right here.',
   location: 'Remote · Available worldwide',
   email: 'fortuneblue25@gmail.com',
   // Client-facing links — replace with your real URLs.
   upworkUrl: 'https://www.upwork.com/freelancers/~REPLACE_ME',
   calendlyUrl: 'https://calendly.com/REPLACE_ME/intro-call',
-  // Social proof headline numbers (edit as they grow).
-  stats: [
-    { value: '5 days', label: 'Avg. time to first working MVP', accent: false },
-    { value: 'Fixed', label: 'Price & timeline, always', accent: false },
-    { value: '48h', label: 'From spec to live demo', accent: true },
-  ],
-  // Core stack shown as a trust strip on the home page.
+  // Core stack shown as a trust strip on the home page — AI first.
   stack: [
-    'Next.js',
-    'React',
-    'TypeScript',
-    'Node.js',
+    'Python',
+    'FastAPI',
+    'Pydantic AI',
     'OpenAI',
     'Claude',
-    'Supabase',
+    'pgvector',
+    'n8n',
+    'Next.js',
+    'TypeScript',
     'Postgres',
-    'Prisma',
     'Stripe',
-    'Tailwind',
   ],
 } as const
 

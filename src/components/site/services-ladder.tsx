@@ -1,14 +1,26 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { ArrowDown, ArrowRight, Check } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowDown, ArrowRight, Check, PlayCircle } from 'lucide-react'
 import type { LadderItem } from '@/content/services'
 import DemoStage, { LevelBars } from './demo-stage'
 
 // Desktop staircase: each tier starts a step higher than the one before.
 const STEP_OFFSET = ['lg:pt-[96px]', 'lg:pt-[64px]', 'lg:pt-[32px]', 'lg:pt-0']
 
-export default function ServicesLadder({ items, calendlyUrl }: { items: LadderItem[]; calendlyUrl: string }) {
+// Published recorded demos per level (only levels that have at least one).
+export type RecordedDemos = Record<number, { count: number; href: string }>
+
+export default function ServicesLadder({
+  items,
+  calendlyUrl,
+  recorded = {},
+}: {
+  items: LadderItem[]
+  calendlyUrl: string
+  recorded?: RecordedDemos
+}) {
   const [active, setActive] = useState(0)
   const stageRef = useRef<HTMLDivElement>(null)
 
@@ -37,7 +49,7 @@ export default function ServicesLadder({ items, calendlyUrl }: { items: LadderIt
           {items.map((s, i) => {
             const top = s.tier === 4
             return (
-              <div key={s.tier} className={STEP_OFFSET[i]}>
+              <div key={s.tier} id={`level-${s.tier}`} className={`scroll-mt-24 ${STEP_OFFSET[i]}`}>
                 <div
                   className='flex h-full flex-col rounded-[20px] p-[22px]'
                   style={{
@@ -117,6 +129,15 @@ export default function ServicesLadder({ items, calendlyUrl }: { items: LadderIt
                       See it running
                       <ArrowDown className='h-3.5 w-3.5' style={{ color: 'var(--accent)' }} />
                     </button>
+                    {recorded[s.tier] && (
+                      <Link
+                        href={recorded[s.tier].href}
+                        className='inline-flex items-center justify-center gap-1.5 text-[12.5px]'
+                        style={{ color: 'var(--muted)' }}>
+                        <PlayCircle className='h-3.5 w-3.5' style={{ color: 'var(--accent)' }} />
+                        {recorded[s.tier].count} recorded {recorded[s.tier].count === 1 ? 'demo' : 'demos'}
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

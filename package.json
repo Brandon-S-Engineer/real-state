@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed:sheets": "tsx scripts/seed-sheets.ts",
+    "seed:demos": "tsx --tsconfig scripts/tsconfig.json scripts/seed-demos.ts",
     "scrape": "tsx --tsconfig scripts/tsconfig.json scripts/scraper/index.ts",
     "test:mp-selectors": "tsx scripts/test-mp-selectors.ts"
   },

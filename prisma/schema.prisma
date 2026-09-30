@@ -332,6 +332,8 @@ model UpworkJob {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
+  demoUses DemoUse[]
+
   @@index([score])
   @@index([ganado])
 }
@@ -341,7 +343,6 @@ model UpworkSettings {
   minScoreAlert Int      @default(7)
   updatedAt     DateTime @updatedAt
 }
-
 
 // ── Electrónicos (reventa de MacBooks) ───────────────────────────────────────
 //
@@ -536,4 +537,100 @@ model FinanceSettings {
   id          String   @id @default("singleton")
   monthlyGoal Float    @default(80000)
   updatedAt   DateTime @updatedAt
+}
+
+// ── Demos (biblioteca de demos reutilizables para propuestas de Upwork) ───────
+//
+// Fuente de verdad del registro: el código/workflows viven en el repo privado
+// `upwork-demos` (repoPath apunta a su carpeta). El portafolio SOLO muestra
+// demos PUBLISHED, y la API no deja publicar sin video + diagrama + problema
+// (src/lib/demos/shared.ts → publishBlockers). Nada sin terminar sale al público.
+
+enum DemoStatus {
+  PLANNED // en la lista, no empezado
+  BUILDING // en construcción
+  RECORDED // funciona y hay video, aún no público
+  PUBLISHED // visible en el portafolio (/demos)
+  ARCHIVED // retirado
+}
+
+enum DemoEdge {
+  EMAIL
+  WHATSAPP
+  VOICE
+  WEB_CHAT
+  SMS
+}
+
+enum DemoUseOutcome {
+  SENT
+  REPLIED
+  INTERVIEW
+  HIRED
+  LOST
+}
+
+model Demo {
+  id              String     @id @default(cuid())
+  slug            String     @unique
+  title           String
+  buildOrder      Int        @default(0)
+  status          DemoStatus @default(PLANNED)
+  niche           String // texto libre: "Automation + RAG", "Voice", "Chatbots"
+  tiers           Int[] // niveles de /services que prueba (1–4)
+  edges           DemoEdge[] // canales soportados
+  summary         String // una línea, pública
+  problem         String // el problema que resuelve, público
+  stack           String[]
+  flow            Json       @default("[]") // [{ label, detail?, kind: edge|brain|action|human }] → diagrama
+  repoPath        String? // carpeta dentro del repo de demos, ej. "demos/01-email-support"
+  repoUrl         String?
+  videoUrl        String? // Loom / YouTube / mp4
+  matchKeywords   String[] // patrón de demanda: el job hace match si contiene alguna
+  excludeKeywords String[]
+  notes           String?
+  publishedAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  uses   DemoUse[]
+  demand DemoDemandWeek[]
+
+  @@index([status])
+}
+
+// Cada vez que un demo se usa en una propuesta — para saber cuáles ganan trabajo.
+model DemoUse {
+  id          String         @id @default(cuid())
+  demoId      String
+  upworkJobId String? // si el job está capturado en el CRM
+  jobTitle    String
+  jobUrl      String?
+  sentAt      DateTime       @default(now())
+  outcome     DemoUseOutcome @default(SENT)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  demo      Demo       @relation(fields: [demoId], references: [id], onDelete: Cascade)
+  upworkJob UpworkJob? @relation(fields: [upworkJobId], references: [id], onDelete: SetNull)
+
+  @@index([demoId])
+}
+
+// Demanda semanal por demo, persistida aparte porque la tabla UpworkJob se
+// purga al calibrar búsquedas. La semana es la de PUBLICACIÓN del job
+// (firstSeenAt − initialPostedHours), así un job recapturado tras una purga
+// cae en la misma semana; los conteos solo suben (max), nunca se pierden.
+model DemoDemandWeek {
+  id            String   @id @default(cuid())
+  demoId        String
+  weekStart     DateTime @db.Date // lunes (UTC)
+  matches       Int
+  totalCaptured Int // jobs capturados esa semana — para normalizar (share)
+  updatedAt     DateTime @updatedAt
+
+  demo Demo @relation(fields: [demoId], references: [id], onDelete: Cascade)
+
+  @@unique([demoId, weekStart])
 }

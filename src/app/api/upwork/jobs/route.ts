@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client'
 import { requireSessionOrApiKey, CORS_HEADERS, corsOk } from '@/lib/api-auth'
 import { requireAdmin } from '@/lib/require-admin'
 import { scoreUpworkJob } from '@/lib/upwork-score'
+import { refreshDemand } from '@/lib/demos/server'
 
 const jobSchema = z.object({
   uid:          z.string().min(1),
@@ -247,6 +248,10 @@ export async function DELETE(req: Request) {
 
   const { searchParams } = new URL(req.url)
   const includeGanado = searchParams.get('includeGanado') === 'true'
+
+  // Antes de borrar, guarda la demanda semanal por demo: después de la purga
+  // esos jobs ya no existen para recalcularla.
+  await refreshDemand()
 
   const { count } = await prisma.upworkJob.deleteMany({
     where: includeGanado ? {} : { ganado: false },

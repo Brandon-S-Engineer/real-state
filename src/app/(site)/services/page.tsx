@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { site } from '@/content/site'
 import { getLadderItems } from '@/content/services'
-import ServicesLadder from '@/components/site/services-ladder'
+import ServicesLadder, { type RecordedDemos } from '@/components/site/services-ladder'
+import { getPublishedDemos } from '@/lib/demos/server'
 import OtherServices from '@/components/site/other-services'
 
 export const metadata: Metadata = {
@@ -10,8 +11,16 @@ export const metadata: Metadata = {
     'Four levels of AI, from simple workflow automation to multi-agent systems — fixed price, fixed timeline, each with a live demo.',
 }
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
   const items = getLadderItems()
+  // Cross-link each level to the recorded demos that prove it (published only).
+  const recorded: RecordedDemos = {}
+  for (const d of await getPublishedDemos()) {
+    for (const t of d.tiers) {
+      recorded[t] ??= { count: 0, href: `/demos#${d.slug}` }
+      recorded[t].count++
+    }
+  }
 
   return (
     <section className='mx-auto max-w-[1120px] px-6 pt-20'>
@@ -28,7 +37,7 @@ export default function ServicesPage() {
         </p>
       </div>
 
-      <ServicesLadder items={items} calendlyUrl={site.calendlyUrl} />
+      <ServicesLadder items={items} calendlyUrl={site.calendlyUrl} recorded={recorded} />
 
       <div className='mt-20'>
         <OtherServices />

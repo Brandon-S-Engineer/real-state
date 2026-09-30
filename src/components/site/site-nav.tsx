@@ -7,13 +7,16 @@ import { Menu, X } from 'lucide-react'
 import SiteThemeToggle from '@/components/site/site-theme-toggle'
 import { site } from '@/content/site'
 
-const links = [
+const baseLinks = [
   { href: '/work', label: 'Work' },
   { href: '/services', label: 'Services' },
   { href: '/about', label: 'About' },
 ]
 
-export default function SiteNav() {
+export default function SiteNav({ hasDemos = false }: { hasDemos?: boolean }) {
+  const links = hasDemos
+    ? [baseLinks[0], baseLinks[1], { href: '/demos', label: 'Demos' }, baseLinks[2]]
+    : baseLinks
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')

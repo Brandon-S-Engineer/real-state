@@ -109,16 +109,22 @@
 
   // ── Envío (vía service worker, que tiene la API key) ────────────────────────
 
+  // Throttle, no debounce: FB muta el DOM sin parar (videos, "hace 5 min",
+  // imágenes), así que un debounce se reiniciaba siempre y la cola nunca salía
+  // hasta llenar MAX_BATCH. Ahora sale a lo más FLUSH_MS después de encolar.
   let flushTimer = null
   function scheduleFlush() {
-    clearTimeout(flushTimer)
-    flushTimer = setTimeout(flush, FLUSH_MS)
+    if (flushTimer || !queue.length) return
+    flushTimer = setTimeout(() => { flushTimer = null; flush() }, FLUSH_MS)
   }
 
+  let sending = 0
   async function flush() {
     if (!queue.length) return
     const batch = queue
     queue = []
+    sending += batch.length
+    renderStatus()
 
     // Agrupar por (kind, sourceKey)
     const groups = new Map()
@@ -152,6 +158,7 @@
         log('✗ error enviando:', err.message)
       }
     }
+    sending -= batch.length
     renderStatus()
   }
 
@@ -170,8 +177,10 @@
     const src = currentSearch() ?? lastSearch
     statusEl.innerHTML = `<strong>🍏 Apple Catcher${enabled ? '' : ' (pausado)'}</strong><br>
       ${src ? `${escapeHtml(src.name)}<br>` : ''}
-      Vistos ${stats.seen} · enviados ${stats.sent} · nuevos ${stats.created}
-      ${queue.length ? ` · en cola ${queue.length}` : ''}
+      Vistos ${stats.seen} · enviados ${stats.sent} · nuevos ${stats.created}<br>
+      ${queue.length || sending
+        ? `<span style="color:#fcd34d">Enviando ${queue.length + sending}… no cierres la pestaña</span>`
+        : stats.sent ? '<span style="color:#86efac">✓ Todo enviado — ya puedes salir</span>' : ''}
       ${stats.lastError ? `<br><span style="color:#fca5a5">⚠ ${escapeHtml(stats.lastError)}</span>` : ''}`
   }
 
@@ -217,7 +226,9 @@
     // FB es SPA: la URL cambia sin recargar (abrir/cerrar item, nueva búsqueda)
     let lastHref = location.href
     setInterval(() => { if (location.href !== lastHref) { lastHref = location.href; scheduleScan() } }, 1000)
-    window.addEventListener('beforeunload', () => { if (queue.length) flush() })
+    // Al cambiar de pestaña o salir, mandar lo pendiente de una vez (best-effort)
+    document.addEventListener('visibilitychange', () => { if (document.hidden && queue.length) flush() })
+    window.addEventListener('pagehide', () => { if (queue.length) flush() })
   }
 
   init()

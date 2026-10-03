@@ -1,4 +1,5 @@
-import { ArrowDown, Check, FileText, MousePointerClick, Rocket } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowDown, ArrowRight, Check, FileText, MousePointerClick, Rocket } from 'lucide-react'
 import HomeLadder from '@/components/site/home-ladder'
 import OtherServices from '@/components/site/other-services'
 import { site } from '@/content/site'
@@ -9,13 +10,13 @@ const steps = [
     num: '01',
     icon: FileText,
     title: 'Describe the problem',
-    body: 'Tell me what’s eating your team’s time. I’ll tell you the lowest level that solves it — with a fixed price and timeline.',
+    body: 'Tell me what’s eating your team’s time. I’ll tell you the lowest level that solves it — with a fixed scope and timeline.',
   },
   {
     num: '02',
     icon: MousePointerClick,
     title: 'See it working in 48h',
-    body: 'Before you commit, you get a working demo you can click — not a proposal full of promises.',
+    body: 'The first milestone is a working demo you can click — not a document full of promises.',
   },
   {
     num: '03',
@@ -25,7 +26,7 @@ const steps = [
   },
 ]
 
-const guarantees = ['Fixed price, fixed timeline', 'First demo in 48 hours', 'Clean code you own']
+const guarantees = ['Fixed scope, fixed timeline', 'First demo in 48 hours', 'Clean code you own']
 
 export default function HomePage() {
   const items = getLadderItems()
@@ -59,13 +60,9 @@ export default function HomePage() {
           Try the live demos
           <ArrowDown className='h-[17px] w-[17px]' />
         </a>
-        <a
-          href={site.calendlyUrl}
-          target='_blank'
-          rel='noopener noreferrer'
-          className='site-btn site-btn-outline h-12 px-[22px] text-[15.5px]'>
-          Book a call
-        </a>
+        <Link href='/work' className='site-btn site-btn-outline h-12 px-[22px] text-[15.5px]'>
+          See the work
+        </Link>
       </div>
       <div className='mt-6 flex flex-wrap gap-x-5 gap-y-2'>
         {guarantees.map((g) => (
@@ -115,7 +112,7 @@ export default function HomePage() {
           <h2
             className='site-display mt-3 font-bold'
             style={{ fontSize: 'clamp(24px,3vw,30px)', letterSpacing: '-0.03em' }}>
-            You see something real before you commit.
+            You see something real from day two.
           </h2>
         </div>
         <div className='mt-6 grid grid-cols-1 gap-4 md:grid-cols-3'>
@@ -169,29 +166,25 @@ export default function HomePage() {
               Have a process AI should be handling?
             </h2>
             <p className='mx-auto mt-[18px] max-w-[48ch] text-[17px]' style={{ lineHeight: 1.55, opacity: 0.72 }}>
-              Send it over. You’ll get the right level, a fixed price, a timeline — and for the right
-              fit, a working demo within 48 hours.
+              Describe it in your message. You’ll get the right level, a fixed scope and a timeline —
+              and a first working demo within 48 hours of starting.
             </p>
             <div className='mt-8 flex flex-wrap justify-center gap-3'>
-              <a
-                href={site.calendlyUrl}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='site-btn site-btn-accent h-[50px] px-[26px] text-[15.5px]'>
-                Book a call
+              <a href='#demos' className='site-btn site-btn-accent h-[50px] px-[26px] text-[15.5px]'>
+                Try the live demos
+                <ArrowDown className='h-[17px] w-[17px]' />
               </a>
-              <a
-                href={site.upworkUrl}
-                target='_blank'
-                rel='noopener noreferrer'
+              <Link
+                href='/services'
                 className='site-btn h-[50px] px-[26px] text-[15.5px]'
                 style={{
                   background: 'transparent',
                   color: 'var(--bg)',
                   border: '1px solid color-mix(in oklch, var(--bg) 40%, transparent)',
                 }}>
-                Hire me on Upwork
-              </a>
+                Compare the levels
+                <ArrowRight className='h-[17px] w-[17px]' />
+              </Link>
             </div>
           </div>
         </div>

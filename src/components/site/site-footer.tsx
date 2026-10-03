@@ -35,18 +35,6 @@ export default function SiteFooter() {
             className='transition-colors hover:text-[var(--fg)]'>
             About
           </Link>
-          <a
-            href={site.upworkUrl}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='transition-colors hover:text-[var(--fg)]'>
-            Upwork
-          </a>
-          <a
-            href={`mailto:${site.email}`}
-            className='transition-colors hover:text-[var(--fg)]'>
-            {site.email}
-          </a>
         </div>
       </div>
       <div

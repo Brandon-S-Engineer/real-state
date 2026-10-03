@@ -1,6 +1,10 @@
-// Productized, fixed-price offers. AI is the lead offer and mirrors the
-// "AI Chatbots & Agents" complexity ladder 1:1 — every tier maps to its live
-// demo, so a buyer can see exactly what each level does before paying for it.
+// Productized offers. AI is the lead offer and mirrors the "AI Chatbots &
+// Agents" complexity ladder 1:1 — every tier maps to its live demo, so a buyer
+// can see exactly what each level does before paying for it.
+//
+// No prices here on purpose: the site is linked from freelance marketplace
+// profiles, and the price lives in the marketplace offer (it differs per
+// platform after fees). The site sells the level; the platform closes it.
 
 import { getProject } from './projects'
 
@@ -13,7 +17,6 @@ export type AiService = {
   pickIf: string
   // Outcomes, not features.
   youGet: string[]
-  price: string
   // slug of the matching case study / live demo
   work: string
 }
@@ -28,7 +31,6 @@ export const aiServices: AiService[] = [
       'Failed steps retry and alert a human — nothing lost silently',
       'Runs 24/7 with zero manual entry',
     ],
-    price: 'from $600',
     work: 'lead-to-crm-automation',
   },
   {
@@ -41,7 +43,6 @@ export const aiServices: AiService[] = [
       'Each one routed to the right person or queue instantly',
       'A safe fallback if the AI ever misbehaves',
     ],
-    price: 'from $1,000',
     work: 'smart-inbox-router',
   },
   {
@@ -53,7 +54,6 @@ export const aiServices: AiService[] = [
       'Every answer cites its source — no invented numbers',
       'See exactly how each answer was found',
     ],
-    price: 'from $2,200',
     work: 'hybrid-inventory-agent',
   },
   {
@@ -65,7 +65,6 @@ export const aiServices: AiService[] = [
       'Their results merged into one reliable output',
       'Full audit trail of what each agent did',
     ],
-    price: 'from $3,800',
     work: 'deep-research-agent',
   },
 ]
@@ -102,7 +101,6 @@ export function getLadderItems(): LadderItem[] {
 export type OtherService = {
   name: string
   summary: string
-  price: string
   // anchor on the /work page
   workAnchor: string
 }
@@ -112,14 +110,12 @@ export const otherServices: OtherService[] = [
     name: 'Payments & Billing',
     summary:
       'One-time checkout, subscriptions, usage billing, or marketplace payouts — the money side of your product, built on Stripe.',
-    price: 'from $1,000',
     workAnchor: 'mvp',
   },
   {
     name: 'Dashboards & Internal Tools',
     summary:
       'Admin panels, CRMs, and ops tools with auth, charts, and tables your team actually uses.',
-    price: 'from $1,800',
     workAnchor: 'dashboard',
   },
 ]

@@ -19,12 +19,9 @@ export default function OtherServices() {
             href={`/work#${s.workAnchor}`}
             className='site-lift flex flex-col rounded-[18px] p-[22px]'
             style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div className='flex items-baseline justify-between gap-3'>
-              <h3 className='site-display text-[18px] font-semibold' style={{ letterSpacing: '-0.02em' }}>
-                {s.name}
-              </h3>
-              <span className='site-mono text-[13px] font-semibold whitespace-nowrap'>{s.price}</span>
-            </div>
+            <h3 className='site-display text-[18px] font-semibold' style={{ letterSpacing: '-0.02em' }}>
+              {s.name}
+            </h3>
             <p className='mt-2 flex-1 text-[14px]' style={{ lineHeight: 1.55, color: 'var(--muted)' }}>
               {s.summary}
             </p>

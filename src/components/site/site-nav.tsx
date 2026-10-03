@@ -65,13 +65,9 @@ export default function SiteNav({ hasDemos = false }: { hasDemos?: boolean }) {
           <div className='ml-1.5'>
             <SiteThemeToggle />
           </div>
-          <a
-            href={site.calendlyUrl}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='site-btn site-btn-inverse ml-1.5 h-9 px-4 text-sm'>
-            Book a call
-          </a>
+          <Link href='/#demos' className='site-btn site-btn-inverse ml-1.5 h-9 px-4 text-sm'>
+            Try a demo
+          </Link>
         </nav>
 
         <div className='flex items-center gap-1.5 md:hidden'>
@@ -101,14 +97,12 @@ export default function SiteNav({ hasDemos = false }: { hasDemos?: boolean }) {
                 {l.label}
               </Link>
             ))}
-            <a
-              href={site.calendlyUrl}
-              target='_blank'
-              rel='noopener noreferrer'
+            <Link
+              href='/#demos'
               onClick={() => setOpen(false)}
               className='site-btn site-btn-inverse mt-2 h-10 px-4 text-sm'>
-              Book a call
-            </a>
+              Try a demo
+            </Link>
           </nav>
         </div>
       )}

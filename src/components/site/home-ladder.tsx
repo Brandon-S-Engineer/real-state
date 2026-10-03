@@ -48,7 +48,7 @@ export default function HomeLadder({ intro, items }: { intro: ReactNode; items: 
                   </span>
                   <span className='mt-1 text-[11px] leading-snug font-semibold sm:text-[13.5px]'>{s.name}</span>
                   <span className='site-mono mt-auto hidden pt-2 text-[11px] sm:block' style={{ color: 'var(--muted)' }}>
-                    {s.price}
+                    ~{s.timeline}
                   </span>
                 </button>
               )

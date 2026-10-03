@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { site } from '@/content/site'
 
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
 }
 
 const principles = [
-  'I ship a working demo before you commit — you buy proof, not promises.',
-  'Fixed price and fixed timeline, agreed up front.',
+  'The first milestone is a working demo — you buy proof, not promises.',
+  'Fixed scope and fixed timeline, agreed up front.',
   'Clean, typed, documented code you fully own. No lock-in.',
   'Fast, direct communication — no account managers, no hand-offs.',
 ]
@@ -80,20 +81,12 @@ export default function AboutPage() {
 
       {/* CTA */}
       <div className='mt-12 mb-24 flex flex-wrap gap-3'>
-        <a
-          href={site.calendlyUrl}
-          target='_blank'
-          rel='noopener noreferrer'
-          className='site-btn site-btn-accent h-12 px-6 text-[15.5px]'>
-          Book a call
-        </a>
-        <a
-          href={site.upworkUrl}
-          target='_blank'
-          rel='noopener noreferrer'
-          className='site-btn site-btn-outline h-12 px-6 text-[15.5px]'>
-          Hire me on Upwork
-        </a>
+        <Link href='/#demos' className='site-btn site-btn-accent h-12 px-6 text-[15.5px]'>
+          Try the live demos
+        </Link>
+        <Link href='/work' className='site-btn site-btn-outline h-12 px-6 text-[15.5px]'>
+          See the work
+        </Link>
       </div>
     </section>
   )

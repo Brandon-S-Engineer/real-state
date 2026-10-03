@@ -14,11 +14,9 @@ export type RecordedDemos = Record<number, { count: number; href: string }>
 
 export default function ServicesLadder({
   items,
-  calendlyUrl,
   recorded = {},
 }: {
   items: LadderItem[]
-  calendlyUrl: string
   recorded?: RecordedDemos
 }) {
   const [active, setActive] = useState(0)
@@ -76,10 +74,10 @@ export default function ServicesLadder({
 
                   <div className='mt-4 flex items-baseline justify-between gap-2'>
                     <span className='site-display text-[26px] font-bold' style={{ letterSpacing: '-0.03em' }}>
-                      {s.price}
+                      {s.timeline}
                     </span>
                     <span className='site-mono text-xs whitespace-nowrap' style={{ color: 'var(--muted)' }}>
-                      {s.timeline}
+                      typical build
                     </span>
                   </div>
 
@@ -115,19 +113,12 @@ export default function ServicesLadder({
                   </div>
 
                   <div className='mt-auto flex flex-col gap-2.5 pt-5'>
-                    <a
-                      href={calendlyUrl}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className={`site-btn ${top ? 'site-btn-accent' : 'site-btn-outline'} h-10 text-[14px]`}>
-                      Start this
-                    </a>
                     <button
                       type='button'
                       onClick={() => showDemo(i)}
-                      className='inline-flex cursor-pointer items-center justify-center gap-1.5 text-[13px] font-semibold'>
+                      className={`site-btn ${top ? 'site-btn-accent' : 'site-btn-outline'} h-10 cursor-pointer gap-1.5 text-[14px]`}>
                       See it running
-                      <ArrowDown className='h-3.5 w-3.5' style={{ color: 'var(--accent)' }} />
+                      <ArrowDown className='h-3.5 w-3.5' />
                     </button>
                     {recorded[s.tier] && (
                       <Link
@@ -145,8 +136,8 @@ export default function ServicesLadder({
           })}
         </div>
         <p className='mt-5 text-[14px]' style={{ color: 'var(--muted)' }}>
-          Not sure which level you need? Describe the problem — I’ll tell you the lowest level that
-          solves it.
+          Found your level? Mention it in your message (“Level 2”) and you’ll get a scope and
+          timeline back. Not sure? Describe the problem — I’ll tell you the lowest level that solves it.
         </p>
       </div>
 

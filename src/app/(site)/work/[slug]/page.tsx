@@ -243,28 +243,23 @@ export default async function CaseStudyPage({
             Want something like this?
           </h3>
           <p className='mx-auto mt-3.5 max-w-[44ch] text-base' style={{ lineHeight: 1.55, opacity: 0.72 }}>
-            Fixed price, fixed timeline. Tell me the scope and I’ll get you a working demo fast.
+            Fixed scope, fixed timeline. Mention this project in your message and I’ll scope a
+            version for your business.
           </p>
           <div className='mt-7 flex flex-wrap justify-center gap-3'>
-            <a
-              href={site.calendlyUrl}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='site-btn site-btn-accent h-12 px-6 text-[15.5px]'>
-              Book a call
-            </a>
-            <a
-              href={site.upworkUrl}
-              target='_blank'
-              rel='noopener noreferrer'
+            <Link href='/services' className='site-btn site-btn-accent h-12 px-6 text-[15.5px]'>
+              Compare the levels
+            </Link>
+            <Link
+              href='/work'
               className='site-btn h-12 px-6 text-[15.5px]'
               style={{
                 background: 'transparent',
                 color: 'var(--bg)',
                 border: '1px solid color-mix(in oklch, var(--bg) 40%, transparent)',
               }}>
-              Hire me on Upwork
-            </a>
+              More work
+            </Link>
           </div>
         </div>
       </div>

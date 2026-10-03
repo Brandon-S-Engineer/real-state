@@ -1,14 +1,14 @@
 import type { Metadata } from 'next'
-import { site } from '@/content/site'
+import Link from 'next/link'
 import { getLadderItems } from '@/content/services'
 import ServicesLadder, { type RecordedDemos } from '@/components/site/services-ladder'
 import { getPublishedDemos } from '@/lib/demos/server'
 import OtherServices from '@/components/site/other-services'
 
 export const metadata: Metadata = {
-  title: 'Services — AI builds at a fixed price',
+  title: 'Services — four levels of AI',
   description:
-    'Four levels of AI, from simple workflow automation to multi-agent systems — fixed price, fixed timeline, each with a live demo.',
+    'Four levels of AI, from simple workflow automation to multi-agent systems — fixed scope, fixed timeline, each with a live demo.',
 }
 
 export default async function ServicesPage() {
@@ -29,15 +29,15 @@ export default async function ServicesPage() {
         <h1
           className='site-display mt-3.5 font-bold'
           style={{ fontSize: 'clamp(38px,5vw,56px)', letterSpacing: '-0.035em', lineHeight: 1.03 }}>
-          AI that does real work. Fixed price.
+          AI that does real work. Fixed scope.
         </h1>
         <p className='mt-[18px] text-[18px]' style={{ lineHeight: 1.55, color: 'var(--muted)' }}>
           Four levels, from a simple automation to a team of AI agents. Find the one that
-          matches your problem, try its live demo, and get a fixed quote.
+          matches your problem, try its live demo, and mention it when you reach out.
         </p>
       </div>
 
-      <ServicesLadder items={items} calendlyUrl={site.calendlyUrl} recorded={recorded} />
+      <ServicesLadder items={items} recorded={recorded} />
 
       <div className='mt-20'>
         <OtherServices />
@@ -52,14 +52,12 @@ export default async function ServicesPage() {
           Something else in mind?
         </h3>
         <p className='mx-auto mt-3.5 max-w-[46ch] text-base' style={{ lineHeight: 1.55, color: 'var(--muted)' }}>
-          If your project doesn’t fit a box, send the details. Most builds get a fixed quote within
-          a day.
+          If your project doesn’t fit a box, describe it in your message. Most builds get a fixed
+          scope and timeline within a day.
         </p>
-        <a
-          href={`mailto:${site.email}`}
-          className='site-btn site-btn-inverse mt-6 h-12 px-6 text-[15.5px]'>
-          Email me the scope
-        </a>
+        <Link href='/work' className='site-btn site-btn-inverse mt-6 h-12 px-6 text-[15.5px]'>
+          Browse all work
+        </Link>
       </div>
     </section>
   )

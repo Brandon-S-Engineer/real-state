@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import type { DemoGroup as Group } from '@/content/demo-groups'
+import type { ProductGroup as Group } from '@/content/product-groups'
 import DemoStage from './demo-stage'
 
-// One self-contained stage per group on /demos.
-export default function DemoGroup({ group }: { group: Group }) {
+// One self-contained live stage per group on /mvp-saas.
+export default function ProductGroup({ group }: { group: Group }) {
   const [active, setActive] = useState(0)
   return (
     <DemoStage

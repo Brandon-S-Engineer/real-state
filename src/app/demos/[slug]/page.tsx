@@ -94,10 +94,10 @@ export default async function DemoPage({
           </span>
           <span className='flex shrink-0 items-center gap-4'>
             <Link
-              href='/demos'
+              href={project.category === 'chatbot' ? '/#demos' : '/mvp-saas'}
               className='transition-opacity hover:opacity-80'
               style={{ color: 'oklch(0.9 0.004 75)' }}>
-              all demos →
+              more demos →
             </Link>
           </span>
         </div>

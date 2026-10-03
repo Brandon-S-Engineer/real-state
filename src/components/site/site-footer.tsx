@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { site } from '@/content/site'
 
-export default function SiteFooter() {
+export default function SiteFooter({ hasDemos = false }: { hasDemos?: boolean }) {
   return (
     <footer style={{ borderTop: '1px solid var(--border)' }}>
       <div className='mx-auto flex max-w-[1120px] flex-wrap items-center justify-between gap-6 px-6 py-9'>
@@ -26,10 +26,17 @@ export default function SiteFooter() {
             Services
           </Link>
           <Link
-            href='/demos'
+            href='/mvp-saas'
             className='transition-colors hover:text-[var(--fg)]'>
-            Demos
+            MVP &amp; SaaS
           </Link>
+          {hasDemos && (
+            <Link
+              href='/demos'
+              className='transition-colors hover:text-[var(--fg)]'>
+              Demos
+            </Link>
+          )}
           <Link
             href='/about'
             className='transition-colors hover:text-[var(--fg)]'>

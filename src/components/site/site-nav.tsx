@@ -8,13 +8,17 @@ import SiteThemeToggle from '@/components/site/site-theme-toggle'
 import { site } from '@/content/site'
 
 // Work (/work) is kept in the codebase as reference but no longer linked.
-const links = [
+const baseLinks = [
   { href: '/services', label: 'Services' },
-  { href: '/demos', label: 'Demos' },
+  { href: '/mvp-saas', label: 'MVP & SaaS' },
   { href: '/about', label: 'About' },
 ]
 
-export default function SiteNav() {
+// Demos only shows once a recorded demo is published.
+export default function SiteNav({ hasDemos = false }: { hasDemos?: boolean }) {
+  const links = hasDemos
+    ? [baseLinks[0], baseLinks[1], { href: '/demos', label: 'Demos' }, baseLinks[2]]
+    : baseLinks
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
@@ -63,7 +67,7 @@ export default function SiteNav() {
           <div className='ml-1.5'>
             <SiteThemeToggle />
           </div>
-          <Link href='/demos' className='site-btn site-btn-inverse ml-1.5 h-9 px-4 text-sm'>
+          <Link href='/#demos' className='site-btn site-btn-inverse ml-1.5 h-9 px-4 text-sm'>
             Try a demo
           </Link>
         </nav>
@@ -96,7 +100,7 @@ export default function SiteNav() {
               </Link>
             ))}
             <Link
-              href='/demos'
+              href='/#demos'
               onClick={() => setOpen(false)}
               className='site-btn site-btn-inverse mt-2 h-10 px-4 text-sm'>
               Try a demo

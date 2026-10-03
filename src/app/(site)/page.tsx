@@ -60,8 +60,8 @@ export default function HomePage() {
           Try the live demos
           <ArrowDown className='h-[17px] w-[17px]' />
         </a>
-        <Link href='/demos' className='site-btn site-btn-outline h-12 px-[22px] text-[15.5px]'>
-          All demos
+        <Link href='/services' className='site-btn site-btn-outline h-12 px-[22px] text-[15.5px]'>
+          Compare the levels
         </Link>
       </div>
       <div className='mt-6 flex flex-wrap gap-x-5 gap-y-2'>

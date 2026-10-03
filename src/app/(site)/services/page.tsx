@@ -55,8 +55,8 @@ export default async function ServicesPage() {
           If your project doesn’t fit a box, describe it in your message. Most builds get a fixed
           scope and timeline within a day.
         </p>
-        <Link href='/demos' className='site-btn site-btn-inverse mt-6 h-12 px-6 text-[15.5px]'>
-          Browse all demos
+        <Link href='/mvp-saas' className='site-btn site-btn-inverse mt-6 h-12 px-6 text-[15.5px]'>
+          See MVP &amp; SaaS work
         </Link>
       </div>
     </section>

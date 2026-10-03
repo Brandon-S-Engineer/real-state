@@ -17,7 +17,7 @@ export default async function ServicesPage() {
   const recorded: RecordedDemos = {}
   for (const d of await getPublishedDemos()) {
     for (const t of d.tiers) {
-      recorded[t] ??= { count: 0, href: `/demos#${d.slug}` }
+      recorded[t] ??= { count: 0, href: `/solutions#${d.slug}` }
       recorded[t].count++
     }
   }

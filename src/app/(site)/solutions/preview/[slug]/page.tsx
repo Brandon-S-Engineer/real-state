@@ -9,7 +9,7 @@ import { STATUS_LABEL, publishBlockers } from '@/lib/demos/shared'
 export const metadata: Metadata = { title: 'Demo preview', robots: { index: false, follow: false } }
 export const dynamic = 'force-dynamic'
 
-// Admin-only: how a demo will look on /demos, whatever its status.
+// Admin-only: how a demo will look on /solutions, whatever its status.
 // Anyone else gets a 404 — the route doesn't admit it exists.
 export default async function DemoPreviewPage({ params }: { params: Promise<{ slug: string }> }) {
   const session = await auth()

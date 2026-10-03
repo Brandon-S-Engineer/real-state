@@ -14,10 +14,10 @@ const baseLinks = [
   { href: '/about', label: 'About' },
 ]
 
-// Demos only shows once a recorded demo is published.
+// Solutions only shows once a recorded build is published.
 export default function SiteNav({ hasDemos = false }: { hasDemos?: boolean }) {
   const links = hasDemos
-    ? [baseLinks[0], baseLinks[1], { href: '/demos', label: 'Demos' }, baseLinks[2]]
+    ? [baseLinks[0], { href: '/solutions', label: 'Solutions' }, baseLinks[1], baseLinks[2]]
     : baseLinks
   const [open, setOpen] = useState(false)
   const pathname = usePathname()

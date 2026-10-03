@@ -32,9 +32,9 @@ export default function SiteFooter({ hasDemos = false }: { hasDemos?: boolean })
           </Link>
           {hasDemos && (
             <Link
-              href='/demos'
+              href='/solutions'
               className='transition-colors hover:text-[var(--fg)]'>
-              Demos
+              Solutions
             </Link>
           )}
           <Link

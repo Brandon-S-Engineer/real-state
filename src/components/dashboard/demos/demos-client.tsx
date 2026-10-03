@@ -386,8 +386,8 @@ function DemoCard({ d, onEdit, onUse, onUseChange, onUseDelete }: {
         {d.videoUrl
           ? <a href={d.videoUrl} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 hover:underline'><Video className='h-3.5 w-3.5' />video</a>
           : <span className='inline-flex items-center gap-1 text-muted-foreground'><Video className='h-3.5 w-3.5' />sin video</span>}
-        <a href={`/demos/preview/${d.slug}`} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 hover:underline'><Eye className='h-3.5 w-3.5' />vista previa</a>
-        {d.status === 'PUBLISHED' && <a href={`/demos#${d.slug}`} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 text-green-600 hover:underline'><ExternalLink className='h-3.5 w-3.5' />en el portafolio</a>}
+        <a href={`/solutions/preview/${d.slug}`} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 hover:underline'><Eye className='h-3.5 w-3.5' />vista previa</a>
+        {d.status === 'PUBLISHED' && <a href={`/solutions#${d.slug}`} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 text-green-600 hover:underline'><ExternalLink className='h-3.5 w-3.5' />en el portafolio</a>}
       </div>
 
       {d.status !== 'PUBLISHED' && d.status !== 'ARCHIVED' && blockers.length > 0 && (

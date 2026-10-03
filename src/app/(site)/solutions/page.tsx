@@ -6,12 +6,12 @@ import DemoShowcase from '@/components/site/demo-showcase'
 import { getPublishedDemos } from '@/lib/demos/server'
 
 export const metadata: Metadata = {
-  title: 'Demos — Recorded AI builds',
+  title: 'Solutions — ready-built AI, recorded running',
   description:
-    'Recorded walkthroughs of real AI builds running on real integrations — email, WhatsApp, phone, and web chat.',
+    'Complete AI builds for what businesses ask for most — phone receptionists, support agents, WhatsApp agents and knowledge chatbots — recorded running on real integrations.',
 }
 
-export default async function DemosPage() {
+export default async function SolutionsPage() {
   const demos = await getPublishedDemos()
   // No published demos = no page. Unfinished demos never appear publicly.
   if (demos.length === 0) notFound()
@@ -19,19 +19,20 @@ export default async function DemosPage() {
   return (
     <section className='mx-auto max-w-[1120px] px-6 pt-20 pb-24'>
       <div className='site-rise max-w-[62ch]'>
-        <span className='site-kicker'>Demos</span>
+        <span className='site-kicker'>Solutions</span>
         <h1
           className='site-display mt-3.5 font-bold'
           style={{ fontSize: 'clamp(38px,5vw,56px)', letterSpacing: '-0.035em', lineHeight: 1.03 }}>
-          Real builds, recorded running.
+          The AI businesses ask for most — already built.
         </h1>
         <p className='mt-[18px] text-[18px]' style={{ lineHeight: 1.55, color: 'var(--muted)' }}>
-          Each one runs on real integrations — a real inbox, a real phone number, a real WhatsApp
-          account. Every demo proves one of the{' '}
+          Each solution is a complete build, recorded end to end on real integrations — a real phone
+          number, a real inbox, a real WhatsApp account. Pick the one closest to what you need and
+          I adapt it to your business. Each maps to one of the{' '}
           <Link href='/services' className='font-semibold' style={{ color: 'var(--fg)', borderBottom: '1px solid var(--accent)' }}>
             four levels
-          </Link>{' '}
-          I build.
+          </Link>
+          .
         </p>
       </div>
 

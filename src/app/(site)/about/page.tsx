@@ -81,11 +81,11 @@ export default function AboutPage() {
 
       {/* CTA */}
       <div className='mt-12 mb-24 flex flex-wrap gap-3'>
-        <Link href='/#demos' className='site-btn site-btn-accent h-12 px-6 text-[15.5px]'>
+        <Link href='/demos' className='site-btn site-btn-accent h-12 px-6 text-[15.5px]'>
           Try the live demos
         </Link>
-        <Link href='/work' className='site-btn site-btn-outline h-12 px-6 text-[15.5px]'>
-          See the work
+        <Link href='/services' className='site-btn site-btn-outline h-12 px-6 text-[15.5px]'>
+          Compare the levels
         </Link>
       </div>
     </section>

@@ -16,7 +16,7 @@ export default function OtherServices() {
         {otherServices.map((s) => (
           <Link
             key={s.name}
-            href={`/work#${s.workAnchor}`}
+            href={`/demos#${s.demoAnchor}`}
             className='site-lift flex flex-col rounded-[18px] p-[22px]'
             style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <h3 className='site-display text-[18px] font-semibold' style={{ letterSpacing: '-0.02em' }}>
@@ -26,7 +26,7 @@ export default function OtherServices() {
               {s.summary}
             </p>
             <span className='mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold'>
-              See examples
+              Try the demos
               <ArrowUpRight className='h-3.5 w-3.5' style={{ color: 'var(--accent)' }} />
             </span>
           </Link>

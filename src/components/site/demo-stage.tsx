@@ -2,7 +2,16 @@
 
 import { useEffect, useRef, useState, type Ref } from 'react'
 import { ExternalLink } from 'lucide-react'
-import type { LadderItem } from '@/content/services'
+
+// What one tab of the stage needs. LadderItem (Services/Home) fits as-is;
+// items without a tier (e.g. dashboards) show their own label and no bars.
+export type StageItem = {
+  tier?: number
+  label?: string
+  exampleTitle: string
+  tagline: string
+  demoUrl: string
+}
 
 // Stage iframe height — the budget every demo is designed to fit on desktop.
 const FRAME_MIN = 560
@@ -65,33 +74,45 @@ export default function DemoStage({
   active,
   onSelect,
   heading,
+  kicker = 'Live demo',
+  blurb,
   stageRef,
   id,
 }: {
-  items: LadderItem[]
+  items: StageItem[]
   active: number
   onSelect: (i: number) => void
   heading: string
+  kicker?: string
+  blurb?: string
   stageRef?: Ref<HTMLDivElement>
   id?: string
 }) {
   const current = items[active]
+  const tabLabel = (s: StageItem) => s.label ?? `Level ${s.tier}`
 
   return (
     <div ref={stageRef} id={id} className='scroll-mt-20'>
-      <span className='site-kicker'>Live demo</span>
+      <span className='site-kicker'>{kicker}</span>
       <h2
         className='site-display mt-3 font-bold'
         style={{ fontSize: 'clamp(24px,3vw,30px)', letterSpacing: '-0.03em' }}>
         {heading}
       </h2>
+      {blurb && (
+        <p className='mt-2 max-w-[62ch] text-[15.5px]' style={{ lineHeight: 1.55, color: 'var(--muted)' }}>
+          {blurb}
+        </p>
+      )}
 
-      <div className='mt-6 grid grid-cols-2 gap-2 lg:grid-cols-4' role='tablist'>
+      <div
+        className={`mt-6 grid grid-cols-2 gap-2 ${items.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}
+        role='tablist'>
         {items.map((s, i) => {
           const on = i === active
           return (
             <button
-              key={s.tier}
+              key={s.demoUrl}
               type='button'
               role='tab'
               aria-selected={on}
@@ -102,12 +123,12 @@ export default function DemoStage({
                 border: on ? '1px solid var(--accent)' : '1px solid var(--border)',
                 boxShadow: on ? 'var(--shadow)' : 'none',
               }}>
-              <LevelBars tier={s.tier} />
+              {s.tier && <LevelBars tier={s.tier} />}
               <span className='min-w-0'>
                 <span
                   className='site-mono block text-[10.5px] font-bold uppercase'
                   style={{ letterSpacing: '0.06em', color: on ? 'var(--accent)' : 'var(--muted)' }}>
-                  Level {s.tier}
+                  {tabLabel(s)}
                   <span className='hidden sm:inline'> · Example</span>
                 </span>
                 <span className='block text-[13px] leading-snug font-semibold'>{s.exampleTitle}</span>
@@ -154,7 +175,7 @@ export default function DemoStage({
         <FittedFrame
           key={current.demoUrl}
           src={`${current.demoUrl}?embed=1`}
-          title={`Live demo — Level ${current.tier} example: ${current.exampleTitle}`}
+          title={`Live demo — ${tabLabel(current)} example: ${current.exampleTitle}`}
         />
       </div>
     </div>

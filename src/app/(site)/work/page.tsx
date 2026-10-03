@@ -2,7 +2,10 @@ import type { Metadata } from 'next'
 import ProjectCard from '@/components/site/project-card'
 import { CATEGORIES, getProjectsByCategory } from '@/content/projects'
 
+// Retired from the public site (replaced by /demos) — kept as reference:
+// unlinked and out of search results, but still reachable by URL.
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: 'Work — Live demos by category',
   description:
     'AI chatbots, SaaS dashboards, and Stripe-powered MVPs — 3 interactive demos per category, all running live.',

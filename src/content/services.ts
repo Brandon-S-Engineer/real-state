@@ -101,8 +101,8 @@ export function getLadderItems(): LadderItem[] {
 export type OtherService = {
   name: string
   summary: string
-  // anchor on the /work page
-  workAnchor: string
+  // group anchor on the /demos page
+  demoAnchor: string
 }
 
 export const otherServices: OtherService[] = [
@@ -110,12 +110,12 @@ export const otherServices: OtherService[] = [
     name: 'Payments & Billing',
     summary:
       'One-time checkout, subscriptions, usage billing, or marketplace payouts — the money side of your product, built on Stripe.',
-    workAnchor: 'mvp',
+    demoAnchor: 'payments',
   },
   {
     name: 'Dashboards & Internal Tools',
     summary:
       'Admin panels, CRMs, and ops tools with auth, charts, and tables your team actually uses.',
-    workAnchor: 'dashboard',
+    demoAnchor: 'dashboards',
   },
 ]

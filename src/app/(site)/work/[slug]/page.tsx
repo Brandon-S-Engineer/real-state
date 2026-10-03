@@ -20,7 +20,8 @@ export async function generateMetadata({
   const { slug } = await params
   const project = getProject(slug)
   if (!project) return { title: 'Not found' }
-  return { title: `${project.title} — ${site.name}`, description: project.tagline }
+  // Retired with /work — reference only, kept out of search results.
+  return { title: `${project.title} — ${site.name}`, description: project.tagline, robots: { index: false, follow: false } }
 }
 
 export default async function CaseStudyPage({

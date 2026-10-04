@@ -8,17 +8,14 @@ import SiteThemeToggle from '@/components/site/site-theme-toggle'
 import { site } from '@/content/site'
 
 // Work (/work) is kept in the codebase as reference but no longer linked.
-const baseLinks = [
+const links = [
   { href: '/services', label: 'Services' },
+  { href: '/solutions', label: 'Solutions' },
   { href: '/mvp-saas', label: 'MVP & SaaS' },
   { href: '/about', label: 'About' },
 ]
 
-// Solutions only shows once a recorded build is published.
-export default function SiteNav({ hasDemos = false }: { hasDemos?: boolean }) {
-  const links = hasDemos
-    ? [baseLinks[0], { href: '/solutions', label: 'Solutions' }, baseLinks[1], baseLinks[2]]
-    : baseLinks
+export default function SiteNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')

@@ -139,49 +139,58 @@ export default function DemoShowcase({ demo }: { demo: ShowcaseDemo }) {
         boxShadow: "var(--shadow)",
       }}
     >
-      <div className="grid gap-0 md:grid-cols-[1.2fr_0.8fr]">
-        <div
-          className="flex items-center"
-          style={{ background: "var(--bg-2)" }}
-        >
-          <div className="aspect-video w-full">
-            {embed?.kind === "iframe" && (
-              <iframe
-                src={embed.src}
-                title={`Recorded demo — ${demo.title}`}
-                loading="lazy"
-                allow="fullscreen; picture-in-picture"
-                allowFullScreen
-                className="block h-full w-full"
-                style={{ border: 0 }}
-              />
-            )}
-            {embed?.kind === "video" && (
-              <video
-                src={embed.src}
-                controls
-                preload="metadata"
-                className="block h-full w-full"
-              />
-            )}
-            {!embed && (
-              <div
-                className="site-mono grid h-full place-items-center text-[12px]"
-                style={{ color: "var(--muted)" }}
-              >
-                no video yet — preview only
-              </div>
-            )}
+      <div
+        className={`grid gap-0 ${embed ? "md:grid-cols-[1.2fr_0.8fr]" : ""}`}
+      >
+        {embed && (
+          <div
+            className="flex items-center"
+            style={{ background: "var(--bg-2)" }}
+          >
+            <div className="aspect-video w-full">
+              {embed?.kind === "iframe" && (
+                <iframe
+                  src={embed.src}
+                  title={`Recorded demo — ${demo.title}`}
+                  loading="lazy"
+                  allow="fullscreen; picture-in-picture"
+                  allowFullScreen
+                  className="block h-full w-full"
+                  style={{ border: 0 }}
+                />
+              )}
+              {embed?.kind === "video" && (
+                <video
+                  src={embed.src}
+                  controls
+                  preload="metadata"
+                  className="block h-full w-full"
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex flex-col p-[22px]">
-          <span
-            className="site-mono text-[11px]"
-            style={{ color: "var(--accent)" }}
-          >
-            {demo.niche}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="site-mono text-[11px]"
+              style={{ color: "var(--accent)" }}
+            >
+              {demo.niche}
+            </span>
+            {!embed && (
+              <span
+                className="site-mono rounded-full px-2 py-[2px] text-[10.5px]"
+                style={{
+                  color: "var(--muted)",
+                  border: "1px dashed var(--border)",
+                }}
+              >
+                Video walkthrough coming soon
+              </span>
+            )}
+          </div>
           <h2
             className="site-display mt-2 text-[21px] font-semibold"
             style={{ letterSpacing: "-0.02em", lineHeight: 1.2 }}

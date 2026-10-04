@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { site } from '@/content/site'
 
-export default function SiteFooter({ hasDemos = false }: { hasDemos?: boolean }) {
+export default function SiteFooter() {
   return (
     <footer style={{ borderTop: '1px solid var(--border)' }}>
       <div className='mx-auto flex max-w-[1120px] flex-wrap items-center justify-between gap-6 px-6 py-9'>
@@ -30,13 +30,11 @@ export default function SiteFooter({ hasDemos = false }: { hasDemos?: boolean })
             className='transition-colors hover:text-[var(--fg)]'>
             MVP &amp; SaaS
           </Link>
-          {hasDemos && (
-            <Link
-              href='/solutions'
-              className='transition-colors hover:text-[var(--fg)]'>
-              Solutions
-            </Link>
-          )}
+          <Link
+            href='/solutions'
+            className='transition-colors hover:text-[var(--fg)]'>
+            Solutions
+          </Link>
           <Link
             href='/about'
             className='transition-colors hover:text-[var(--fg)]'>

@@ -103,6 +103,40 @@ export const getPublishedDemos = unstable_cache(
   { tags: [DEMOS_TAG], revalidate: 3600 },
 )
 
+// Todas las soluciones visibles en /solutions (todo menos ARCHIVED), con o sin
+// video. Sin video se muestran como lo que son: el diseño de la solución y un
+// aviso honesto de que el video viene en camino — nunca un video falso.
+export type PublicSolution = Omit<PublicDemo, 'videoUrl'> & { videoUrl: string | null }
+
+export const getPublicSolutions = unstable_cache(
+  async (): Promise<PublicSolution[]> => {
+    try {
+      const rows = await prisma.demo.findMany({
+        where: { status: { not: 'ARCHIVED' } },
+        orderBy: [{ buildOrder: 'asc' }, { createdAt: 'asc' }],
+      })
+      return rows.map((d) => ({
+        slug: d.slug,
+        title: d.title,
+        niche: d.niche,
+        tiers: d.tiers,
+        edges: d.edges as DemoEdge[],
+        summary: d.summary,
+        problem: d.problem,
+        stack: d.stack,
+        flow: asFlow(d.flow),
+        // Solo un demo PUBLISHED enseña su video; un link guardado a medias no sale.
+        videoUrl: d.status === 'PUBLISHED' ? d.videoUrl : null,
+      }))
+    } catch (e) {
+      console.error('[demos] getPublicSolutions failed', e)
+      return []
+    }
+  },
+  ['public-solutions'],
+  { tags: [DEMOS_TAG], revalidate: 3600 },
+)
+
 // ── Demanda ──────────────────────────────────────────────────────────────────
 
 /**

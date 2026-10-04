@@ -11,6 +11,13 @@ import { coarseKey, coarseLabel, type Category } from './categories'
 
 export { cleanPrices, isPriceUsable, median, percentile }
 
+/**
+ * Tope de listings que se mandan al cliente (tabla de Listings + polling). La
+ * tabla de precios y la de rotación no dependen de esto: se calculan en el
+ * servidor sobre toda la ventana.
+ */
+export const LISTINGS_LIMIT = 10_000
+
 export async function getElecSettings(): Promise<ElecSettings> {
   return prisma.elecSettings.upsert({ where: { id: 'singleton' }, create: { id: 'singleton' }, update: {} })
 }
@@ -216,4 +223,97 @@ export function buildPriceTable(rows: PriceRow[], settings: ElecSettings): Price
   }
 
   return out.sort((a, b) => b.n - a.n)
+}
+
+// ── Rotación: qué modelos se venden más ──────────────────────────────────────
+//
+// Marketplace no dice "vendido" en la búsqueda; la señal es que un listing deje
+// de aparecer. Pero un listing visto una sola vez que no vuelve a salir casi
+// siempre es ruido (la búsqueda muestra un subconjunto distinto cada vez), así
+// que solo cuentan los "seguidos": vistos durante al menos TRACK_MIN_HOURS.
+// La tasa absoluta está inflada por ese mismo ruido; lo útil es comparar
+// modelos entre sí (índice vs el promedio de la categoría).
+
+const TRACK_MIN_HOURS = 20
+const RATE_PRIOR = 5 // pseudo-listings al promedio: suaviza tasas con poca muestra
+
+export type RotationRow = {
+  key: string
+  line: string | null
+  chip: string | null
+  ssdGb: number | null
+  seen: number // listings con precio usable en la ventana
+  tracked: number // vistos ≥ TRACK_MIN_HOURS
+  gone: number // seguidos que desaparecieron (o FB marcó vendidos)
+  gonePerWeek: number
+  goneRate: number | null
+  index: number | null // tasa suavizada / tasa de la categoría (1 = promedio)
+  medianDays: number | null // días en mercado de los que se fueron
+  goneMedianPrice: number | null
+  activeMedianPrice: number | null
+  confidence: 'baja' | 'media' | 'alta'
+}
+
+export type RotationTable = {
+  byModel: RotationRow[]
+  byConfig: RotationRow[]
+  coverageDays: number
+  tracked: number
+  gone: number
+  onceOnly: number
+  baseRate: number | null
+}
+
+function isTracked(r: PriceRow) {
+  return r.soldConfirmed || r.lastSeenAt.getTime() - r.firstSeenAt.getTime() >= TRACK_MIN_HOURS * 3_600_000
+}
+
+const isGone = (r: PriceRow) => r.soldConfirmed || r.status === 'DESAPARECIDO'
+
+export function buildRotationTable(rows: PriceRow[], settings: ElecSettings): RotationTable {
+  const usable = rows.filter((r) => isPriceUsable(r) && coarseKey(r))
+  const tracked = usable.filter(isTracked)
+  const gone = tracked.filter(isGone)
+  const baseRate = tracked.length ? gone.length / tracked.length : null
+  const firstSeen = usable.reduce((min, r) => Math.min(min, r.firstSeenAt.getTime()), Date.now())
+  const coverageDays = Math.max(1, Math.min(settings.windowDays, (Date.now() - firstSeen) / 86_400_000))
+
+  const build = (keyOf: (r: PriceRow) => string): RotationRow[] => {
+    const groups = new Map<string, PriceRow[]>()
+    for (const r of usable) {
+      const k = keyOf(r)
+      groups.set(k, [...(groups.get(k) ?? []), r])
+    }
+    return Array.from(groups, ([key, g]) => {
+      const t = g.filter(isTracked)
+      const out = t.filter(isGone)
+      const smoothed = baseRate != null ? (out.length + RATE_PRIOR * baseRate) / (t.length + RATE_PRIOR) : null
+      return {
+        key,
+        line: g[0].line,
+        chip: g[0].chip,
+        ssdGb: key.endsWith('|?') ? null : g[0].ssdGb,
+        seen: g.length,
+        tracked: t.length,
+        gone: out.length,
+        gonePerWeek: Math.round((out.length / coverageDays) * 7 * 10) / 10,
+        goneRate: t.length ? out.length / t.length : null,
+        index: smoothed != null && baseRate ? Math.round((smoothed / baseRate) * 100) / 100 : null,
+        medianDays: median(out.filter((r) => r.daysOnMarket != null).map((r) => r.daysOnMarket!)),
+        goneMedianPrice: median(out.map((r) => r.price!)),
+        activeMedianPrice: median(g.filter((r) => r.status === 'ACTIVO').map((r) => r.price!)),
+        confidence: (t.length < 5 ? 'baja' : t.length < 20 ? 'media' : 'alta') as RotationRow['confidence'],
+      }
+    }).sort((a, b) => b.gone - a.gone || b.seen - a.seen)
+  }
+
+  return {
+    byModel: build((r) => coarseKey(r)!),
+    byConfig: build((r) => `${coarseKey(r)}|${r.ssdGb ?? '?'}`),
+    coverageDays: Math.round(coverageDays * 10) / 10,
+    tracked: tracked.length,
+    gone: gone.length,
+    onceOnly: usable.length - tracked.length,
+    baseRate,
+  }
 }

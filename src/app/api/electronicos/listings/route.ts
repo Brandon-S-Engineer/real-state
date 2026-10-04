@@ -12,6 +12,7 @@ import { requireAdmin } from '@/lib/require-admin'
 import { ingestListings, ingestSchema } from '@/lib/electronicos/ingest'
 import { toListingDTO } from '@/lib/electronicos/serialize'
 import { parseCategory } from '@/lib/electronicos/categories'
+import { LISTINGS_LIMIT } from '@/lib/electronicos/stats'
 
 function categoryParam(req: Request) {
   return parseCategory(new URL(req.url).searchParams.get('category'))
@@ -52,7 +53,7 @@ export async function GET(req: Request) {
     where: { ...(since ? { updatedAt: { gte: new Date(since) } } : {}), ...(category ? { category } : {}) },
     include: { zone: true },
     orderBy: { lastSeenAt: 'desc' },
-    take: 2000,
+    take: LISTINGS_LIMIT,
   })
   return NextResponse.json({ data: rows.map(toListingDTO) })
 }

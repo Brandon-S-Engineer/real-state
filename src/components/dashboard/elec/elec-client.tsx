@@ -5,16 +5,18 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import type { ElecSettings } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import type { ElecListingDTO, ElecTradeDTO, ElecZoneDTO } from '@/lib/electronicos/serialize'
-import type { PriceTableRow } from '@/lib/electronicos/stats'
+import type { PriceTableRow, RotationTable } from '@/lib/electronicos/stats'
 import { CATEGORY_META, type Category } from '@/lib/electronicos/categories'
 import ElecListingsTable from './listings-table'
 import ElecPreciosTable from './precios-table'
+import ElecRotacionTable from './rotacion-table'
 import ElecTrades, { draftFromListing, type TradeDraft } from './trades'
 import ElecConfig from './config'
 
 const TABS = [
   { id: 'listings', label: 'Listings' },
   { id: 'precios', label: 'Precios' },
+  { id: 'rotacion', label: 'Rotación' },
   { id: 'trades', label: 'Mis trades' },
   { id: 'config', label: 'Zonas y ajustes' },
 ] as const
@@ -24,6 +26,7 @@ export default function ElecClient(props: {
   category: Category
   listings: ElecListingDTO[]
   prices: PriceTableRow[]
+  rotation: RotationTable
   trades: ElecTradeDTO[]
   zones: ElecZoneDTO[]
   settings: ElecSettings
@@ -36,6 +39,7 @@ export default function ElecClient(props: {
   const [tab, setTabState] = useState<Tab>(TABS.some((t) => t.id === initialTab) ? initialTab : 'listings')
   const [listings, setListings] = useState(props.listings)
   const [prices, setPrices] = useState(props.prices)
+  const [rotation, setRotation] = useState(props.rotation)
   const [trades, setTrades] = useState(props.trades)
   const [zones, setZones] = useState(props.zones)
   const [settings, setSettings] = useState(props.settings)
@@ -48,10 +52,14 @@ export default function ElecClient(props: {
     router.replace(`${meta.path}?tab=${t}`, { scroll: false })
   }, [router, meta.path])
 
-  // Precios frescos al entrar a la pestaña (los listings cambian por el polling)
+  // Precios/rotación frescos al entrar a la pestaña (los listings cambian por el polling)
   useEffect(() => {
-    if (tab !== 'precios') return
-    fetch(`/api/electronicos/precios?category=${category}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setPrices(d.data) }).catch(() => {})
+    if (tab !== 'precios' && tab !== 'rotacion') return
+    fetch(`/api/electronicos/precios?category=${category}`).then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (!d) return
+      setPrices(d.data)
+      setRotation(d.rotation)
+    }).catch(() => {})
   }, [tab, category])
 
   useEffect(() => {
@@ -96,6 +104,14 @@ export default function ElecClient(props: {
           rows={prices}
           windowDays={settings.windowDays}
           fastSaleDays={settings.fastSaleDays}
+          onOpenConfig={(key) => { setConfigFilter(key); setTab('listings') }}
+        />
+      )}
+      {tab === 'rotacion' && (
+        <ElecRotacionTable
+          category={category}
+          table={rotation}
+          windowDays={settings.windowDays}
           onOpenConfig={(key) => { setConfigFilter(key); setTab('listings') }}
         />
       )}

@@ -24,7 +24,7 @@ import {
 
 // ── Referencia de mercado (client-side, misma lógica que el score) ────────────
 
-type MarketRef = { p25: number; median: number; sellMedian: number; n: number; basis: string }
+type MarketRef = { p25: number; median: number; sellPrice: number; n: number; basis: string }
 
 function buildMarketRefs(listings: ElecListingDTO[], minSample: number): Map<string, MarketRef> {
   const byConfig = new Map<string, ElecListingDTO[]>()
@@ -47,12 +47,10 @@ function buildMarketRefs(listings: ElecListingDTO[], minSample: number): Map<str
     }
     if (group.length < minSample) continue
     const prices = cleanPrices(group.map((g) => g.price!))
-    const sell = cleanPrices(group.filter((g) => g.zoneKind === 'VENTA').map((g) => g.price!))
-    const median = percentile(prices, 0.5)!
     refs.set(l.id, {
       p25: percentile(prices, 0.25)!,
-      median,
-      sellMedian: sell.length >= 2 ? percentile(sell, 0.5)! : median,
+      median: percentile(prices, 0.5)!,
+      sellPrice: percentile(prices, 0.75)!,
       n: prices.length,
       basis,
     })
@@ -60,15 +58,14 @@ function buildMarketRefs(listings: ElecListingDTO[], minSample: number): Map<str
   return refs
 }
 
-/** Oferta que deja ≥ $2,500 contra la mediana de venta (redondeada a $500); en audífonos, su margen meta (redondeada a $100). */
+/** Oferta que deja el margen meta contra el precio de venta P75 (redondeada a $500; audífonos a $100). */
 function suggestOffer(l: ElecListingDTO, ref: MarketRef | undefined) {
   if (!ref || !l.price) return null
-  const audio = l.category === 'AUDIO'
-  const step = audio ? 100 : 500
-  const target = Math.floor((ref.sellMedian - (audio ? marginTarget(l.line, ref.sellMedian) : 2500)) / step) * step
+  const step = l.category === 'AUDIO' ? 100 : 500
+  const target = Math.floor((ref.sellPrice - marginTarget(l.line, ref.sellPrice)) / step) * step
   const offer = Math.min(l.price, target)
   if (offer <= 0) return null
-  return { offer, margin: ref.sellMedian - offer }
+  return { offer, margin: ref.sellPrice - offer }
 }
 
 function sellerMessage(l: ElecListingDTO, offer: number | null) {
@@ -162,7 +159,7 @@ function exportRow(l: ElecListingDTO, ref?: MarketRef) {
     ubicacion: l.locationText, zona: l.zoneName ?? l.zoneKind,
     score: l.opportunityScore,
     razones: l.scoreReasons.map((r) => `${r.pts > 0 ? '+' : ''}${r.pts} ${r.why}`).join(' | '),
-    mercadoP25: ref?.p25 ?? null, mercadoMediana: ref?.median ?? null, mercadoVentaMediana: ref?.sellMedian ?? null, mercadoN: ref?.n ?? null,
+    mercadoP25: ref?.p25 ?? null, mercadoMediana: ref?.median ?? null, mercadoVentaP75: ref?.sellPrice ?? null, mercadoN: ref?.n ?? null,
     estado: l.status, diasEnMercado: l.daysOnMarket,
     primeraVez: l.firstSeenAt, ultimaVez: l.lastSeenAt,
     confianzaParser: l.parseConfidence,
@@ -550,8 +547,8 @@ export default function ElecListingsTable({
         )}
         <select value={filters.zone} onChange={(e) => set({ zone: e.target.value })} className={sel}>
           <option value=''>Zona</option>
-          <option value='COMPRA'>Compra</option>
-          <option value='VENTA'>Venta</option>
+          <option value='COMPRA'>Mi zona</option>
+          <option value='VENTA'>Cercana</option>
           <option value='OTRA'>Otra</option>
         </select>
         <select value={filters.source} onChange={(e) => set({ source: e.target.value })} className={sel}>
@@ -675,7 +672,7 @@ export default function ElecListingsTable({
                           <div className='space-y-1 text-xs'>
                             <div className='font-medium text-muted-foreground'>Mercado ({ref ? `${ref.basis}, n=${ref.n}` : 'poca data'})</div>
                             {ref ? (
-                              <div>P25 {money(ref.p25)} · mediana {money(ref.median)} · venta {money(ref.sellMedian)}</div>
+                              <div>P25 {money(ref.p25)} · mediana {money(ref.median)} · venta P75 {money(ref.sellPrice)}</div>
                             ) : <div className='text-muted-foreground'>Se necesitan ≥{minSample} listings comparables</div>}
                             {offer && (
                               <div className='text-green-700 dark:text-green-400'>Oferta sugerida {money(offer.offer)} → margen {money(offer.margin)}</div>

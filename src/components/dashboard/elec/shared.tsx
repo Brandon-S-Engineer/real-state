@@ -53,6 +53,9 @@ export function ScoreBadge({ score }: { score: number | null }) {
   )
 }
 
+/** El enum sigue siendo COMPRA/VENTA/OTRA; desde que se compra y vende en las mismas zonas solo es organizativo. */
+export const ZONE_KIND_LABEL: Record<string, string> = { COMPRA: 'Mi zona', VENTA: 'Cercana', OTRA: 'Otra' }
+
 export const ZONE_CLASS: Record<string, string> = {
   COMPRA: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
   VENTA: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400',
@@ -62,7 +65,7 @@ export const ZONE_CLASS: Record<string, string> = {
 export function ZoneBadge({ kind, name }: { kind: string; name: string | null }) {
   return (
     <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap', ZONE_CLASS[kind] ?? ZONE_CLASS.OTRA)}>
-      {name ?? (kind === 'OTRA' ? 'Otra' : kind)}
+      {name ?? ZONE_KIND_LABEL[kind] ?? kind}
     </span>
   )
 }

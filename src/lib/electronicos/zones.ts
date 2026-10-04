@@ -1,4 +1,4 @@
-// ── Mapeo de ubicación → zona propia (COMPRA / VENTA / OTRA) ──────────────────
+// ── Mapeo de ubicación → zona propia (Mi zona / Cercana / Otra) ───────────────
 //
 // Dos señales, en orden de precisión:
 //   1. Coordenadas (lat/lng) — la página de item de Marketplace trae el centro
@@ -14,30 +14,24 @@ import { prisma } from '@/lib/db'
 import type { ElecZone } from '@prisma/client'
 import { normalizeText } from './parse-specs'
 
+// COMPRA = "Mi zona" (donde se compra y se vende en persona). Reforma 222 queda
+// inactiva: Marketplace solo dice "Cuauhtémoc", así que sin coords casi nunca matchea.
 export const DEFAULT_ZONES = [
   {
-    name: 'Centro CDMX', kind: 'COMPRA' as const, lat: 19.4326, lng: -99.1332, radiusKm: 3,
-    keywords: ['cuauhtemoc', 'centro historico', 'centro cdmx', 'doctores', 'guerrero', 'tepito', 'republica de el salvador', 'eje central'],
-  },
-  {
-    name: 'Santa Fe', kind: 'VENTA' as const, lat: 19.3597, lng: -99.2595, radiusKm: 4,
-    keywords: ['santa fe', 'cuajimalpa', 'cuajimalpa de morelos'],
-  },
-  {
-    name: 'Interlomas', kind: 'VENTA' as const, lat: 19.3966, lng: -99.2811, radiusKm: 4,
-    keywords: ['interlomas', 'huixquilucan', 'bosque real'],
-  },
-  {
-    name: 'Polanco', kind: 'VENTA' as const, lat: 19.433, lng: -99.195, radiusKm: 3.5,
+    name: 'Polanco', kind: 'COMPRA' as const, lat: 19.433, lng: -99.195, radiusKm: 3.5,
     keywords: ['polanco', 'miguel hidalgo', 'lomas de chapultepec', 'anzures'],
   },
   {
-    name: 'Toluca', kind: 'VENTA' as const, lat: 19.2826, lng: -99.6557, radiusKm: 12,
-    keywords: ['toluca', 'metepec', 'zinacantepec'],
+    name: 'Interlomas', kind: 'COMPRA' as const, lat: 19.3966, lng: -99.2811, radiusKm: 4,
+    keywords: ['interlomas', 'huixquilucan', 'bosque real'],
   },
   {
-    name: 'Benito Juárez', kind: 'VENTA' as const, lat: 19.3781, lng: -99.1620, radiusKm: 4,
-    keywords: ['benito juarez', 'del valle', 'napoles', 'ciudad de los deportes', 'nochebuena', 'portales', 'narvarte'],
+    name: 'Santa Fe', kind: 'COMPRA' as const, lat: 19.3597, lng: -99.2595, radiusKm: 4,
+    keywords: ['santa fe', 'cuajimalpa', 'cuajimalpa de morelos'],
+  },
+  {
+    name: 'Reforma 222', kind: 'COMPRA' as const, lat: 19.4292, lng: -99.1622, radiusKm: 1.5, active: false,
+    keywords: ['reforma 222', 'colonia juarez', 'col juarez', 'zona rosa'],
   },
 ]
 

@@ -93,7 +93,6 @@ export function scoreListing(
 
   const prices = cleanPrices(group.map((r) => r.price!))
   const p25 = percentile(prices, 0.25)!
-  const med = percentile(prices, 0.5)!
   const discount = (p25 - price) / p25
 
   let score = 5 + discount * 25
@@ -104,16 +103,15 @@ export function scoreListing(
       : `${Math.round(-discount * 100)}% sobre el P25 (${fmt(p25)}) de ${groupLabel}, n=${prices.length}`,
   })
 
-  // Margen potencial contra la mediana de venta (zonas VENTA si hay, si no general)
-  const sellPrices = cleanPrices(group.filter((r) => r.zoneKind === 'VENTA').map((r) => r.price!))
-  const sellMed = sellPrices.length >= 2 ? percentile(sellPrices, 0.5)! : med
-  const margin = sellMed - price
-  const target = marginTarget(l.line, sellMed)
+  // Margen potencial contra el precio de venta meta (P75: buen estado justifica la parte alta)
+  const sellPrice = percentile(prices, 0.75)!
+  const margin = sellPrice - price
+  const target = marginTarget(l.line, sellPrice)
   if (margin >= target) {
     score += 1
-    reasons.push({ pts: 1, why: `Margen potencial ${fmt(margin)} vs mediana ${sellPrices.length >= 2 ? 'de venta' : 'general'} ${fmt(sellMed)}` })
+    reasons.push({ pts: 1, why: `Margen potencial ${fmt(margin)} vendiendo en ${fmt(sellPrice)} (P75)` })
   } else {
-    reasons.push({ pts: 0, why: `Margen potencial ${fmt(margin)} (meta: ${fmt(target)}+)` })
+    reasons.push({ pts: 0, why: `Margen potencial ${fmt(margin)} vs venta P75 ${fmt(sellPrice)} (meta: ${fmt(target)}+)` })
   }
 
   if (l.originalPrice && l.originalPrice > price) {
@@ -145,8 +143,13 @@ export function scoreListing(
 }
 
 // ── Tabla de precios por configuración ───────────────────────────────────────
+//
+// Un solo mercado: se compra en toda la ciudad (el vendedor viene a la zona) y
+// se vende en las zonas propias al precio de mercado. Compra = P25 (lo barato
+// que se consigue contactando rápido), venta = P75 (buen estado, caja y
+// batería justifican la parte alta). Margen = venta − compra, nunca negativo.
 
-export type PriceBand = { n: number; p10: number | null; p25: number | null; p50: number | null; p90: number | null }
+export type PriceBand = { n: number; p10: number | null; p25: number | null; p50: number | null; p75: number | null; p90: number | null }
 
 export type PriceTableRow = {
   configKey: string
@@ -157,10 +160,9 @@ export type PriceTableRow = {
   n: number
   active: number
   all: PriceBand
-  buy: PriceBand
-  sell: PriceBand
-  spread: number | null
-  spreadApprox: boolean // true si se usó el general porque no hay data en alguna zona
+  buyPrice: number | null // P25
+  sellPrice: number | null // P75
+  margin: number | null // sellPrice − buyPrice
   avgDaysOnMarket: number | null
   avgDaysSource: 'desaparecidos' | 'activos' | null
   exitPrice: number | null // mediana de los que desaparecieron rápido
@@ -171,7 +173,7 @@ export type PriceTableRow = {
 
 function band(prices: number[]): PriceBand {
   const s = cleanPrices(prices)
-  return { n: s.length, p10: percentile(s, 0.1), p25: percentile(s, 0.25), p50: percentile(s, 0.5), p90: percentile(s, 0.9) }
+  return { n: s.length, p10: percentile(s, 0.1), p25: percentile(s, 0.25), p50: percentile(s, 0.5), p75: percentile(s, 0.75), p90: percentile(s, 0.9) }
 }
 
 export function buildPriceTable(rows: PriceRow[], settings: ElecSettings): PriceTableRow[] {
@@ -181,14 +183,7 @@ export function buildPriceTable(rows: PriceRow[], settings: ElecSettings): Price
 
   for (const [configKey, group] of idx.byConfig) {
     const first = group[0]
-    const prices = group.map((r) => r.price!)
-    const all = band(prices)
-    const buy = band(group.filter((r) => r.zoneKind === 'COMPRA').map((r) => r.price!))
-    const sell = band(group.filter((r) => r.zoneKind === 'VENTA').map((r) => r.price!))
-
-    const sellMed = sell.n >= 2 ? sell.p50 : all.p50
-    const buyP25 = buy.n >= 2 ? buy.p25 : all.p25
-    const spread = sellMed != null && buyP25 != null ? sellMed - buyP25 : null
+    const all = band(group.map((r) => r.price!))
 
     const gone = group.filter((r) => r.status === 'DESAPARECIDO' && r.daysOnMarket != null)
     const active = group.filter((r) => r.status === 'ACTIVO')
@@ -210,9 +205,10 @@ export function buildPriceTable(rows: PriceRow[], settings: ElecSettings): Price
       line: first.line, chip: first.chip, ramGb: first.ramGb, ssdGb: first.ssdGb,
       n,
       active: active.length,
-      all, buy, sell,
-      spread,
-      spreadApprox: buy.n < 2 || sell.n < 2,
+      all,
+      buyPrice: all.p25,
+      sellPrice: all.p75,
+      margin: all.p25 != null && all.p75 != null ? all.p75 - all.p25 : null,
       avgDaysOnMarket: avgDays != null ? Math.round(avgDays * 10) / 10 : null,
       avgDaysSource: avgSrc,
       exitPrice: median(fast),

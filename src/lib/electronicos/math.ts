@@ -14,11 +14,12 @@ export function median(values: number[]): number | null {
 }
 
 /**
- * Margen meta por trade. $2,000 fijo para equipos grandes; en audífonos eso
- * sería 30–40% del equipo, así que se usa el 25% de la mediana de venta.
+ * Margen meta por trade. MacBook $2,000 fijo; iPhone/iPad $1,500 (equipos de
+ * $6–15k con mucha rotación); en audífonos el 25% del precio de venta.
  */
-export function marginTarget(line: string | null | undefined, sellMedian: number): number {
-  if (line?.startsWith('AUD_')) return Math.max(500, Math.round((sellMedian * 0.25) / 100) * 100)
+export function marginTarget(line: string | null | undefined, sellPrice: number): number {
+  if (line?.startsWith('AUD_')) return Math.max(500, Math.round((sellPrice * 0.25) / 100) * 100)
+  if (line?.startsWith('IP')) return 1500
   return 2000
 }
 

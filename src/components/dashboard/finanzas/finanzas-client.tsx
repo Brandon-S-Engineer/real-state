@@ -288,11 +288,11 @@ export default function FinanzasClient({ entries: initial, trades, monthlyGoal }
         <div>
           <h2 className='text-base font-semibold'>Metas de referencia (reventa)</h2>
           <p className='text-sm text-muted-foreground'>
-            Estimaciones de septiembre 2026, viviendo frente a Polanco. Resaltado: el mes {bizMonth} del negocio
+            Estimaciones de octubre 2026, comprando y vendiendo todo desde tus zonas (sin trasladarte). Resaltado: el mes {bizMonth} del negocio
             {startKey ? ` (empezó en ${monthLabel(startKey)})` : ' — empieza a contar con tu primer trade o movimiento de reventa'}.
           </p>
         </div>
-        <div className='grid gap-4 xl:grid-cols-2'>
+        <div className='space-y-4'>
           {GOAL_TABLES.map((t) => {
             const row = rowFor(t.rows, bizMonth)
             const reventa = summary.byArea.REVENTA.neto
@@ -306,7 +306,7 @@ export default function FinanzasClient({ entries: initial, trades, monthlyGoal }
                   <table className='w-full text-sm'>
                     <thead>
                       <tr className='border-b bg-muted/50 text-left'>
-                        {['Etapa', 'Volumen / mes', t.detalleLabel, 'Neto / mes', 'Qué frena'].map((h) => <th key={h} className='px-3 py-2 font-medium text-muted-foreground whitespace-nowrap'>{h}</th>)}
+                        {['Etapa', 'Ventas / mes', t.detalleLabel, 'Capital rotando', 'Neto / mes', 'Qué frena'].map((h) => <th key={h} className='px-3 py-2 font-medium text-muted-foreground whitespace-nowrap'>{h}</th>)}
                       </tr>
                     </thead>
                     <tbody>
@@ -315,6 +315,7 @@ export default function FinanzasClient({ entries: initial, trades, monthlyGoal }
                           <td className='px-3 py-2 whitespace-nowrap font-medium'>{r.etapa}</td>
                           <td className='px-3 py-2'>{r.volumen}</td>
                           <td className='px-3 py-2 whitespace-nowrap text-muted-foreground'>{r.detalle}</td>
+                          <td className='px-3 py-2 whitespace-nowrap text-muted-foreground'>{r.capital}</td>
                           <td className='px-3 py-2 whitespace-nowrap font-medium'>{r.netoMes}</td>
                           <td className='px-3 py-2 text-muted-foreground'>{r.freno}</td>
                         </tr>

@@ -87,37 +87,39 @@ export function summarizeMonth(key: string, entries: FinanceEntryDTO[], trades: 
   return { key, byArea, trades: { profit: tradeProfit, sold: sold.length }, neto: AREAS.reduce((s, a) => s + byArea[a].neto, 0) }
 }
 
-// ── Metas de referencia (estimaciones, septiembre 2026) ──────────────────────
-// Vives frente a Polanco (ventas de 30–45 min) y compras en BJ/Centro vía metro.
-// Anuncios de Facebook (~$150/pieza) ya descontados del neto.
+// ── Metas de referencia (estimaciones, octubre 2026) ─────────────────────────
+// Todo desde Polanco: el vendedor y el comprador vienen a ti (cero tráfico).
+// iPhone 15/16 a ~$10.5k de costo promedio; compra ≤ P25, venta ≈ P75.
+// Anuncios de Facebook (~$150/pieza) ya descontados del neto. El capital es
+// lo que hay que tener rotando (stock) para sostener ese volumen a 7–10 días.
 
-export type GoalRow = { from: number; to: number | null; etapa: string; volumen: string; detalle: string; netoMes: string; freno: string; min: number; max: number }
+export type GoalRow = { from: number; to: number | null; etapa: string; volumen: string; detalle: string; capital: string; netoMes: string; freno: string; min: number; max: number }
 
 export const GOAL_TABLES: { id: string; title: string; meta: string; nota: string; detalleLabel: string; rows: GoalRow[] }[] = [
   {
-    id: 'local',
-    title: 'Tabla 1 · Sin B-Stock (todo local)',
-    meta: 'Meta: ~$80,000 / mes',
+    id: 'individual',
+    title: 'Tabla 1 · Individual (tú, todo desde Polanco)',
+    meta: 'Meta: ~$100,000 / mes desde el mes 5',
     detalleLabel: 'Neto por pieza',
-    nota: 'El techo es tu tiempo: cada venta necesita su compra (~4 encuentros al día arriba de 50 ventas/mes).',
+    nota: 'El techo es tu tiempo: cada venta son 2 encuentros (compra + venta). 50 ventas ≈ 3–4 encuentros al día sin salir de Polanco, además del software. Del mes 5 en adelante tu perfil de vendedor ya tiene calificaciones y vendes en P75 o arriba sin regatear tanto.',
     rows: [
-      { from: 1, to: 2, etapa: 'Meses 1–2', volumen: '12–20 ventas', detalle: '~$1,300', netoMes: '$16k–26k', freno: 'Aprender, sin ratings', min: 16000, max: 26000 },
-      { from: 3, to: 4, etapa: 'Meses 3–4', volumen: '30–40 ventas', detalle: '~$1,700', netoMes: '$50k–68k', freno: 'Encontrar compras buenas', min: 50000, max: 68000 },
-      { from: 5, to: null, etapa: 'Mes 5+', volumen: '40–50 ventas', detalle: '~$1,900', netoMes: '$75k–95k', freno: 'Tu tiempo', min: 75000, max: 95000 },
+      { from: 1, to: 1, etapa: 'Mes 1 · prueba', volumen: '5–8 ventas', detalle: '~$1,500', capital: '$25k', netoMes: '$8k–12k', freno: 'Capital de prueba, aprender', min: 8000, max: 12000 },
+      { from: 2, to: 2, etapa: 'Mes 2', volumen: '20–30 ventas', detalle: '~$1,800', capital: '~$150k (entra inversión)', netoMes: '$36k–54k', freno: 'Perfil nuevo, sin calificaciones', min: 36000, max: 54000 },
+      { from: 3, to: 4, etapa: 'Meses 3–4', volumen: '35–45 ventas', detalle: '~$2,000', capital: '~$200k', netoMes: '$70k–90k', freno: 'Encontrar compras buenas', min: 70000, max: 90000 },
+      { from: 5, to: null, etapa: 'Mes 5+', volumen: '45–55 ventas', detalle: '~$2,200', capital: '~$250k', netoMes: '$100k–120k', freno: 'Tu tiempo (~4 encuentros/día)', min: 100000, max: 120000 },
     ],
   },
   {
-    id: 'bstock',
-    title: 'Tabla 2 · Con B-Stock desde el mes 3',
-    meta: 'Meta: $100,000 / mes hacia el mes 5',
-    detalleLabel: 'Capital (reinvirtiendo)',
-    nota: 'Supuestos: ~$2,500 neto por pieza de B-Stock, ~$9k de costo, ~6 semanas de lote a venta, reinvirtiendo todo. Al inicio frena el capital; al final, tu capacidad de vender (~4 al día).',
+    id: 'equipo',
+    title: 'Tabla 2 · Equipo (tú, tu hermano y tu mamá · Polanco, Interlomas, Santa Fe)',
+    meta: 'Meta: ~$250,000 / mes desde el mes 5 (entre los 3)',
+    detalleLabel: 'Neto por pieza',
+    nota: 'Cada quien con su zona y su propio perfil de vendedor (3 perfiles = 3 veces el alcance en Marketplace). Neto del equipo antes de repartir. El freno pasa a ser capital y conseguir ~5 compras buenas al día: en CDMX desaparecen ~110 iPhones seguidos al día, 140 ventas al mes es una fracción chica. Capital: se reinvierte la ganancia de los meses 2–4.',
     rows: [
-      { from: 1, to: 2, etapa: 'Meses 1–2', volumen: '12–20 local', detalle: '~$1,300', netoMes: '$16k–26k', freno: 'Aprender', min: 16000, max: 26000 },
-      { from: 3, to: 4, etapa: 'Meses 3–4', volumen: '~15 B-Stock + ~30 local', detalle: 'capital ~$230k', netoMes: '$80k–95k', freno: 'Capital', min: 80000, max: 95000 },
-      { from: 5, to: 6, etapa: 'Meses 5–6', volumen: '~28 B-Stock + ~25 local', detalle: 'capital ~$400k', netoMes: '$110k–125k', freno: 'Capital', min: 110000, max: 125000 },
-      { from: 7, to: 8, etapa: 'Meses 7–8', volumen: '~45 B-Stock + ~20 local', detalle: 'capital ~$650k', netoMes: '$145k–160k', freno: 'Capital', min: 145000, max: 160000 },
-      { from: 9, to: null, etapa: 'Mes 9+', volumen: '60–70 B-Stock + ~15 local', detalle: 'capital ~$900k', netoMes: '$180k–210k', freno: 'Tu tiempo (~80–90 ventas)', min: 180000, max: 210000 },
+      { from: 1, to: 1, etapa: 'Mes 1 · prueba', volumen: '5–8 ventas (tú)', detalle: '~$1,500', capital: '$25k', netoMes: '$8k–12k', freno: 'Validar mercado', min: 8000, max: 12000 },
+      { from: 2, to: 2, etapa: 'Mes 2', volumen: '30–45 ventas', detalle: '~$1,700', capital: '~$200k (entra inversión)', netoMes: '$50k–75k', freno: 'Que aprendan a comprar', min: 50000, max: 75000 },
+      { from: 3, to: 4, etapa: 'Meses 3–4', volumen: '70–90 ventas', detalle: '~$1,900', capital: '~$300k', netoMes: '$130k–170k', freno: 'Capital', min: 130000, max: 170000 },
+      { from: 5, to: null, etapa: 'Mes 5+', volumen: '110–140 ventas', detalle: '~$2,100', capital: '~$450k', netoMes: '$230k–290k', freno: 'Capital y compras buenas (~5/día)', min: 230000, max: 290000 },
     ],
   },
 ]

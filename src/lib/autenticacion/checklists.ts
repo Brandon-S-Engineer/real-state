@@ -252,11 +252,14 @@ const MACBOOK: CheckPhase[] = [
   {
     id: 'identidad',
     title: 'En persona · identidad y bloqueos',
-    hint: 'Antes de probar hardware.',
+    hint: 'Lo primero: arranca la actualización y prueba lo demás mientras baja.',
     items: [
+      { id: 'update', label: 'Lo primero: ¿macOS está en la última versión? Si no, inicia la actualización', how: 'Ajustes del Sistema › General › Actualización de software (comparte internet desde tu teléfono). Las Mac Intel con chip T2 se pueden saltar el bloqueo con checkm8, pero no es permanente: al actualizar, reinstalar o reiniciar regresa. Si no deja actualizar, no se compra.', stop: true },
+      { id: 'reboot', label: 'Reiníciala 2 o 3 veces: arranca normal a macOS', stop: true },
+      { id: 'own-id', label: 'Inicia sesión con TU Apple ID y activa Buscar mi Mac', how: 'Ajustes del Sistema › [tu nombre] › iCloud › Buscar mi Mac. Si no deja, algo está bloqueado. Cierras sesión antes del borrado.', stop: true },
       { id: 'serial-match', label: 'Serie coincide en Acerca de esta Mac, base y caja', stop: true },
-      { id: 'activation', label: 'Bloqueo de activación: Desactivado', how: 'Mantén Opción › menú Apple › Información del sistema › Hardware: "Estado del bloqueo de activación".', stop: true },
-      { id: 'mdm', label: 'Sin MDM ni DEP', how: 'Terminal: profiles status -type enrollment → "No" en las dos líneas. Y Ajustes › General › Gestión de dispositivos vacío.', stop: true },
+      { id: 'activation', label: 'Bloqueo de activación: Desactivado', how: 'Mantén Opción › menú Apple › Información del sistema › Hardware: "Estado del bloqueo de activación". Lo tienen las Mac con Apple Silicon (M1 en adelante) y las Intel con chip T2 (2018–2020). Las Intel más viejas no, pero si las bloquearon desde iCloud piden un PIN al arrancar.', stop: true },
+      { id: 'mdm', label: 'Sin MDM ni DEP', how: 'Terminal: profiles status -type enrollment → "No" en las dos líneas. Y Ajustes › General › Gestión de dispositivos vacío. Hay trucos que saltan la pantalla de "Gestión remota" al configurar; este comando la delata y vuelve a salir al borrar.', stop: true },
       { id: 'specs', label: 'Chip, RAM y SSD son los anunciados' },
       { id: 'firmware', label: 'Intel: sin contraseña de firmware', how: 'Al arrancar en recuperación no debe pedir candado.' },
     ],
@@ -294,7 +297,7 @@ const MACBOOK: CheckPhase[] = [
     items: [
       { id: 'logout', label: 'El vendedor cierra sesión de iCloud (apaga Buscar mi Mac)', stop: true },
       { id: 'erase', label: 'Borrar contenidos y ajustes, frente a ti', how: 'Ajustes del Sistema › General › Transferir o restablecer.', stop: true },
-      { id: 'setup', label: 'Arranca al asistente sin "Gestión remota" ni Apple ID ajeno', stop: true },
+      { id: 'setup', label: 'Arranca al asistente sin "Gestión remota" ni Apple ID ajeno', how: 'Es la prueba definitiva: el borrado vuelve a pedir activación a Apple, y ahí sale cualquier bloqueo o MDM que se hayan saltado.', stop: true },
       { id: 'charger', label: 'Cargador original', how: 'Cargador genérico baja precio.' },
       { id: 'id', label: 'Foto de INE del vendedor y compraventa simple' },
       { id: 'pay', label: 'Pagas al final, por transferencia' },
@@ -323,7 +326,7 @@ const AUDIFONOS: CheckPhase[] = [
       { id: 'serials', label: 'Seriales distintos en estuche, izquierdo y derecho', how: 'Ajustes › [AirPods] › toca el número de serie para cambiar entre cada uno. Iguales = clon.', stop: true },
       { id: 'firmware', label: 'Firmware actual', how: 'Ajustes › [AirPods] › Información › Versión. Compara con "Actualizaciones de firmware de AirPods" de Apple. Los clones se quedan en versiones viejas o raras.', stop: true },
       { id: 'findmy', label: 'Aparecen en la app Encontrar y suenan', how: 'Pro 2+: el estuche también suena.' },
-      { id: 'unlinked', label: 'El vendedor los quitó de su cuenta', how: 'En su app Encontrar › Eliminar este dispositivo. Si no, a tu iPhone le sale "vinculados a otro Apple ID".', stop: true },
+      { id: 'unlinked', label: 'El vendedor los quitó de su cuenta (Bloqueo de emparejamiento)', how: 'Es el bloqueo de iCloud de los AirPods (Pro, Max, 3.ª gen. y 4): en su app Encontrar › Eliminar este dispositivo. Restablecerlos NO lo quita y Apple tampoco puede. Si no lo hace, a tu iPhone le sale "vinculados a otro Apple ID".', stop: true },
     ],
   },
   {
@@ -347,6 +350,7 @@ const AUDIFONOS: CheckPhase[] = [
     hint: 'Hasta aquí se paga.',
     items: [
       { id: 'reset', label: 'Restablecer: botón del estuche 15 s hasta luz ámbar y luego blanca', stop: true },
+      { id: 'own-findmy', label: 'Se emparejan con tu iPhone y aparecen en TU app Encontrar', how: 'Es la prueba definitiva de que ya no están ligados al vendedor.', stop: true },
       { id: 'box', label: 'Caja con la misma serie y cable' },
       { id: 'pay', label: 'Pagas al final, por transferencia' },
     ],

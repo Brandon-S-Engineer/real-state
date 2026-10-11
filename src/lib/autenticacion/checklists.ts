@@ -94,6 +94,18 @@ export const SERVICES_NOTE =
   'Precios de octubre 2026. Para un iPhone basta CRT + Carrier & FMI & Blacklist + Clean/Lost: unos US$0.32 (~$6 MXN). ' +
   'imei.info e imeicheck.com sirven de respaldo con checks básicos gratis.'
 
+// ─── Anti-bypass de iCloud ───────────────────────────────────────────────────
+// Hay herramientas que hacen arrancar un equipo robado con Bloqueo de
+// activación (checkm8 en A11 y anteriores; iRemoval y similares en A12–A18).
+// Solo funcionan en ciertas versiones de iOS, suelen dejarlo sin señal y sin
+// iCloud, y se caen al actualizar, restaurar o (algunas) al reiniciar.
+
+const antiBypass = (device: string): CheckItem[] => [
+  { id: 'update', label: `Lo primero: ¿${device} tiene la última versión? Si no, inicia la actualización`, how: 'Ajustes › General › Actualización de software. Comparte internet desde tu teléfono (2 h de datos Telcel ~$15) y prueba lo demás mientras descarga. Un bypass solo funciona en versiones específicas; al actualizar regresa el Bloqueo de activación. Si no deja actualizar o la opción no aparece, no se compra.', stop: true },
+  { id: 'reboot', label: 'Reinícialo 2 o 3 veces: enciende normal y con señal', how: 'Los bypass "tethered" se caen al reiniciar y regresa la pantalla de activación.', stop: true },
+  { id: 'own-id', label: 'Inicia sesión con TU Apple ID en Ajustes', how: 'Un equipo con bypass no deja entrar a iCloud ni a App Store, o falla al activar Buscar. Cierras sesión antes del borrado.', stop: true },
+]
+
 // ─── Fases compartidas ───────────────────────────────────────────────────────
 
 const closingIos = (device: string): CheckPhase => ({
@@ -103,7 +115,7 @@ const closingIos = (device: string): CheckPhase => ({
   items: [
     { id: 'logout', label: 'El vendedor cierra sesión de su Apple ID frente a ti', how: `Ajustes › [su nombre] › Cerrar sesión. Pide su contraseña de Apple ID: eso apaga Buscar ${device}.`, stop: true },
     { id: 'erase', label: 'Borrar contenidos y ajustes, frente a ti', how: 'Ajustes › General › Transferir o restablecer › Borrar contenidos y ajustes.', stop: true },
-    { id: 'activation', label: 'Al reiniciar llega a "Hola" y se activa sin pedir el Apple ID de nadie', how: 'Si pide "Bloqueo de activación" o muestra "Gestión remota", no se compra.', stop: true },
+    { id: 'activation', label: 'Al reiniciar llega a "Hola" y se activa sin pedir el Apple ID de nadie', how: 'Es la prueba definitiva contra bypass: el borrado reinstala la activación limpia. Si pide "Bloqueo de activación" o muestra "Gestión remota", no se compra.', stop: true },
     { id: 'box', label: 'Caja con el mismo IMEI/serie y cable', how: 'La caja debe coincidir con el equipo; suma para vender en P75.' },
     { id: 'id', label: 'Foto de INE del vendedor y compraventa simple', how: 'Nombre, teléfono, IMEI/serie, precio, fecha y firma. Si tiene factura o ticket, foto.' },
     { id: 'pay', label: 'Pagas al final, por transferencia', how: 'Así queda registro y no traes efectivo.' },
@@ -120,7 +132,7 @@ const IPHONE: CheckPhase[] = [
     items: [
       { id: 'imei', label: 'Pide captura de Ajustes › General › Información', how: 'Ahí salen IMEI, número de serie, modelo y capacidad.' },
       { id: 'crt', label: 'CRT: no reportado como robado en México', how: 'portal.crt.gob.mx/consultar-imei', stop: true },
-      { id: 'blacklist', label: 'Reporte pagado: lista negra limpia, sin bloqueo de operador, no "Lost"', how: 'SICKW Carrier & FMI & Blacklist + Clean/Lost. FMI ON todavía es normal; se apaga en el cierre.', stop: true },
+      { id: 'blacklist', label: 'Reporte pagado: lista negra limpia, sin bloqueo de operador, no "Lost"', how: 'SICKW Carrier & FMI & Blacklist + Clean/Lost. FMI ON todavía es normal; se apaga en el cierre. Pero FMI ON + "ya lo borré, no tiene cuenta" = posible bypass.', stop: true },
       { id: 'coverage', label: 'Serie en Apple Cobertura coincide con modelo y color', how: 'Si dice otro modelo o no existe, es carcasa cambiada o equipo armado.', stop: true },
       { id: 'model', label: 'Número de modelo: revisa la primera letra y la región', how: 'Ajustes › General › Información › toca "Modelo". M = nuevo de tienda · F = reacondicionado por Apple · N = reemplazo de garantía · P = grabado · 3 = demo. Sufijo: E/A México · LL/A EE. UU. (desde el iPhone 14 son solo eSIM, sin bandeja) · LZ/A Chile y Paraguay.' },
       { id: 'battery-pre', label: 'Captura de Salud de la batería y de Historial de piezas', how: 'Si no la quiere mandar, mala señal.' },
@@ -129,13 +141,13 @@ const IPHONE: CheckPhase[] = [
   {
     id: 'identidad',
     title: 'En persona · identidad y bloqueos',
-    hint: 'Lo primero al tenerlo en la mano.',
+    hint: 'Lo primero al tenerlo en la mano: arranca la actualización y prueba lo demás mientras baja.',
     items: [
+      ...antiBypass('el iPhone'),
       { id: 'imei-match', label: 'El IMEI coincide en *#06#, Ajustes, bandeja SIM y caja', stop: true },
-      { id: 'sim', label: 'Tu SIM funciona: llamada y datos', how: 'Mete tu chip (o activa eSIM) y haz una llamada. "SIM no válida" = bloqueado por operador.', stop: true },
+      { id: 'sim', label: 'Tu SIM funciona: llamada y datos', how: 'Mete tu chip (o activa eSIM) y haz una llamada. "SIM no válida" = bloqueado por operador; "Sin servicio" con chip bueno = posible bypass (casi todos dejan el equipo sin señal).', stop: true },
       { id: 'rsim', label: 'Sin chip pegado en la bandeja', how: 'Un chip delgado bajo la SIM (R-SIM/Turbo SIM) = liberación falsa; se cae en cualquier actualización.', stop: true },
       { id: 'mdm', label: 'Sin perfiles de gestión', how: 'Ajustes › General › VPN y gestión de dispositivos: debe estar vacío (o solo VPN).', stop: true },
-      { id: 'ios', label: 'iOS actualizado o se puede actualizar', how: 'Ajustes › General › Actualización de software.' },
     ],
   },
   {
@@ -187,8 +199,9 @@ const IPAD: CheckPhase[] = [
   {
     id: 'identidad',
     title: 'En persona · identidad y bloqueos',
-    hint: 'Lo primero al tenerlo en la mano.',
+    hint: 'Lo primero al tenerlo en la mano: arranca la actualización y prueba lo demás mientras baja.',
     items: [
+      ...antiBypass('el iPad'),
       { id: 'serial-match', label: 'Serie/IMEI coincide en Ajustes, caja y parte de atrás', stop: true },
       { id: 'mdm', label: 'Sin perfiles de gestión', how: 'Ajustes › General › VPN y gestión de dispositivos: vacío. "Supervisado" debajo del nombre en Ajustes = de una organización.', stop: true },
       { id: 'sim', label: 'Si es Cellular: tu SIM da datos', stop: true },

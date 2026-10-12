@@ -27,3 +27,9 @@ export const tradeSchema = z.object({
   costs: z.number().nonnegative().default(0),
   notes: z.string().nullable().optional(),
 })
+
+export const searchSchema = z.object({
+  query: z.string().trim().min(1).max(120),
+  groupName: z.string().trim().min(1).max(60).default('Mis búsquedas'),
+  minPrice: z.number().int().nonnegative().nullable().optional(),
+})

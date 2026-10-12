@@ -512,6 +512,16 @@ model ElecTrade {
   sellZone ElecZone?    @relation("TradeSellZone", fields: [sellZoneId], references: [id], onDelete: SetNull)
 }
 
+// Búsquedas rápidas de Marketplace que agrega el usuario (las de siempre —
+// iPhone, iPad, marcas de bolsos… — viven en código: src/lib/busquedas.ts).
+model ElecSearch {
+  id        String   @id @default(cuid())
+  query     String
+  groupName String   @default("Mis búsquedas")
+  minPrice  Int?
+  createdAt DateTime @default(now())
+}
+
 // ── Finanzas ────────────────────────────────────────────────────────────────
 // Ingresos/egresos capturados a mano (reventa, software, otros). La ganancia
 // de ElecTrade (compras/ventas de equipos) se suma aparte al calcular el mes,

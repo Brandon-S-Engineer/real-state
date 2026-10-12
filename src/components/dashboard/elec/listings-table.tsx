@@ -232,6 +232,8 @@ export default function ElecListingsTable({
   // El header de Precio itera 4 estados en vez del asc/desc genérico de la tabla:
   // neutro (vuelve al orden por score) → menor a mayor → mayor a menor → mejor descuento vs mercado primero
   const [priceSortMode, setPriceSortMode] = useState<'neutro' | 'asc' | 'desc' | 'market'>('neutro')
+  // El de Score itera mejor → peor → mejor y más nuevo (para contactar primero lo bueno recién publicado)
+  const [scoreSortMode, setScoreSortMode] = useState<'desc' | 'asc' | 'fresh'>('desc')
   const meta = CATEGORY_META[category]
   const [filters, setFilters] = useState<Filters>(() => loadStoredFilters(category))
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -390,7 +392,16 @@ export default function ElecListingsTable({
     {
       accessorKey: 'opportunityScore',
       header: 'Score',
-      sortingFn: (a, b) => (a.original.opportunityScore ?? -1) - (b.original.opportunityScore ?? -1),
+      sortingFn: (a, b) => {
+        if (scoreSortMode === 'fresh') {
+          // Score menos 2 puntos por día de publicado: un 7 de hoy le gana a un 8.5 de ayer
+          const key = (row: typeof a) => row.original.opportunityScore == null
+            ? -Infinity
+            : row.original.opportunityScore - 2 * Math.min(5, daysAgo(row.original.postedAt ?? row.original.firstSeenAt) ?? 5)
+          return key(a) - key(b)
+        }
+        return (a.original.opportunityScore ?? -1) - (b.original.opportunityScore ?? -1)
+      },
       cell: ({ row }) => <ScoreBadge score={row.original.opportunityScore} />,
     },
     {
@@ -621,22 +632,33 @@ export default function ElecListingsTable({
               <tr key={hg.id} className='border-b bg-muted/50'>
                 {hg.headers.map((header) => {
                   const isPrice = header.column.id === 'price'
+                  const isScore = header.column.id === 'opportunityScore'
                   const onClick = isPrice
                     ? () => {
                       const next = priceSortMode === 'neutro' ? 'asc' : priceSortMode === 'asc' ? 'desc' : priceSortMode === 'desc' ? 'market' : 'neutro'
                       setPriceSortMode(next)
+                      setScoreSortMode('desc')
                       if (next === 'neutro') setSorting([{ id: 'opportunityScore', desc: true }])
                       // market: menor a mayor % vs mediana (el descuento más grande primero, no el peor sobreprecio)
                       else setSorting([{ id: 'price', desc: next === 'desc' }])
                     }
-                    : header.column.getToggleSortingHandler()
+                    : isScore
+                      ? () => {
+                        const sortedByScore = sorting[0]?.id === 'opportunityScore'
+                        const next = !sortedByScore ? 'desc' : scoreSortMode === 'desc' ? 'asc' : scoreSortMode === 'asc' ? 'fresh' : 'desc'
+                        setScoreSortMode(next)
+                        setPriceSortMode('neutro')
+                        setSorting([{ id: 'opportunityScore', desc: next !== 'asc' }])
+                      }
+                      : header.column.getToggleSortingHandler()
                   const active = header.column.getIsSorted()
                   return (
                     <th key={header.id} onClick={onClick} className='px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap'>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {isPrice && active
                         ? (priceSortMode === 'market' ? ' mejor desc. ↓' : priceSortMode === 'asc' ? ' ↑' : ' ↓')
-                        : active === 'asc' ? ' ↑' : active === 'desc' ? ' ↓' : ''}
+                        : isScore && active && scoreSortMode === 'fresh' ? ' + nuevos ↓'
+                          : active === 'asc' ? ' ↑' : active === 'desc' ? ' ↓' : ''}
                     </th>
                   )
                 })}

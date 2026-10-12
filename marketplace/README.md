@@ -1,6 +1,6 @@
 # Apple Price Catcher — Chrome Extension
 
-Captura **pasiva** de listings de MacBook (M1–M5 y Neo), iPhone (11 en adelante), iPad (los que soporta iPadOS 27) y audífonos tope de gama (AirPods 4/5, Pro 2/3, Max; Sony 1000XM5/XM6; Bose QC Ultra) en Facebook Marketplace y en grupos de Facebook, y los manda al CRM (`/dashboard/macbook`, `/iphone`, `/ipad`, `/audifonos`) para descubrir el precio real de mercado.
+Captura **pasiva** de listings de MacBook (M1–M5 y Neo), iPhone (11 en adelante), iPad (los que soporta iPadOS 27) audífonos tope de gama (AirPods 4/5, Pro 2/3, Max; Sony 1000XM5/XM6; Bose QC Ultra) y bolsos de las marcas que autentica Entrupy (Louis Vuitton, Gucci, Chanel, Dior, Hermès, Prada, Fendi, YSL, Celine, Goyard, Coach, MCM…) en Facebook Marketplace y en grupos de Facebook, y los manda al CRM (`/dashboard/macbook`, `/iphone`, `/ipad`, `/audifonos`, `/bolsos`) para descubrir el precio real de mercado.
 
 No hace scroll, no hace click y no navega. Solo lee lo que tú abres y scrolleas.
 
@@ -14,7 +14,7 @@ No hace scroll, no hace click y no navega. Solo lee lo que tú abres y scrolleas
 | Item abierto (diálogo o página) | + descripción, condición, coordenadas del mapa, vendedor, vendido/no disponible | `h1`, filas `[justify="all"]`, mapa estático |
 | Grupos configurados | posts que matchean las keywords (precio y specs se sacan del texto en el servidor) | observer de grupos existente |
 
-El servidor decide la categoría, descarta Intel / equipos viejos (iPhone X/XR/8, iPads con chip A12 o anterior, AirPods 1–3, XM4…), réplicas de AirPods, audífonos de gama baja, accesorios, reparaciones, "busco/compro" e intercambios, parsea los specs y calcula el score de oportunidad.
+El servidor decide la categoría, descarta Intel / equipos viejos (iPhone X/XR/8, iPads con chip A12 o anterior, AirPods 1–3, XM4…), réplicas de AirPods y de bolsos (y bolsos con precio abajo del piso de su marca), ropa/perfumes/tenis de las marcas de bolsos, audífonos de gama baja, accesorios, reparaciones, "busco/compro" e intercambios, parsea los specs y calcula el score de oportunidad.
 
 ## Instalación
 

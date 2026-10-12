@@ -21,6 +21,7 @@ const EQUIPO_PLACEHOLDER: Record<Category, string> = {
   IPHONE: 'iPhone 15 Pro 256 titanio natural',
   IPAD: 'iPad Air 11" M2 128 + Pencil',
   AUDIO: 'AirPods Pro 3 / Sony WH-1000XM6 plata',
+  BOLSOS: 'Louis Vuitton Neverfull MM Damier Ébène',
 }
 
 export function draftFromListing(l: ElecListingDTO): TradeDraft {

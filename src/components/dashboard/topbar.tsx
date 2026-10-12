@@ -33,7 +33,7 @@ const PAGE_TITLES: Record<string, string> = {
 
 type ElecAlert = {
   id: string
-  category: 'MACBOOK' | 'IPHONE' | 'IPAD' | 'AUDIO'
+  category: 'MACBOOK' | 'IPHONE' | 'IPAD' | 'AUDIO' | 'BOLSOS'
   label: string
   title: string
   config: string

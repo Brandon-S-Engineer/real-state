@@ -57,6 +57,34 @@ export const AUDIO_POSITIVES = [
   'qc ultra',
 ]
 
+// Bolsos: solo marcas que autentica Entrupy (ver src/lib/electronicos/bag-catalog.ts)
+export const BAG_POSITIVES = [
+  'louis vuitton',
+  'gucci',
+  'chanel',
+  'dior',
+  'hermes',
+  'prada',
+  'fendi',
+  'saint laurent',
+  'ysl',
+  'celine',
+  'goyard',
+  'bottega veneta',
+  'balenciaga',
+  'burberry',
+  'loewe',
+  'miu miu',
+  'givenchy',
+  'valentino',
+  'chloe',
+  'ferragamo',
+  'dolce gabbana',
+  'louboutin',
+  'coach',
+  'mcm',
+]
+
 export const MACBOOK_NEGATIVES = [
   'busco',
   'compro',

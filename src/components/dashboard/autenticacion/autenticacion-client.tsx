@@ -7,9 +7,101 @@ import { Check, Copy, ExternalLink, RotateCcw, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
-  AUTH_PRODUCTS, CHECKLISTS, SERVICES, SERVICES_NOTE,
+  AUTH_PRODUCTS, CHECKLISTS, ENTRUPY_NOTE, ENTRUPY_OTHER, ENTRUPY_PLANS, SERVICES, SERVICES_NOTE,
   type AuthProduct, type CheckItem,
 } from '@/lib/autenticacion/checklists'
+import { BAG_BRANDS, TIER_LABEL, TIER_TOKENS } from '@/lib/electronicos/bag-catalog'
+
+const USD_MXN = 18.5
+const mxn = (usd: number) => `~$${Math.round(usd * USD_MXN).toLocaleString('es-MX')}`
+
+function EntrupySection() {
+  const perToken = ENTRUPY_PLANS[0].perToken
+  return (
+    <section className='space-y-4'>
+      <div className='space-y-2'>
+        <h2 className='text-base font-semibold'>Marcas que autentica Entrupy</h2>
+        <div className='rounded-md border overflow-x-auto'>
+          <table className='w-full text-sm'>
+            <thead>
+              <tr className='border-b bg-muted/50'>
+                {['Marca', 'Nivel', 'Bolso', 'Cartera / cinturón', 'Modelos en el CRM'].map((h) => (
+                  <th key={h} className='px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap'>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {BAG_BRANDS.map((b) => {
+                const t = TIER_TOKENS[b.tier]
+                const ultra = b.models.filter((m) => m.ultra)
+                return (
+                  <tr key={b.code} className='border-b last:border-b-0'>
+                    <td className='px-4 py-3 font-medium whitespace-nowrap'>{b.name}</td>
+                    <td className='px-4 py-3 text-muted-foreground whitespace-nowrap'>{TIER_LABEL[b.tier]}</td>
+                    <td className='px-4 py-3 whitespace-nowrap'>
+                      {t.bolso} tokens <span className='text-xs text-muted-foreground'>{mxn(t.bolso * perToken)}</span>
+                      {ultra.length > 0 && (
+                        <div className='text-xs text-muted-foreground'>
+                          {ultra.map((m) => m.label).join(', ')}: {TIER_TOKENS.ULTRA.bolso} tokens {mxn(TIER_TOKENS.ULTRA.bolso * perToken)}
+                        </div>
+                      )}
+                    </td>
+                    <td className='px-4 py-3 whitespace-nowrap'>{t.slg} tokens <span className='text-xs text-muted-foreground'>{mxn(t.slg * perToken)}</span></td>
+                    <td className='px-4 py-3 text-xs text-muted-foreground'>{b.models.map((m) => m.label).join(', ') || '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className='text-xs text-muted-foreground'>
+          Costo en pesos con el plan Petit (US${perToken}/token, ${USD_MXN} MXN/USD). No están: Michael Kors, Kate Spade, Tory Burch, Longchamp, Guess.
+          Las marcas streetwear (Supreme, BAPE, Palace…) sí, pero sus bolsos valen poco y no entran al CRM.
+        </p>
+      </div>
+
+      <div className='grid gap-4 lg:grid-cols-2'>
+        <div className='space-y-2'>
+          <h2 className='text-base font-semibold'>Planes</h2>
+          <div className='rounded-md border overflow-x-auto'>
+            <table className='w-full text-sm'>
+              <thead>
+                <tr className='border-b bg-muted/50'>
+                  {['Plan', 'Mes', 'Año', 'Tokens/mes', 'Bolsos Designer/mes'].map((h) => (
+                    <th key={h} className='px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap'>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ENTRUPY_PLANS.map((p) => (
+                  <tr key={p.name} className='border-b last:border-b-0'>
+                    <td className='px-4 py-3 font-medium'>{p.name}</td>
+                    <td className='px-4 py-3 whitespace-nowrap'>US${p.monthly} <span className='text-xs text-muted-foreground'>{mxn(p.monthly)}</span></td>
+                    <td className='px-4 py-3 whitespace-nowrap'>US${p.yearly.toLocaleString('en-US')}</td>
+                    <td className='px-4 py-3'>{p.tokens}</td>
+                    <td className='px-4 py-3'>{Math.floor(p.tokens / TIER_TOKENS.DESIGNER.bolso)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className='text-xs text-muted-foreground'>{ENTRUPY_NOTE}</p>
+        </div>
+        <div className='space-y-2'>
+          <h2 className='text-base font-semibold'>Otras categorías de Entrupy</h2>
+          <div className='rounded-md border divide-y'>
+            {ENTRUPY_OTHER.map((o) => (
+              <div key={o.category} className='px-4 py-3'>
+                <div className='text-sm font-medium'>{o.category} <span className='text-xs font-normal text-muted-foreground'>· {o.tokens} tokens</span></div>
+                <div className='text-xs text-muted-foreground mt-0.5'>{o.brands}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
 
 type Mark = 'ok' | 'fail'
 type Review = { ident: string; marks: Record<string, Mark> }
@@ -133,7 +225,7 @@ export default function AutenticacionClient() {
           <div className='rounded-lg border p-4 space-y-3'>
             <div className='flex flex-wrap items-center gap-2'>
               <Input
-                placeholder={product === 'IPHONE' ? 'IMEI' : product === 'IPAD' ? 'Serie o IMEI' : 'Número de serie'}
+                placeholder={product === 'IPHONE' ? 'IMEI' : product === 'IPAD' ? 'Serie o IMEI' : product === 'BOLSOS' ? 'Certificado Entrupy o código' : 'Número de serie'}
                 value={review.ident}
                 onChange={(e) => update({ ...review, ident: e.target.value })}
                 className='w-64 font-mono'
@@ -172,7 +264,7 @@ export default function AutenticacionClient() {
           </div>
 
           <section className='space-y-2'>
-            <h2 className='text-base font-semibold'>Consultas con {product === 'IPHONE' ? 'IMEI' : 'serie'}</h2>
+            <h2 className='text-base font-semibold'>{product === 'BOLSOS' ? 'Autenticación' : `Consultas con ${product === 'IPHONE' ? 'IMEI' : 'serie'}`}</h2>
             <div className='rounded-md border overflow-x-auto'>
               <table className='w-full text-sm'>
                 <thead>
@@ -198,7 +290,7 @@ export default function AutenticacionClient() {
                 </tbody>
               </table>
             </div>
-            <p className='text-xs text-muted-foreground'>{SERVICES_NOTE}</p>
+            {product !== 'BOLSOS' && <p className='text-xs text-muted-foreground'>{SERVICES_NOTE}</p>}
           </section>
 
           <div className='space-y-4'>
@@ -221,6 +313,8 @@ export default function AutenticacionClient() {
               )
             })}
           </div>
+
+          {product === 'BOLSOS' && <EntrupySection />}
         </>
       )}
     </div>

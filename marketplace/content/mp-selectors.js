@@ -65,9 +65,10 @@
     },
 
     // ── Filtro de relevancia ──────────────────────────────────────────────────
-    // Solo se manda al CRM lo que parece MacBook, iPhone, iPad o audífonos tope
-    // de gama. El servidor vuelve a filtrar (equipos viejos, réplicas, gama baja,
-    // accesorios, "busco") con el parser. "Sony" a secas no: son TVs, PS5…
-    titleMustMatch: /mac\s?book|i\s?phone|i\s?pad(?!os)|air\s?pods|1000\s?x\s?m|\bx\s?m[3-6]\b|quiet\s?comfort|\bqc\s?ultra|\bbose\b/i,
+    // Solo se manda al CRM lo que parece MacBook, iPhone, iPad, audífonos tope
+    // de gama o un bolso de marca que autentica Entrupy. El servidor vuelve a
+    // filtrar (equipos viejos, réplicas, gama baja, accesorios, ropa/perfume de
+    // la marca, "busco") con el parser. "Sony" a secas no: son TVs, PS5…
+    titleMustMatch: /mac\s?book|i\s?phone|i\s?pad(?!os)|air\s?pods|1000\s?x\s?m|\bx\s?m[3-6]\b|quiet\s?comfort|\bqc\s?ultra|\bbose\b|\b(louis|luis|lui|loui)\s?vu?it+on|\blv\b|\bgucci\b|\bchanel\b|\bdior\b|\bherm[eè]s\b|\bprada\b|\bfendi\b|saint\s?laurent|\bysl\b|\bc[eé]line\b|\bgoyard\b|\bbottega\b|\bbalenciaga\b|\bburberr?ys?\b|\bloewe\b|\bmiu\s?miu\b|\bgivenchy\b|\bvalentino\b|\bchlo[eé]\b|\bferragamo\b|dolce\s?(&|y|and)?\s?gabbana|\blouboutin\b|\bcoach\b|\bmcm\b/i,
   }
 })()

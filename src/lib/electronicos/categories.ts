@@ -1,4 +1,4 @@
-// ── Categorías (MacBook / iPhone / iPad / Audífonos) ────────────────────────
+// ── Categorías (MacBook / iPhone / iPad / Audífonos / Bolsos) ────────────────────────
 //
 // Mismas tablas y mismo pipeline; lo que cambia por categoría es el parser y
 // qué specs importan. Sin prisma: se usa también en el cliente.
@@ -7,14 +7,16 @@ import { LINES, LINE_LABEL, formatSsd, type Line } from './catalog'
 import { IPHONE_LINES, IPHONE_LINE_LABEL, IPHONE_STORAGE_OPTIONS, isIphoneLine } from './iphone-catalog'
 import { IPAD_LINES, IPAD_LINE_LABEL, IPAD_STORAGE_OPTIONS, isIpadLine } from './ipad-catalog'
 import { AUDIO_LINES, AUDIO_LINE_LABEL, isAudioLine } from './audio-catalog'
+import { BAG_LINES, BAG_LINE_LABEL, isBagLine } from './bag-catalog'
 import { isModelOnlyLine, isStorageOnlyLine, normalizeText, parseSpecs, type DeviceCategory, type ParsedSpecs } from './parse-specs'
 import { parseIphone } from './parse-iphone'
 import { parseIpad } from './parse-ipad'
 import { parseAudio } from './parse-audio'
+import { parseBag } from './parse-bag'
 
 export type Category = DeviceCategory
 
-export const CATEGORIES: Category[] = ['MACBOOK', 'IPHONE', 'IPAD', 'AUDIO']
+export const CATEGORIES: Category[] = ['MACBOOK', 'IPHONE', 'IPAD', 'AUDIO', 'BOLSOS']
 
 export function parseCategory(v: string | null | undefined): Category | undefined {
   return CATEGORIES.includes(v as Category) ? (v as Category) : undefined
@@ -80,10 +82,22 @@ export const CATEGORY_META: Record<Category, {
     storageOptions: [],
     emptyHint: 'abre Marketplace con la extensión activa y scrollea una búsqueda de AirPods, Sony XM o Bose',
   },
+  BOLSOS: {
+    label: 'Bolsos',
+    path: '/dashboard/bolsos',
+    subtitle: 'Solo marcas que autentica Entrupy',
+    lines: BAG_LINES,
+    lineLabel: BAG_LINE_LABEL,
+    hasChip: false,
+    hasStorage: false,
+    storageLabel: '',
+    storageOptions: [],
+    emptyHint: 'abre Marketplace con la extensión activa y scrollea una búsqueda de Louis Vuitton, Gucci, Chanel…',
+  },
 }
 
 export function categoryOfLine(line: string | null | undefined): Category {
-  return isIphoneLine(line) ? 'IPHONE' : isIpadLine(line) ? 'IPAD' : isAudioLine(line) ? 'AUDIO' : 'MACBOOK'
+  return isIphoneLine(line) ? 'IPHONE' : isIpadLine(line) ? 'IPAD' : isAudioLine(line) ? 'AUDIO' : isBagLine(line) ? 'BOLSOS' : 'MACBOOK'
 }
 
 const DEVICE_RE: [Category, RegExp][] = [
@@ -91,6 +105,8 @@ const DEVICE_RE: [Category, RegExp][] = [
   ['IPHONE', /\bi ?phone/],
   ['IPAD', /\bi ?pad(?!os)/],
   // Sony a secas es demasiado amplio (TVs, PS5): el parser lo descarta si no es un 1000XM
+  // Marcas que autentica Entrupy (ver bag-catalog); el parser descarta ropa, perfumes, réplicas…
+  ['BOLSOS', /\b(louis|luis|lui|loui) ?vu?it+on\b|\blv\b|\bgucci\b|\bchanel\b|\bdior\b|\bhermes\b|\bprada\b|\bfendi\b|saint ?laurent|\bysl\b|\bceline\b|\bgoyard\b|\bbottega\b|\bbalenciaga\b|\bburberr?ys?\b|\bloewe\b|\bmiu ?miu\b|\bgivenchy\b|(?<!mario )\bvalentino\b|\bchloe\b|\bferragamo\b|dolce (& |y |and )?gabbana|\blouboutin\b|\bcoach\b|\bmcm\b/],
   ['AUDIO', /air ?pods?|\b(?:wh|wf)[- ]?1000|\bx ?m ?[3-6]\b|quiet ?comfort|\bqc ?(?:ultra|45|35)\b|\bbose\b|\bsony\b/],
 ]
 
@@ -113,6 +129,7 @@ const PARSERS: Record<Category, (title: string, description?: string | null) => 
   IPHONE: parseIphone,
   IPAD: parseIpad,
   AUDIO: parseAudio,
+  BOLSOS: parseBag,
 }
 
 export function parseListing(title: string, description?: string | null): ParsedSpecs & { category: Category } {
@@ -125,6 +142,7 @@ export function lineLabel(line: string | null): string {
   return IPHONE_LINE_LABEL[line as keyof typeof IPHONE_LINE_LABEL]
     ?? IPAD_LINE_LABEL[line as keyof typeof IPAD_LINE_LABEL]
     ?? AUDIO_LINE_LABEL[line as keyof typeof AUDIO_LINE_LABEL]
+    ?? BAG_LINE_LABEL[line]
     ?? LINE_LABEL[line as Line]
     ?? line
 }

@@ -2,7 +2,7 @@
 // referencia (no vive en la DB): si algo cambia con una versión nueva de iOS o
 // un servicio sube precios, se edita aquí. Investigado en octubre 2026.
 
-export type AuthProduct = 'IPHONE' | 'IPAD' | 'MACBOOK' | 'AUDIFONOS'
+export type AuthProduct = 'IPHONE' | 'IPAD' | 'MACBOOK' | 'AUDIFONOS' | 'BOLSOS'
 
 export type CheckItem = {
   id: string
@@ -19,7 +19,7 @@ export type CheckService = {
   name: string
   url: string
   cost: string
-  input: 'IMEI' | 'Serie' | 'IMEI o serie'
+  input: 'IMEI' | 'Serie' | 'IMEI o serie' | 'El bolso' | 'Certificado'
   what: string
 }
 
@@ -28,6 +28,7 @@ export const AUTH_PRODUCTS: { id: AuthProduct; label: string }[] = [
   { id: 'IPAD', label: 'iPad' },
   { id: 'MACBOOK', label: 'MacBook' },
   { id: 'AUDIFONOS', label: 'Audífonos' },
+  { id: 'BOLSOS', label: 'Bolsos' },
 ]
 
 // ─── Servicios de consulta ───────────────────────────────────────────────────
@@ -357,11 +358,114 @@ const AUDIFONOS: CheckPhase[] = [
   },
 ]
 
-export const CHECKLISTS: Record<AuthProduct, CheckPhase[]> = { IPHONE, IPAD, MACBOOK, AUDIFONOS }
+// ─── Bolsos (Entrupy) ────────────────────────────────────────────────────────
+// La revisión a mano filtra lo obvio antes de gastar tokens; Entrupy decide.
+// Si la marca o el modelo no está en Entrupy, no se puede certificar → no se
+// compra para revender en P75.
+
+const ENTRUPY_APP: CheckService = {
+  name: 'Entrupy · escaneo',
+  url: 'https://www.entrupy.com/bags-leather-goods-authentication/',
+  cost: '2–20 tokens',
+  input: 'El bolso',
+  what: 'Fotos microscópicas con la app; resultado "Authentic" (con certificado y garantía financiera de 1 año) o "Unidentified". 3–5 min de escaneo; la mayoría responde en minutos, Ultra Prestige hasta 24 h.',
+}
+const ENTRUPY_SEARCH: CheckService = {
+  name: 'Entrupy · buscar certificado',
+  url: 'https://www.entrupy.com/search-certificate/',
+  cost: 'Gratis',
+  input: 'Certificado',
+  what: 'Si el vendedor dice que ya está autenticado: confirma que el certificado existe y es de ese bolso (fotos y modelo).',
+}
+
+const BOLSOS: CheckPhase[] = [
+  {
+    id: 'previo',
+    title: 'Antes de ir',
+    hint: 'Por chat. La mayoría de las réplicas se caen aquí.',
+    items: [
+      { id: 'entrupy-list', label: 'La marca y el material están en Entrupy', how: 'Ver la tabla de abajo. Michael Kors, Kate Spade, Tory Burch, Longchamp y Guess no los autentica: no se compran. Exóticos (cocodrilo, avestruz) en Hermès no.', stop: true },
+      { id: 'price', label: 'El precio no está abajo del piso de la marca', how: 'El CRM marca "precio muy bajo para la marca". Una LV Neverfull a $3,000 no existe.', stop: true },
+      { id: 'photos', label: 'Fotos reales, no de catálogo', how: 'Pide: logo/estampado interior, código de fecha o etiqueta de serie, herrajes y cierre de cerca, costuras de las asas, base y esquinas.' },
+      { id: 'seller', label: 'Perfil del vendedor', how: 'Perfil nuevo vendiendo muchas bolsas "originales" distintas o el mismo modelo en varios colores = revendedor de réplicas.' },
+      { id: 'cert-prev', label: 'Si dice que ya está autenticada: busca el certificado', how: 'Entrupy › buscar certificado. Recibos de tienda también se falsifican; el certificado se verifica.' },
+    ],
+  },
+  {
+    id: 'revision',
+    title: 'En persona · revisión rápida',
+    hint: 'Antes de gastar tokens. Si algo de aquí falla, ni la escaneas.',
+    items: [
+      { id: 'smell', label: 'Olor a piel, no a químico o plástico' },
+      { id: 'stitching', label: 'Costuras parejas, rectas y del mismo largo', how: 'Sin hilos sueltos ni puntadas chuecas, sobre todo en asas y esquinas. Hilo con el mismo tono en todo el bolso.' },
+      { id: 'hardware', label: 'Herrajes pesados, grabado nítido, sin pintura que se pele', how: 'Cierres que corren suave; jaladeras grabadas. Herraje ligero o dorado "amarillo chillón" = mala señal.' },
+      { id: 'pattern', label: 'Logo y patrón simétricos y bien alineados', how: 'Monogramas centrados, sin logos cortados en lugares visibles; tipografía del logo limpia.' },
+      { id: 'stamp', label: 'Estampado interior limpio y con profundidad pareja', how: 'Letras bien espaciadas, sin manchas de tinta.' },
+      { id: 'code', label: 'Código de fecha, serie o chip', how: 'LV: código de fecha hasta 2021, después chip NFC (no hay código visible). Chanel: holograma con serie hasta 2021, después microchip. Gucci: etiqueta de piel con serie. Hermès: blind stamp con la letra del año. Que coincida con el modelo y la época.' },
+      { id: 'accessories', label: 'Accesorios coinciden', how: 'Candado y llaves con el mismo número, correa original, dust bag y caja de la marca correcta.' },
+    ],
+  },
+  {
+    id: 'estado',
+    title: 'Estado',
+    hint: 'Define si vende en P75 o abajo.',
+    items: [
+      { id: 'corners', label: 'Esquinas y base sin desgaste ni piel pelada' },
+      { id: 'handles', label: 'Asas: pátina pareja, sin grietas ni manchas de agua', how: 'En LV la vachetta oscura es normal; manchas de agua y grietas bajan el precio.' },
+      { id: 'interior', label: 'Interior limpio: sin manchas de pluma o maquillaje, forro sin despegar' },
+      { id: 'shape', label: 'Conserva la forma (no está aplastada ni deformada)' },
+      { id: 'odor', label: 'Sin olor a humedad, humo o perfume fuerte' },
+    ],
+  },
+  {
+    id: 'entrupy',
+    title: 'Entrupy',
+    hint: 'Escanea antes de pagar.',
+    items: [
+      { id: 'scan', label: 'Escanea con Entrupy frente al vendedor', how: 'Con buena luz y Wi-Fi o datos. Sigue las tomas que pide la app.', stop: true },
+      { id: 'result', label: 'Resultado "Authentic"', how: '"Unidentified" = no se compra (no significa falsa al 100%, pero no la puedes certificar ni vender en P75).', stop: true },
+      { id: 'cert', label: 'Guarda el número de certificado', how: 'Va en el anuncio de venta y en Mis trades. La garantía financiera pide comprobante de compra: guarda la compraventa.' },
+    ],
+  },
+  {
+    id: 'cierre',
+    title: 'Cierre',
+    hint: 'Hasta aquí se paga.',
+    items: [
+      { id: 'id', label: 'Foto de INE del vendedor y compraventa simple', how: 'Nombre, teléfono, marca, modelo, número de certificado Entrupy, precio, fecha y firma. La garantía de Entrupy pide comprobante de compra.' },
+      { id: 'pay', label: 'Pagas al final, por transferencia' },
+    ],
+  },
+]
+
+export const CHECKLISTS: Record<AuthProduct, CheckPhase[]> = { IPHONE, IPAD, MACBOOK, AUDIFONOS, BOLSOS }
 
 export const SERVICES: Record<AuthProduct, CheckService[]> = {
   IPHONE: [CRT, SICKW_BASIC, SICKW_LOST, APPLE_COVERAGE, SICKW_MDM, SICKW_REPLACEMENTS, SICKW_GSX],
   IPAD: [CRT, SICKW_MDM, APPLE_COVERAGE, SICKW_LOST, SICKW_GSX],
   MACBOOK: [APPLE_COVERAGE, SICKW_MAC, SICKW_GSX],
   AUDIFONOS: [APPLE_COVERAGE],
+  BOLSOS: [ENTRUPY_APP, ENTRUPY_SEARCH],
 }
+
+// ─── Entrupy: planes y otras categorías ──────────────────────────────────────
+// entrupy.com/pricing, octubre 2026. Precios en USD.
+
+export const ENTRUPY_PLANS = [
+  { name: 'Petit', monthly: 139, yearly: 1499, tokens: 25, perToken: 5.6 },
+  { name: 'Moyen', monthly: 599, yearly: 6469, tokens: 125, perToken: 4.8 },
+  { name: 'Grand', monthly: 1049, yearly: 11329, tokens: 250, perToken: 4.2 },
+]
+
+export const ENTRUPY_NOTE =
+  'Tokens por mes (el anual da 12× y sale ~10% más barato). El primer mes regala los mismos tokens del plan. ' +
+  'Necesitas la app de Entrupy en un teléfono compatible (revisa sus requisitos mínimos de hardware) y conexión para subir las fotos. ' +
+  'Se renueva solo: cancela 30 días antes si no lo vas a seguir usando.'
+
+/** Lo demás que autentica Entrupy, por si se abre otra categoría. */
+export const ENTRUPY_OTHER: { category: string; tokens: string; brands: string }[] = [
+  { category: 'Joyería', tokens: '2–15', brands: 'Cartier (Love, Juste un Clou, Clash: 15), Van Cleef & Arpels (Alhambra: 15), Tiffany & Co., David Yurman, Chrome Hearts, Chanel, Hermès, Louis Vuitton, Dior, Gucci. No cubre piedras ni ley del metal.' },
+  { category: 'Tenis y zapatos', tokens: '2–5', brands: 'Jordan, Nike, Adidas, New Balance, Asics, Hoka, On, Salomon… (2); Gucci, Prada, Golden Goose, McQueen, Off-White (3); Dior, LV, Chanel, Louboutin, Balenciaga, Hermès, YSL, colaboraciones Dior/Off-White/LV (5).' },
+  { category: 'Ropa', tokens: '2–8', brands: 'Supreme, BAPE, Palace, Stüssy, Essentials, Chrome Hearts, Moncler, Canada Goose, Burberry, Gucci, Prada, Dior, LV, Chanel, Hermès…' },
+  { category: 'Lentes de sol', tokens: '2–4', brands: 'Chrome Hearts (4); Chanel, Gucci, Louis Vuitton (2).' },
+]

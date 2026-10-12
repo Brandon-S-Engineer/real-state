@@ -4,7 +4,7 @@ import {
   generateId, extractGroupSlug,
 } from '../shared/storage.js'
 import { DEFAULT_TEMPLATES, composeMessage, textToBlock } from '../shared/templates.js'
-import { MACBOOK_POSITIVES, MACBOOK_NEGATIVES, IPHONE_POSITIVES, IPAD_POSITIVES, AUDIO_POSITIVES } from '../shared/presets.js'
+import { MACBOOK_POSITIVES, MACBOOK_NEGATIVES, IPHONE_POSITIVES, IPAD_POSITIVES, AUDIO_POSITIVES, BAG_POSITIVES } from '../shared/presets.js'
 
 function $(id) { return document.getElementById(id) }
 
@@ -315,6 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('load-iphone-pack').addEventListener('click', () => loadPositivesPack(IPHONE_POSITIVES))
   $('load-ipad-pack').addEventListener('click', () => loadPositivesPack(IPAD_POSITIVES))
   $('load-audio-pack').addEventListener('click', () => loadPositivesPack(AUDIO_POSITIVES))
+  $('load-bag-pack').addEventListener('click', () => loadPositivesPack(BAG_POSITIVES))
   $('load-negatives-pack').addEventListener('click', loadNegativesPack)
 
   // Templates

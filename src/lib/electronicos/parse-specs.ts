@@ -11,6 +11,7 @@ import { CATALOG, MODEL_NUMBERS, findEntries, linesForChip, type Line } from './
 import type { IphoneLine } from './iphone-catalog'
 import type { IpadLine } from './ipad-catalog'
 import type { AudioLine } from './audio-catalog'
+import type { BagLine } from './bag-catalog'
 
 export type SpecFlags = {
   conCaja?: boolean
@@ -32,15 +33,18 @@ export type SpecFlags = {
   conPencil?: boolean
   conTeclado?: boolean
   celular?: boolean // Wi-Fi + Cellular
+  // Bolsos
+  dustBag?: boolean
+  autenticado?: boolean // ya trae certificado (Entrupy u otro) o comprobante
 }
 
-export type DeviceCategory = 'MACBOOK' | 'IPHONE' | 'IPAD' | 'AUDIO'
+export type DeviceCategory = 'MACBOOK' | 'IPHONE' | 'IPAD' | 'AUDIO' | 'BOLSOS'
 
 export type ExcludedReason = 'no_relevante' | 'intel' | 'viejo' | 'gama_baja' | 'replica' | 'accesorio' | 'busqueda' | 'intercambio'
 
 export type ParsedSpecs = {
   excluded: ExcludedReason | null
-  line: Line | IphoneLine | IpadLine | AudioLine | null
+  line: Line | IphoneLine | IpadLine | AudioLine | BagLine | null
   chip: string | null
   ramGb: number | null
   ssdGb: number | null
@@ -83,9 +87,9 @@ export function isStorageOnlyLine(line: string | null | undefined): boolean {
   return !!line && (line.startsWith('IP_') || line.startsWith('IPD_'))
 }
 
-/** Audífonos (AUD_…): el modelo solo define el precio, no hay más specs. */
+/** Audífonos (AUD_…) y bolsos (BAG_…): el modelo solo define el precio, no hay más specs. */
 export function isModelOnlyLine(line: string | null | undefined): boolean {
-  return !!line && line.startsWith('AUD_')
+  return !!line && (line.startsWith('AUD_') || line.startsWith('BAG_'))
 }
 
 // MacBook: "PRO_14|M3 Pro|18|512" · iPhone/iPad: "IP_15_PRO|256" / "IPD_AIR_11_M2|128" · Audífonos: "AUD_AIRPODS_PRO_3"
@@ -265,7 +269,8 @@ export function detectFlags(t: string, category: DeviceCategory = 'MACBOOK'): Sp
   const piezasRe = category === 'IPHONE' || category === 'AUDIO'
     ? /(para|por) (piezas|refacciones)|\bpiezas\b(?! (son )?original| cambiad)|refaccion|no (enciende|prende|sirve)\b(?! (el|la|los|las|su|bien) )|\bmdm\b|placa danada/
     : /(para|por) (piezas|refacciones)|\bpiezas\b(?! (son )?original| cambiad)|refaccion|no (enciende|prende|sirve)\b(?! (el|la|los|las|su|bien) )|\bbloquead|\bmdm\b|placa danada/
-  if (piezasRe.test(t) || ICLOUD_LOCK.test(t)) f.piezas = true
+  // En bolsos "piezas" es "set de 3 piezas", no refacciones
+  if (category !== 'BOLSOS' && (piezasRe.test(t) || ICLOUD_LOCK.test(t))) f.piezas = true
   if (/\bsellad[ao]\b|sin abrir|nueva en caja|\bnueva\b(?! como)|\bnuevo\b(?! como)/.test(t) && !/como nuev|semi ?nuev|casi nuev/.test(t)) f.nueva = true
   if (/\bvendid[ao]\b|\bsold\b|ya se vendio/.test(t)) f.vendido = true
 

@@ -67,6 +67,7 @@ export function scoreListing(
   if (!isPriceUsable(l)) {
     const f = (l.flags ?? {}) as SpecFlags
     if (f.piezas) return { score: null, reasons: [{ pts: 0, why: 'Para piezas / bloqueada — fuera de precios' }] }
+    if (l.line?.startsWith('BAG_') && l.price) return { score: null, reasons: [{ pts: 0, why: `Precio muy bajo para la marca (${fmt(l.price)}): casi siempre es réplica — fuera de precios` }] }
     return { score: null, reasons: [{ pts: 0, why: 'Sin precio válido' }] }
   }
   const price = l.price!
@@ -134,6 +135,8 @@ export function scoreListing(
   if (f.conPencil) { score += 0.5; reasons.push({ pts: 0.5, why: 'Incluye Apple Pencil' }) }
   if (f.conTeclado) { score += 0.5; reasons.push({ pts: 0.5, why: 'Incluye teclado' }) }
   if (f.celular) { score += 0.3; reasons.push({ pts: 0.3, why: 'Wi-Fi + Cellular' }) }
+  if (f.autenticado) { score += 0.7; reasons.push({ pts: 0.7, why: 'Ya trae certificado/comprobante de autenticidad' }) }
+  if (f.dustBag) { score += 0.3; reasons.push({ pts: 0.3, why: 'Con dust bag' }) }
   if (l.batteryHealth != null && l.batteryHealth < 80) { score -= 2; reasons.push({ pts: -2, why: `Batería ${l.batteryHealth}% (pide servicio)` }) }
   else if (l.batteryHealth != null && l.batteryHealth < 85) { score -= 1; reasons.push({ pts: -1, why: `Batería ${l.batteryHealth}%` }) }
   if (l.batteryCycles != null && l.batteryCycles > 800) { score -= 1; reasons.push({ pts: -1, why: `${l.batteryCycles} ciclos` }) }

@@ -235,7 +235,7 @@ export default function ClientesClient() {
   }
 
   return (
-    <div className='p-6 space-y-5'>
+    <div className='p-3 sm:p-6 space-y-5'>
       {/* Header */}
       <div className='flex items-start justify-between gap-3 flex-wrap'>
         <div>

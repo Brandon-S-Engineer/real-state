@@ -22,6 +22,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { navTitle } from './nav'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Overview',
@@ -92,7 +93,8 @@ function DropdownMenu({
       {open && (
         <div
           className={cn(
-            'absolute z-40 mt-1 min-w-[180px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1',
+            // En celular el panel va fijo a lo ancho para no salirse de la pantalla
+            'absolute z-40 mt-1 min-w-[180px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-sm:fixed max-sm:inset-x-3 max-sm:top-14',
             align === 'end' ? 'right-0' : 'left-0',
           )}
         >
@@ -140,7 +142,7 @@ export default function TopBar({
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
-  const pageTitle = PAGE_TITLES[pathname] ?? ''
+  const pageTitle = PAGE_TITLES[pathname] ?? navTitle(pathname)
 
   const [alerts, setAlerts] = useState<ElecAlert[]>([])
   const [seen, setSeen] = useState<Set<string>>(() => loadSeen())
@@ -165,16 +167,16 @@ export default function TopBar({
   }
 
   return (
-    <header className="h-14 border-b border-border bg-background/80 backdrop-blur-md flex items-center gap-3 px-5 sticky top-0 z-30">
-      <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="-ml-1.5">
+    <header className="h-14 border-b border-border bg-background/80 backdrop-blur-md flex items-center gap-1 sm:gap-3 px-3 sm:px-5 sticky top-0 z-30">
+      <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="-ml-1.5" aria-label="Menú">
         <PanelLeft className="h-4 w-4" />
       </Button>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">Dashboard</span>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="font-medium">{pageTitle}</span>
+      <div className="flex items-center gap-2 text-sm min-w-0 mr-auto md:mr-0">
+        <span className="text-muted-foreground hidden sm:inline">Dashboard</span>
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground hidden sm:inline" />
+        <span className="font-medium truncate">{pageTitle}</span>
       </div>
 
       {/* Search trigger */}
@@ -206,7 +208,7 @@ export default function TopBar({
           </Button>
         }
       >
-        <div className="w-[340px] p-0">
+        <div className="w-full sm:w-[340px] p-0">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between">
             <span className="text-sm font-medium">Oportunidades</span>
             <span className="text-xs text-muted-foreground">{alerts.length}</span>

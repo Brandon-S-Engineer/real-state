@@ -172,7 +172,7 @@ export default function PropiedadAnunciadorClient() {
   if (!propiedad || !textos) return <EmptyState />
 
   return (
-    <div className='p-6 space-y-6 max-w-5xl'>
+    <div className='p-3 sm:p-6 space-y-6 max-w-5xl'>
       {/* Header */}
       <div className='flex items-start gap-3'>
         <Button

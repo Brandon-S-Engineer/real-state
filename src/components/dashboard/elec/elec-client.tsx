@@ -76,7 +76,7 @@ export default function ElecClient(props: {
   const review = listings.filter((l) => l.needsReview && l.status === 'ACTIVO').length
 
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-3 sm:p-6 space-y-6'>
       <div className='flex flex-wrap items-end justify-between gap-4'>
         <div>
           <h1 className='text-xl font-semibold'>{meta.label}</h1>
@@ -85,12 +85,12 @@ export default function ElecClient(props: {
             {review > 0 && <> · <button className='underline underline-offset-2' onClick={() => setTab('listings')}>{review} por revisar</button></>}
           </p>
         </div>
-        <div className='inline-flex rounded-md border p-0.5 bg-muted/40'>
+        <div className='inline-flex max-w-full overflow-x-auto rounded-md border p-0.5 bg-muted/40'>
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={cn('px-3 py-1.5 text-sm rounded transition-colors', tab === t.id ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
+              className={cn('shrink-0 whitespace-nowrap px-3 py-1.5 text-sm rounded transition-colors', tab === t.id ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
             >
               {t.label}
             </button>

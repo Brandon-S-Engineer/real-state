@@ -334,7 +334,7 @@ export default function ZonasClient() {
   }
 
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-3 sm:p-6 space-y-6'>
       <div className='flex items-start justify-between gap-3 flex-wrap'>
         <div>
           <h1 className='text-xl font-semibold'>Zonas</h1>

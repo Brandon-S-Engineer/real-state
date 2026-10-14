@@ -87,7 +87,7 @@ export default function BusquedasClient({ initialCustom }: { initialCustom: Quic
   const groupNames = groups.map(([g]) => g)
 
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-3 sm:p-6 space-y-6'>
       <div className='flex flex-wrap items-start gap-3'>
         <div>
           <h1 className='text-xl font-semibold'>Búsquedas</h1>

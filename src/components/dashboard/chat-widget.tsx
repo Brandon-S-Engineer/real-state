@@ -158,7 +158,7 @@ export default function ChatWidget() {
       {/* Chat panel */}
       {open && (
         <div
-          className='fixed bottom-[4.5rem] right-6 z-50 w-[520px] max-w-[calc(100vw-1.5rem)] flex flex-col rounded-xl border border-border bg-popover text-popover-foreground shadow-xl overflow-hidden'
+          className='fixed bottom-[4.5rem] right-3 sm:right-6 z-50 w-[520px] max-w-[calc(100vw-1.5rem)] flex flex-col rounded-xl border border-border bg-popover text-popover-foreground shadow-xl overflow-hidden'
           style={{ maxHeight: 'min(580px, calc(100vh - 7rem))' }}>
           {/* Header */}
           <div className='flex items-center gap-2.5 px-4 py-3 border-b border-border shrink-0'>
@@ -277,7 +277,7 @@ export default function ChatWidget() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'fixed bottom-6 right-6 z-50',
+          'fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50',
           'h-12 w-12 rounded-full',
           'bg-primary text-primary-foreground shadow-lg',
           'flex items-center justify-center',

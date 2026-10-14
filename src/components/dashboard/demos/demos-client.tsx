@@ -450,7 +450,7 @@ export default function DemosClient({ demos: initial, jobs }: { demos: DemoDTO[]
   }
 
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-3 sm:p-6 space-y-6'>
       <div className='flex flex-wrap items-end justify-between gap-4'>
         <div>
           <h1 className='text-xl font-semibold'>Demos</h1>

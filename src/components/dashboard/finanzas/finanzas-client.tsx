@@ -174,13 +174,13 @@ export default function FinanzasClient({ entries: initial, trades, monthlyGoal }
   })
 
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-3 sm:p-6 space-y-6'>
       <div className='flex flex-wrap items-end justify-between gap-4'>
         <div>
           <h1 className='text-xl font-semibold'>Finanzas</h1>
           <p className='text-sm text-muted-foreground mt-1'>Ganancia mensual de reventa y software · mes {bizMonth} del negocio</p>
         </div>
-        <div className='flex items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-2'>
           <div className='inline-flex items-center rounded-md border'>
             <button className='p-2 hover:bg-muted rounded-l-md' onClick={() => setMonth((m) => addMonths(m, -1))} title='Mes anterior'><ChevronLeft className='h-4 w-4' /></button>
             <span className='px-3 text-sm font-medium capitalize min-w-36 text-center'>{monthLabel(month)}</span>

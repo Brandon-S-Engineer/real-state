@@ -29,7 +29,7 @@ export default async function UpworkPage() {
   }))
 
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-3 sm:p-6 space-y-6'>
       <div>
         <h1 className='text-xl font-semibold'>Upwork</h1>
         <p className='text-sm text-muted-foreground mt-1'>

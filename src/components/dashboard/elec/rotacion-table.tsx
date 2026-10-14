@@ -79,12 +79,12 @@ export default function ElecRotacionTable({
     <div className='space-y-4'>
       <div className='flex flex-wrap gap-2 items-center'>
         {meta.hasStorage && (
-          <div className='inline-flex rounded-md border p-0.5 bg-muted/40'>
+          <div className='inline-flex max-w-full overflow-x-auto rounded-md border p-0.5 bg-muted/40'>
             {[false, true].map((v) => (
               <button
                 key={String(v)}
                 onClick={() => setByConfig(v)}
-                className={cn('px-3 py-1 text-sm rounded transition-colors', byConfig === v ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
+                className={cn('shrink-0 whitespace-nowrap px-3 py-1 text-sm rounded transition-colors', byConfig === v ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
               >
                 {v ? `Modelo + ${meta.storageLabel.toLowerCase()}` : 'Modelo'}
               </button>

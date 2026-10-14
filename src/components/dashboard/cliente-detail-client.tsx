@@ -522,7 +522,7 @@ export default function ClienteDetailClient({ id }: { id: string }) {
   const diasUltimo = diasDesde(cliente.ultimoContactoAt)
 
   return (
-    <div className='p-6 space-y-5 max-w-5xl'>
+    <div className='p-3 sm:p-6 space-y-5 max-w-5xl'>
       {/* Back */}
       <Link
         href='/dashboard/clientes'

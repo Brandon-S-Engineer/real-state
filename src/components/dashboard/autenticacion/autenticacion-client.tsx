@@ -204,18 +204,18 @@ export default function AutenticacionClient() {
   const label = AUTH_PRODUCTS.find((p) => p.id === product)?.label
 
   return (
-    <div className='p-6 space-y-6'>
+    <div className='p-3 sm:p-6 space-y-6'>
       <div>
         <h1 className='text-xl font-semibold'>Autenticación</h1>
         <p className='text-sm text-muted-foreground'>Revisión antes de pagar, por producto. Marca cada punto frente al vendedor; se guarda en este navegador hasta que empieces otra.</p>
       </div>
 
-      <div className='inline-flex rounded-md border p-0.5 bg-muted/40'>
+      <div className='inline-flex max-w-full overflow-x-auto rounded-md border p-0.5 bg-muted/40'>
         {AUTH_PRODUCTS.map((p) => (
           <button
             key={p.id}
             onClick={() => switchTo(p.id)}
-            className={cn('px-3 py-1 text-sm rounded transition-colors', product === p.id ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
+            className={cn('shrink-0 whitespace-nowrap px-3 py-1 text-sm rounded transition-colors', product === p.id ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
           >{p.label}</button>
         ))}
       </div>

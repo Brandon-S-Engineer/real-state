@@ -9,7 +9,7 @@ import { Fragment, useState, useMemo, useCallback, useEffect, useRef, type React
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { ExternalLink, RefreshCw, Loader2, ChevronDown, ChevronRight, Bell, Copy, Download, Trash2 } from 'lucide-react'
+import { ExternalLink, RefreshCw, Loader2, ChevronDown, ChevronRight, Bell, Copy, Download, Trash2, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +33,7 @@ export type UpworkJob = {
   reasons: { pts: number; why: string }[]
   ganado: boolean
   ganadoAt: string | null
+  vigilando: boolean
   firstSeenAt: string
   lastSeenAt: string
   createdAt: string
@@ -389,7 +390,7 @@ type Filters = {
   q: string
   scoreMin: number // 0 = "Todos" (sin filtro), 1–10 = umbral real
   postedHoursMax: string
-  ganado: string // '' | 'true' | 'false'
+  ganado: string // '' | 'true' | 'false' | 'vigilando'
 }
 
 const FILTERS_KEY = 'upwork-filters'
@@ -489,6 +490,7 @@ function FiltersBar({ filters, onChange, onRecalcular, recalculating, onPurgar, 
         <option value=''>Todos</option>
         <option value='true'>Ganados</option>
         <option value='false'>No ganados</option>
+        <option value='vigilando'>Vigilando</option>
       </select>
 
       {hasFilters && (
@@ -674,6 +676,38 @@ export default function UpworkJobsTable({ jobs: initial, initialMinScoreAlert }:
     }
   }
 
+  const patchJob = (id: string, body: Record<string, unknown>) =>
+    fetch(`/api/upwork/jobs/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then((r) => r.ok)
+      .catch(() => false)
+
+  const handleToggleVigilando = async (job: UpworkJob) => {
+    const value = !job.vigilando
+    setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, vigilando: value } : j)))
+    if (!(await patchJob(job.id, { vigilando: value }))) {
+      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, vigilando: !value } : j)))
+      toast.error('No se pudo guardar')
+    }
+  }
+
+  // Eliminar = ocultar: sale de la tabla y la extensión no lo revive al volver a verlo
+  const handleEliminar = async (job: UpworkJob) => {
+    setJobs((prev) => prev.filter((j) => j.id !== job.id))
+    if (!(await patchJob(job.id, { oculto: true }))) {
+      setJobs((prev) => [job, ...prev])
+      toast.error('No se pudo eliminar')
+      return
+    }
+    toast('Job eliminado', {
+      action: {
+        label: 'Deshacer',
+        onClick: async () => {
+          if (await patchJob(job.id, { oculto: false })) setJobs((prev) => [job, ...prev.filter((j) => j.id !== job.id)])
+        },
+      },
+    })
+  }
+
   const handleToggleGanado = async (job: UpworkJob, value: boolean) => {
     // Optimista: actualiza la UI antes de que responda el servidor
     setJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, ganado: value } : j))
@@ -700,7 +734,8 @@ export default function UpworkJobsTable({ jobs: initial, initialMinScoreAlert }:
       }
       if (filters.scoreMin > 0 && (j.score ?? -Infinity) < filters.scoreMin) return false
       if (filters.postedHoursMax && trueAgeHours(j) > Number(filters.postedHoursMax)) return false
-      if (filters.ganado && String(j.ganado) !== filters.ganado) return false
+      if (filters.ganado === 'vigilando') { if (!j.vigilando) return false }
+      else if (filters.ganado && String(j.ganado) !== filters.ganado) return false
       return true
     })
   }, [jobs, filters])
@@ -772,6 +807,22 @@ export default function UpworkJobsTable({ jobs: initial, initialMinScoreAlert }:
         <div
           className='flex items-center gap-0.5'
           onClick={(e) => e.stopPropagation()}>
+          <button
+            type='button'
+            onClick={() => handleToggleVigilando(row.original)}
+            className={cn('p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-foreground transition-colors', row.original.vigilando && 'text-blue-600 dark:text-blue-400 bg-blue-500/10')}
+            title={row.original.vigilando ? 'Vigilando — clic para dejar de vigilar' : 'Vigilar'}
+          >
+            <Eye className='h-3.5 w-3.5' />
+          </button>
+          <button
+            type='button'
+            onClick={() => handleEliminar(row.original)}
+            className='p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-red-600 transition-colors'
+            title='Eliminar: sale de la tabla y no vuelve'
+          >
+            <Trash2 className='h-3.5 w-3.5' />
+          </button>
           <button
             type='button'
             onClick={() => copyJobForReview(row.original)}
@@ -865,7 +916,7 @@ export default function UpworkJobsTable({ jobs: initial, initialMinScoreAlert }:
                 <Fragment key={row.id}>
                   <tr
                     onClick={() => setExpandedId(expandedId === row.original.id ? null : row.original.id)}
-                    className='border-b hover:bg-muted/30 transition-colors cursor-pointer'
+                    className={cn('border-b hover:bg-muted/30 transition-colors cursor-pointer', row.original.vigilando && 'shadow-[inset_3px_0_0_theme(colors.blue.500)]')}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className='px-4 py-3'>

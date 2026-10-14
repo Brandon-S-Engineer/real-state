@@ -327,6 +327,8 @@ model UpworkJob {
   reasons            Json      @default("[]")
   ganado             Boolean   @default(false)
   ganadoAt           DateTime?
+  vigilando          Boolean   @default(false) // marcado para seguirlo
+  oculto             Boolean   @default(false) // eliminado a mano: fuera de la tabla; la extensión no lo revive
   firstSeenAt        DateTime  @default(now())
   lastSeenAt         DateTime  @default(now())
   createdAt          DateTime  @default(now())

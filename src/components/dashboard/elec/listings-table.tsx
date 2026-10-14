@@ -567,6 +567,7 @@ export default function ElecListingsTable({
               onClick={() => patch(l, { vigilando: !l.vigilando }, { vigilando: !l.vigilando })}
             ><Eye className='h-3.5 w-3.5' /></button>
             <button type='button' className={cn(btn, 'hover:text-red-600')} title='Eliminar (datos incorrectos): sale de la tabla y de precios' onClick={() => hide(l)}><Trash2 className='h-3.5 w-3.5' /></button>
+            <button type='button' className={btn} title='Copiar para Claude' onClick={() => copy(JSON.stringify(exportRow(l, refs.get(l.id)), null, 2), 'Listing copiado')}><Copy className='h-3.5 w-3.5' /></button>
             <a href={l.url} target='_blank' rel='noopener noreferrer' onClick={() => openListing(l.id)} className={btn} title='Abrir publicación'><ExternalLink className='h-3.5 w-3.5' /></a>
           </div>
         )
@@ -844,9 +845,6 @@ export default function ElecListingsTable({
                             </Button>
                             <Button size='sm' variant='ghost' onClick={() => setEditing(l)}>
                               <Pencil className='h-3.5 w-3.5 mr-1.5' /> Corregir specs
-                            </Button>
-                            <Button size='sm' variant='ghost' onClick={() => copy(JSON.stringify(exportRow(l, refs.get(l.id)), null, 2), 'Listing copiado')}>
-                              <Copy className='h-3.5 w-3.5 mr-1.5' /> Copiar para Claude
                             </Button>
                           </div>
                         </div>

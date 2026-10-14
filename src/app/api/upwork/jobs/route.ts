@@ -206,6 +206,7 @@ export async function GET(req: Request) {
   const { q, scoreMin, postedHoursMax, proposalsMax, ganado, page, limit, sortBy, sortDir } = parsed.data
 
   const where: Prisma.UpworkJobWhereInput = {
+    oculto: false,
     ...(scoreMin !== undefined && { score: { gte: scoreMin } }),
     ...(postedHoursMax !== undefined && { postedHours: { lte: postedHoursMax } }),
     ...(proposalsMax !== undefined && { proposals: { lte: proposalsMax } }),
@@ -254,7 +255,7 @@ export async function DELETE(req: Request) {
   await refreshDemand()
 
   const { count } = await prisma.upworkJob.deleteMany({
-    where: includeGanado ? {} : { ganado: false },
+    where: includeGanado ? {} : { ganado: false, vigilando: false },
   })
 
   const kept = includeGanado ? 0 : await prisma.upworkJob.count()

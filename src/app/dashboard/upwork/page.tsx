@@ -9,6 +9,7 @@ export default async function UpworkPage() {
 
   const [rows, settings] = await Promise.all([
     prisma.upworkJob.findMany({
+      where: { oculto: false },
       orderBy: [{ postedHours: 'asc' }],
     }),
     prisma.upworkSettings.upsert({

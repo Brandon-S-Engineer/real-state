@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel,
+  useReactTable, getCoreRowModel, getSortedRowModel,
   flexRender, type ColumnDef, type SortingState,
 } from '@tanstack/react-table'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -213,6 +213,27 @@ function loadStoredFilters(c: Category): Filters {
 
 const sel = 'border rounded-md px-2 py-2 text-sm bg-background h-9'
 
+// Orden, página y último anuncio abierto se guardan por categoría: al abrir un
+// anuncio y regresar (o si el celular recarga la pestaña) todo sigue igual.
+type ViewState = {
+  sorting: SortingState
+  priceSortMode: 'neutro' | 'asc' | 'desc' | 'market'
+  scoreSortMode: 'desc' | 'asc' | 'fresh'
+  pageIndex: number
+  lastOpenedId: string | null
+}
+const viewKey = (c: Category) => `elec-listings-view-${c}`
+const VIEW_DEFAULT: ViewState = { sorting: [{ id: 'opportunityScore', desc: true }], priceSortMode: 'neutro', scoreSortMode: 'desc', pageIndex: 0, lastOpenedId: null }
+const PAGE_SIZE = 25
+
+function loadView(c: Category): ViewState {
+  if (typeof window === 'undefined') return VIEW_DEFAULT
+  try {
+    const raw = window.localStorage.getItem(viewKey(c))
+    return raw ? { ...VIEW_DEFAULT, ...(JSON.parse(raw) as Partial<ViewState>) } : VIEW_DEFAULT
+  } catch { return VIEW_DEFAULT }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ElecListingsTable({
@@ -228,12 +249,20 @@ export default function ElecListingsTable({
   onClearConfigFilter: () => void
   onRegisterTrade: (l: ElecListingDTO) => void
 }) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'opportunityScore', desc: true }])
+  const [initialView] = useState(() => loadView(category))
+  const [sorting, setSorting] = useState<SortingState>(initialView.sorting)
   // El header de Precio itera 4 estados en vez del asc/desc genérico de la tabla:
   // neutro (vuelve al orden por score) → menor a mayor → mayor a menor → mejor descuento vs mercado primero
-  const [priceSortMode, setPriceSortMode] = useState<'neutro' | 'asc' | 'desc' | 'market'>('neutro')
+  const [priceSortMode, setPriceSortMode] = useState<ViewState['priceSortMode']>(initialView.priceSortMode)
   // El de Score itera mejor → peor → mejor y más nuevo (para contactar primero lo bueno recién publicado)
-  const [scoreSortMode, setScoreSortMode] = useState<'desc' | 'asc' | 'fresh'>('desc')
+  const [scoreSortMode, setScoreSortMode] = useState<ViewState['scoreSortMode']>(initialView.scoreSortMode)
+  const [pageIndex, setPageIndex] = useState(initialView.pageIndex)
+  const [lastOpenedId, setLastOpenedId] = useState<string | null>(initialView.lastOpenedId)
+  // Orden congelado: el polling (cada 20 s) y el re-score al abrir un anuncio no
+  // mueven las filas. Lo nuevo espera en "Mostrar N nuevos"; el orden se
+  // recalcula solo al cambiar orden/filtros o al pedirlo.
+  const [frozenOrder, setFrozenOrder] = useState<string[] | null>(null)
+  const [orderVersion, setOrderVersion] = useState(0)
   const meta = CATEGORY_META[category]
   const [filters, setFilters] = useState<Filters>(() => loadStoredFilters(category))
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -244,6 +273,10 @@ export default function ElecListingsTable({
   useEffect(() => {
     try { window.localStorage.setItem(filtersKey(category), JSON.stringify(filters)) } catch { /* modo privado */ }
   }, [filters, category])
+  useEffect(() => {
+    const v: ViewState = { sorting, priceSortMode, scoreSortMode, pageIndex, lastOpenedId }
+    try { window.localStorage.setItem(viewKey(category), JSON.stringify(v)) } catch { /* modo privado */ }
+  }, [sorting, priceSortMode, scoreSortMode, pageIndex, lastOpenedId, category])
   useEffect(() => {
     if (configFilter) setFilters((f) => ({ ...f, configKey: configFilter, status: '' }))
   }, [configFilter])
@@ -298,6 +331,7 @@ export default function ElecListingsTable({
     if (res.ok) {
       const { data } = await res.json()
       setListings(() => data)
+      setOrderVersion((v) => v + 1)
     }
   }, [setListings, category])
 
@@ -493,7 +527,7 @@ export default function ElecListingsTable({
           <div className='flex items-center gap-0.5' onClick={(e) => e.stopPropagation()}>
             <button type='button' className={btn} title='Corregir specs' onClick={() => setEditing(l)}><Pencil className='h-3.5 w-3.5' /></button>
             <button type='button' className={btn} title='Copiar para Claude' onClick={() => copy(JSON.stringify(exportRow(l, refs.get(l.id)), null, 2), 'Listing copiado')}><Copy className='h-3.5 w-3.5' /></button>
-            <a href={l.url} target='_blank' rel='noopener noreferrer' className={btn} title='Abrir publicación'><ExternalLink className='h-3.5 w-3.5' /></a>
+            <a href={l.url} target='_blank' rel='noopener noreferrer' onClick={() => openListing(l.id)} className={btn} title='Abrir publicación'><ExternalLink className='h-3.5 w-3.5' /></a>
           </div>
         )
       },
@@ -516,9 +550,31 @@ export default function ElecListingsTable({
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 25 } },
   })
+
+  const sortedRows = table.getRowModel().rows
+  const sortedRef = useRef(sortedRows)
+  sortedRef.current = sortedRows
+  const orderKeyRef = useRef<string | null>(null)
+
+  // Re-ordenar (y volver a la página 1) solo cuando el usuario cambia orden o filtros.
+  // Al montar se respeta la página guardada; la llave evita resetearla en el doble render de dev.
+  useEffect(() => {
+    setFrozenOrder(sortedRef.current.map((r) => r.original.id))
+    const key = JSON.stringify([sorting, priceSortMode, scoreSortMode, filters, orderVersion])
+    if (orderKeyRef.current !== null && orderKeyRef.current !== key) setPageIndex(0)
+    orderKeyRef.current = key
+  }, [sorting, priceSortMode, scoreSortMode, filters, orderVersion])
+
+  // Antes de congelar (primer render) se usa el orden vivo
+  const rowById = new Map(sortedRows.map((r) => [r.original.id, r]))
+  const frozenSet = frozenOrder ? new Set(frozenOrder) : null
+  const orderedRows = frozenOrder ? frozenOrder.flatMap((id) => rowById.get(id) ?? []) : sortedRows
+  const pendingNew = frozenSet ? sortedRows.filter((r) => !frozenSet.has(r.original.id)).length : 0
+  const pageCount = Math.max(1, Math.ceil(orderedRows.length / PAGE_SIZE))
+  const page = Math.min(pageIndex, pageCount - 1)
+  const pageRows = orderedRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const openListing = (id: string) => setLastOpenedId(id)
 
   const set = (p: Partial<Filters>) => setFilters((f) => ({ ...f, ...p }))
 
@@ -625,6 +681,15 @@ export default function ElecListingsTable({
         </div>
       </div>
 
+      {pendingNew > 0 && (
+        <button
+          onClick={() => setOrderVersion((v) => v + 1)}
+          className='w-full rounded-md border border-blue-500/40 bg-blue-500/5 px-3 py-2 text-sm text-blue-700 dark:text-blue-400 hover:bg-blue-500/10 transition-colors'
+        >
+          {pendingNew} {pendingNew === 1 ? 'listing nuevo' : 'listings nuevos'} · Mostrar y reordenar
+        </button>
+      )}
+
       <div className='rounded-md border overflow-x-auto'>
         <table className='w-full text-sm'>
           <thead>
@@ -666,13 +731,13 @@ export default function ElecListingsTable({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.length === 0 ? (
+            {pageRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className='px-4 py-12 text-center text-muted-foreground'>
                   {listings.length ? 'No hay listings con esos filtros' : `Aún no hay capturas — ${meta.emptyHint}`}
                 </td>
               </tr>
-            ) : table.getRowModel().rows.map((row) => {
+            ) : pageRows.map((row) => {
               const l = row.original
               const ref = refs.get(l.id)
               const offer = suggestOffer(l, ref)
@@ -680,8 +745,8 @@ export default function ElecListingsTable({
               return (
                 <Fragment key={row.id}>
                   <tr
-                    onClick={() => setExpandedId(expandedId === l.id ? null : l.id)}
-                    className={cn('border-b hover:bg-muted/30 transition-colors cursor-pointer', l.status === 'DESAPARECIDO' && 'opacity-60', tier === 'elite' && 'bg-blue-50/40 dark:bg-blue-950/10')}
+                    onClick={() => { setExpandedId(expandedId === l.id ? null : l.id); openListing(l.id) }}
+                    className={cn('border-b hover:bg-muted/30 transition-colors cursor-pointer', l.status === 'DESAPARECIDO' && 'opacity-60', tier === 'elite' && 'bg-blue-50/40 dark:bg-blue-950/10', lastOpenedId === l.id && 'bg-amber-50/70 dark:bg-amber-950/20 shadow-[inset_3px_0_0_theme(colors.amber.500)]')}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className='px-4 py-3'>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
@@ -751,10 +816,10 @@ export default function ElecListingsTable({
       </div>
 
       <div className='flex items-center justify-between'>
-        <p className='text-sm text-muted-foreground'>Página {table.getState().pagination.pageIndex + 1} de {Math.max(1, table.getPageCount())}</p>
+        <p className='text-sm text-muted-foreground'>Página {page + 1} de {pageCount}</p>
         <div className='flex gap-2'>
-          <Button variant='outline' size='sm' onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
-          <Button variant='outline' size='sm' onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Siguiente</Button>
+          <Button variant='outline' size='sm' onClick={() => setPageIndex(page - 1)} disabled={page === 0}>Anterior</Button>
+          <Button variant='outline' size='sm' onClick={() => setPageIndex(page + 1)} disabled={page >= pageCount - 1}>Siguiente</Button>
         </div>
       </div>
 

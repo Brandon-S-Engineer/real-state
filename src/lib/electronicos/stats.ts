@@ -44,7 +44,7 @@ export function indexGroups(rows: PriceRow[]): GroupIndex {
 export async function loadWindowRows(settings: ElecSettings, category?: Category): Promise<PriceRow[]> {
   const since = new Date(Date.now() - settings.windowDays * 86_400_000)
   return prisma.elecListing.findMany({
-    where: { lastSeenAt: { gte: since }, ...(category ? { category } : {}) },
+    where: { lastSeenAt: { gte: since }, oculto: false, ...(category ? { category } : {}) },
     select: {
       id: true, price: true, flags: true, configKey: true, line: true, chip: true, zoneKind: true, status: true,
       daysOnMarket: true, firstSeenAt: true, postedAt: true, lastSeenAt: true, soldConfirmed: true, ramGb: true, ssdGb: true,

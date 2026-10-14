@@ -8,6 +8,8 @@ import { toListingDTO } from '@/lib/electronicos/serialize'
 
 const patchSchema = z.object({
   comprado: z.boolean().optional(),
+  vigilando: z.boolean().optional(),
+  oculto: z.boolean().optional(),
   notes: z.string().nullable().optional(),
   status: z.enum(['ACTIVO', 'DESAPARECIDO']).optional(),
   // Corrección manual de specs → specsManual = true (el re-parseo ya no los toca)
@@ -35,12 +37,14 @@ export async function PATCH(req: Request, { params }: Params) {
   const existing = await prisma.elecListing.findUnique({ where: { id } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const { comprado, notes, status, specs } = parsed.data
+  const { comprado, vigilando, oculto, notes, status, specs } = parsed.data
   let listing = await prisma.elecListing.update({
     where: { id },
     data: {
       ...(comprado !== undefined && { comprado, compradoAt: comprado ? new Date() : null }),
       ...(notes !== undefined && { notes }),
+      ...(vigilando !== undefined && { vigilando }),
+      ...(oculto !== undefined && { oculto }),
       ...(status !== undefined && {
         status,
         disappearedAt: status === 'DESAPARECIDO' ? existing.disappearedAt ?? new Date() : null,

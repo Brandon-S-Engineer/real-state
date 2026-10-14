@@ -40,7 +40,7 @@ export type SpecFlags = {
 
 export type DeviceCategory = 'MACBOOK' | 'IPHONE' | 'IPAD' | 'AUDIO' | 'BOLSOS'
 
-export type ExcludedReason = 'no_relevante' | 'intel' | 'viejo' | 'gama_baja' | 'replica' | 'accesorio' | 'busqueda' | 'intercambio'
+export type ExcludedReason = 'no_relevante' | 'intel' | 'viejo' | 'gama_baja' | 'replica' | 'accesorio' | 'busqueda' | 'intercambio' | 'bateria'
 
 export type ParsedSpecs = {
   excluded: ExcludedReason | null
@@ -212,10 +212,15 @@ export function detectYear(t: string): number | null {
 export function detectBattery(t: string): { health: number | null; cycles: number | null } {
   let health: number | null = null
   let cycles: number | null = null
+  // Un % suelto casi siempre es la batería ("78%"), salvo descuentos, "100% original",
+  // estética o pantalla — esos se quitan antes de buscar el % suelto.
+  const loose = t
+    .replace(/\d{2,3}\s*%\s*(?:de\s*)?(?:descuento|desc|off|original|funcional|funcionando|real|garantizad|efectivo|enganche|anticipo|estetic|pantalla|estado|limpi|nuev)/g, ' ')
+    .replace(/(?:descuento|estetica|estado|pantalla|carcasa|cuerpo|apariencia|enganche|anticipo)\s*(?:de|del|al|en|:)?\s*\d{2,3}\s*%/g, ' ')
   const h =
     t.match(/(\d{2,3})\s*%\s*(?:de\s*)?(?:bat|condici|salud|health|vida|capacidad)/) ??
     t.match(/(?:bateria|salud|condicion|health|capacidad)[^\d%]{0,25}(\d{2,3})\s*%/) ??
-    t.match(/\b(\d{2,3})\s*%/) ??
+    loose.match(/\b(\d{2,3})\s*%/) ??
     t.match(/(?:salud de (?:la )?bateria|bateria)\s*(?:al|de|en|:)?\s*(\d{2,3})\b(?!\s*(?:gb|ciclos|mah))/)
   if (h) {
     const v = Number(h[1])

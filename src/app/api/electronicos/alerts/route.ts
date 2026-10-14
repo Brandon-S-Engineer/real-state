@@ -12,7 +12,7 @@ export async function GET() {
 
   const settings = await getElecSettings()
   const rows = await prisma.elecListing.findMany({
-    where: { status: 'ACTIVO', opportunityScore: { gte: settings.minScoreAlert } },
+    where: { status: 'ACTIVO', oculto: false, opportunityScore: { gte: settings.minScoreAlert } },
     orderBy: { lastSeenAt: 'desc' },
     take: 20,
     select: {

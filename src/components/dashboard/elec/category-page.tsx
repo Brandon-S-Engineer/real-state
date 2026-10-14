@@ -15,7 +15,7 @@ export async function ElecCategoryPage({ category }: { category: Category }) {
 
   const settings = await getElecSettings()
   const [listings, trades, zones, windowRows] = await Promise.all([
-    prisma.elecListing.findMany({ where: { category }, include: { zone: true }, orderBy: { lastSeenAt: 'desc' }, take: LISTINGS_LIMIT }),
+    prisma.elecListing.findMany({ where: { category, oculto: false }, include: { zone: true }, orderBy: { lastSeenAt: 'desc' }, take: LISTINGS_LIMIT }),
     prisma.elecTrade.findMany({ where: { category }, include: { listing: { select: { title: true, url: true } } }, orderBy: { buyDate: 'desc' } }),
     ensureDefaultZones(),
     loadWindowRows(settings, category),

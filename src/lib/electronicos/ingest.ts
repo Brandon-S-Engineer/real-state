@@ -179,7 +179,7 @@ async function upsertOne(input: IngestInput, raw: z.infer<typeof listingInputSch
 
   if (specs.excluded) {
     // Si ya lo teníamos y ahora (con descripción completa) resulta Intel/accesorio, fuera.
-    if (existing && !existing.specsManual && !existing.comprado) {
+    if (existing && !existing.specsManual && !existing.comprado && !existing.vigilando) {
       await prisma.elecListing.delete({ where: { id: existing.id } })
     }
     return { kind: 'skipped', reason: specs.excluded }
@@ -273,7 +273,7 @@ export async function reparseAndRescoreAll(): Promise<{ reparsed: number; scored
       continue
     }
     const s = parseListing(l.title, l.description)
-    if (s.excluded && !l.comprado) {
+    if (s.excluded && !l.comprado && !l.vigilando) {
       await prisma.elecListing.delete({ where: { id: l.id } })
       removed++
       continue

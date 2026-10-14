@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import {
   ExternalLink, RefreshCw, Loader2, ChevronDown, ChevronRight, Bell, Copy, Download, Trash2,
-  Pencil, MessageSquare, ShoppingCart, AlertTriangle, X,
+  Pencil, MessageSquare, ShoppingCart, AlertTriangle, X, Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -195,12 +195,15 @@ type Filters = {
   status: string // ACTIVO | DESAPARECIDO | COMPRADO | ''
   review: boolean
   configKey: string // viene de la tabla de precios
+  vigilando: boolean
+  sinVistos: boolean
 }
 
 const filtersKey = (c: Category) => (c === 'MACBOOK' ? 'elec-listings-filters' : `elec-listings-filters-${c}`)
 const FILTERS_DEFAULT: Filters = {
   q: '', scoreMin: 0, line: '', chip: '', ram: '', ssd: '', zone: '', source: '',
   priceMin: '', priceMax: '', maxAgeDays: '', status: 'ACTIVO', review: false, configKey: '',
+  vigilando: false, sinVistos: false,
 }
 
 function loadStoredFilters(c: Category): Filters {
@@ -225,6 +228,13 @@ type ViewState = {
 const viewKey = (c: Category) => `elec-listings-view-${c}`
 const VIEW_DEFAULT: ViewState = { sorting: [{ id: 'opportunityScore', desc: true }], priceSortMode: 'neutro', scoreSortMode: 'desc', pageIndex: 0, lastOpenedId: null }
 const PAGE_SIZE = 25
+
+// Listings que ya abriste (por navegador): se ven en gris
+const seenKey = (c: Category) => `elec-listings-seen-${c}`
+function loadSeen(c: Category): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try { return new Set(JSON.parse(window.localStorage.getItem(seenKey(c)) ?? '[]') as string[]) } catch { return new Set() }
+}
 
 function loadView(c: Category): ViewState {
   if (typeof window === 'undefined') return VIEW_DEFAULT
@@ -258,6 +268,7 @@ export default function ElecListingsTable({
   const [scoreSortMode, setScoreSortMode] = useState<ViewState['scoreSortMode']>(initialView.scoreSortMode)
   const [pageIndex, setPageIndex] = useState(initialView.pageIndex)
   const [lastOpenedId, setLastOpenedId] = useState<string | null>(initialView.lastOpenedId)
+  const [seenIds, setSeenIds] = useState<Set<string>>(() => loadSeen(category))
   // Orden congelado: el polling (cada 20 s) y el re-score al abrir un anuncio no
   // mueven las filas. Lo nuevo espera en "Mostrar N nuevos"; el orden se
   // recalcula solo al cambiar orden/filtros o al pedirlo.
@@ -382,6 +393,28 @@ export default function ElecListingsTable({
     }
   }
 
+  // Eliminar = ocultar (datos incorrectos): sale de la tabla y de precios, y la extensión no lo revive
+  const hide = async (l: ElecListingDTO) => {
+    setListings((prev) => prev.filter((x) => x.id !== l.id))
+    const res = await fetch(`/api/electronicos/listings/${l.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oculto: true }),
+    }).catch(() => null)
+    if (!res?.ok) { setListings((prev) => [l, ...prev]); toast.error('No se pudo eliminar'); return }
+    toast('Listing eliminado', {
+      action: {
+        label: 'Deshacer',
+        onClick: async () => {
+          const r = await fetch(`/api/electronicos/listings/${l.id}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oculto: false }),
+          }).catch(() => null)
+          if (!r?.ok) return
+          const restored = (await r.json()) as ElecListingDTO
+          setListings((prev) => [restored, ...prev.filter((x) => x.id !== l.id)])
+        },
+      },
+    })
+  }
+
   const copy = async (text: string, msg: string) => {
     try { await navigator.clipboard.writeText(text); toast.success(msg) } catch { toast.error('No se pudo copiar') }
   }
@@ -405,6 +438,8 @@ export default function ElecListingsTable({
     if (filters.maxAgeDays && (daysAgo(l.postedAt ?? l.firstSeenAt) ?? 0) > Number(filters.maxAgeDays)) return false
     if (filters.status === 'COMPRADO' ? !l.comprado : filters.status && l.status !== filters.status) return false
     if (filters.review && !l.needsReview) return false
+    if (filters.vigilando && !l.vigilando) return false
+    if (filters.sinVistos && seenIds.has(l.id) && !l.vigilando) return false
     return true
   }), [listings, filters])
 
@@ -525,8 +560,13 @@ export default function ElecListingsTable({
         const btn = 'p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-foreground transition-colors'
         return (
           <div className='flex items-center gap-0.5' onClick={(e) => e.stopPropagation()}>
-            <button type='button' className={btn} title='Corregir specs' onClick={() => setEditing(l)}><Pencil className='h-3.5 w-3.5' /></button>
-            <button type='button' className={btn} title='Copiar para Claude' onClick={() => copy(JSON.stringify(exportRow(l, refs.get(l.id)), null, 2), 'Listing copiado')}><Copy className='h-3.5 w-3.5' /></button>
+            <button
+              type='button'
+              className={cn(btn, l.vigilando && 'text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:text-blue-700')}
+              title={l.vigilando ? 'Vigilando — clic para dejar de vigilar' : 'Vigilar (lo contactaste o lo quieres seguir)'}
+              onClick={() => patch(l, { vigilando: !l.vigilando }, { vigilando: !l.vigilando })}
+            ><Eye className='h-3.5 w-3.5' /></button>
+            <button type='button' className={cn(btn, 'hover:text-red-600')} title='Eliminar (datos incorrectos): sale de la tabla y de precios' onClick={() => hide(l)}><Trash2 className='h-3.5 w-3.5' /></button>
             <a href={l.url} target='_blank' rel='noopener noreferrer' onClick={() => openListing(l.id)} className={btn} title='Abrir publicación'><ExternalLink className='h-3.5 w-3.5' /></a>
           </div>
         )
@@ -574,7 +614,13 @@ export default function ElecListingsTable({
   const pageCount = Math.max(1, Math.ceil(orderedRows.length / PAGE_SIZE))
   const page = Math.min(pageIndex, pageCount - 1)
   const pageRows = orderedRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-  const openListing = (id: string) => setLastOpenedId(id)
+  const openListing = (id: string) => {
+    setLastOpenedId(id)
+    if (seenIds.has(id)) return
+    const next = new Set(seenIds).add(id)
+    setSeenIds(next)
+    try { window.localStorage.setItem(seenKey(category), JSON.stringify([...next].slice(-5000))) } catch { /* modo privado */ }
+  }
 
   const set = (p: Partial<Filters>) => setFilters((f) => ({ ...f, ...p }))
 
@@ -638,9 +684,16 @@ export default function ElecListingsTable({
           <option value='DESAPARECIDO'>Desaparecidos</option>
           <option value='COMPRADO'>Comprados</option>
         </select>
-        <Button variant={filters.review ? 'default' : 'outline'} size='sm' onClick={() => set({ review: !filters.review })} title='Listings con specs dudosos — corrígelos con el lápiz'>
+        <Button variant={filters.review ? 'default' : 'outline'} size='sm' onClick={() => set({ review: !filters.review })} title='Listings con specs dudosos — corrígelos desde la fila (Corregir specs) o elimínalos'>
           <AlertTriangle className='h-3.5 w-3.5 mr-1.5' />
           Revisar ({reviewCount})
+        </Button>
+        <Button variant={filters.vigilando ? 'default' : 'outline'} size='sm' onClick={() => set({ vigilando: !filters.vigilando })} title='Solo los que marcaste con el ojo'>
+          <Eye className='h-3.5 w-3.5 mr-1.5' />
+          Vigilando ({listings.filter((l) => l.vigilando).length})
+        </Button>
+        <Button variant={filters.sinVistos ? 'default' : 'outline'} size='sm' onClick={() => set({ sinVistos: !filters.sinVistos })} title='Esconde los que ya abriste (en gris)'>
+          Sin vistos
         </Button>
         {hasFilters && (
           <Button variant='ghost' size='sm' onClick={() => { setFilters(FILTERS_DEFAULT); onClearConfigFilter() }}>Limpiar</Button>
@@ -746,7 +799,7 @@ export default function ElecListingsTable({
                 <Fragment key={row.id}>
                   <tr
                     onClick={() => { setExpandedId(expandedId === l.id ? null : l.id); openListing(l.id) }}
-                    className={cn('border-b hover:bg-muted/30 transition-colors cursor-pointer', l.status === 'DESAPARECIDO' && 'opacity-60', tier === 'elite' && 'bg-blue-50/40 dark:bg-blue-950/10', lastOpenedId === l.id && 'bg-amber-50/70 dark:bg-amber-950/20 shadow-[inset_3px_0_0_theme(colors.amber.500)]')}
+                    className={cn('border-b hover:bg-muted/30 transition-colors cursor-pointer', l.status === 'DESAPARECIDO' && 'opacity-60', tier === 'elite' && 'bg-blue-50/40 dark:bg-blue-950/10', seenIds.has(l.id) && lastOpenedId !== l.id && !l.vigilando && 'opacity-50 grayscale', lastOpenedId === l.id && 'bg-amber-50/70 dark:bg-amber-950/20 shadow-[inset_3px_0_0_theme(colors.amber.500)]', l.vigilando && 'shadow-[inset_3px_0_0_theme(colors.blue.500)]')}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className='px-4 py-3'>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
@@ -788,6 +841,12 @@ export default function ElecListingsTable({
                             </Button>
                             <Button size='sm' variant='ghost' onClick={() => patch(l, { status: l.status === 'ACTIVO' ? 'DESAPARECIDO' : 'ACTIVO' }, { status: l.status === 'ACTIVO' ? 'DESAPARECIDO' : 'ACTIVO' })}>
                               Marcar {l.status === 'ACTIVO' ? 'desaparecido' : 'activo'}
+                            </Button>
+                            <Button size='sm' variant='ghost' onClick={() => setEditing(l)}>
+                              <Pencil className='h-3.5 w-3.5 mr-1.5' /> Corregir specs
+                            </Button>
+                            <Button size='sm' variant='ghost' onClick={() => copy(JSON.stringify(exportRow(l, refs.get(l.id)), null, 2), 'Listing copiado')}>
+                              <Copy className='h-3.5 w-3.5 mr-1.5' /> Copiar para Claude
                             </Button>
                           </div>
                         </div>

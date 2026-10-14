@@ -132,9 +132,16 @@ const PARSERS: Record<Category, (title: string, description?: string | null) => 
   BOLSOS: parseBag,
 }
 
+/** Salud de batería mínima para comprar (iPhone, iPad, MacBook): abajo de esto se descarta. */
+export const MIN_BATTERY_HEALTH = 83
+
 export function parseListing(title: string, description?: string | null): ParsedSpecs & { category: Category } {
   const category = detectCategory(title, description) ?? 'MACBOOK'
-  return { ...PARSERS[category](title, description), category }
+  const parsed = PARSERS[category](title, description)
+  if (!parsed.excluded && parsed.batteryHealth != null && parsed.batteryHealth < MIN_BATTERY_HEALTH && (category === 'IPHONE' || category === 'IPAD' || category === 'MACBOOK')) {
+    return { ...parsed, excluded: 'bateria', category }
+  }
+  return { ...parsed, category }
 }
 
 export function lineLabel(line: string | null): string {

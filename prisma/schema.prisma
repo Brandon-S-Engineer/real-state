@@ -418,6 +418,8 @@ model ElecListing {
   scoreReasons     Json      @default("[]")
   comprado         Boolean   @default(false)
   compradoAt       DateTime?
+  vigilando        Boolean   @default(false) // marcado para seguirlo (lo contacté / espero respuesta)
+  oculto           Boolean   @default(false) // eliminado a mano (datos incorrectos): fuera de la tabla y de precios; la extensión no lo revive
   notes            String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

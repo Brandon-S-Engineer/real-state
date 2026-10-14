@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   const since = new URL(req.url).searchParams.get('since')
   const category = categoryParam(req)
   const rows = await prisma.elecListing.findMany({
-    where: { ...(since ? { updatedAt: { gte: new Date(since) } } : {}), ...(category ? { category } : {}) },
+    where: { oculto: false, ...(since ? { updatedAt: { gte: new Date(since) } } : {}), ...(category ? { category } : {}) },
     include: { zone: true },
     orderBy: { lastSeenAt: 'desc' },
     take: LISTINGS_LIMIT,

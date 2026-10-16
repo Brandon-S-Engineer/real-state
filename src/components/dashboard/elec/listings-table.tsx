@@ -474,6 +474,27 @@ export default function ElecListingsTable({
       cell: ({ row }) => <ScoreBadge score={row.original.opportunityScore} />,
     },
     {
+      id: 'links',
+      header: 'Links',
+      cell: ({ row }) => {
+        const l = row.original
+        const btn = 'p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-foreground transition-colors'
+        return (
+          <div className='flex items-center gap-0.5' onClick={(e) => e.stopPropagation()}>
+            <button
+              type='button'
+              className={cn(btn, l.vigilando && 'text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:text-blue-700')}
+              title={l.vigilando ? 'Vigilando — clic para dejar de vigilar' : 'Vigilar (lo contactaste o lo quieres seguir)'}
+              onClick={() => patch(l, { vigilando: !l.vigilando }, { vigilando: !l.vigilando })}
+            ><Eye className='h-3.5 w-3.5' /></button>
+            <button type='button' className={cn(btn, 'hover:text-red-600')} title='Eliminar (datos incorrectos): sale de la tabla y de precios' onClick={() => hide(l)}><Trash2 className='h-3.5 w-3.5' /></button>
+            <button type='button' className={btn} title='Copiar para Claude' onClick={() => copy(JSON.stringify(exportRow(l, refs.get(l.id)), null, 2), 'Listing copiado')}><Copy className='h-3.5 w-3.5' /></button>
+            <a href={l.url} target='_blank' rel='noopener noreferrer' onClick={() => openListing(l.id)} className={btn} title='Abrir publicación'><ExternalLink className='h-3.5 w-3.5' /></a>
+          </div>
+        )
+      },
+    },
+    {
       accessorKey: 'price',
       header: 'Precio',
       sortingFn: (a, b) => {
@@ -548,27 +569,6 @@ export default function ElecListingsTable({
           <div className='text-xs text-muted-foreground whitespace-nowrap' title={`Visto por primera vez ${new Date(l.firstSeenAt).toLocaleString('es-MX')}`}>
             {formatDays(daysAgo(l.postedAt ?? l.firstSeenAt))}
             {l.status === 'DESAPARECIDO' && <div className='text-amber-600 dark:text-amber-400'>{l.soldConfirmed ? 'vendido' : 'desapareció'} · {formatDays(l.daysOnMarket)}</div>}
-          </div>
-        )
-      },
-    },
-    {
-      id: 'links',
-      header: 'Links',
-      cell: ({ row }) => {
-        const l = row.original
-        const btn = 'p-1.5 rounded hover:bg-muted inline-flex items-center text-muted-foreground hover:text-foreground transition-colors'
-        return (
-          <div className='flex items-center gap-0.5' onClick={(e) => e.stopPropagation()}>
-            <button
-              type='button'
-              className={cn(btn, l.vigilando && 'text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:text-blue-700')}
-              title={l.vigilando ? 'Vigilando — clic para dejar de vigilar' : 'Vigilar (lo contactaste o lo quieres seguir)'}
-              onClick={() => patch(l, { vigilando: !l.vigilando }, { vigilando: !l.vigilando })}
-            ><Eye className='h-3.5 w-3.5' /></button>
-            <button type='button' className={cn(btn, 'hover:text-red-600')} title='Eliminar (datos incorrectos): sale de la tabla y de precios' onClick={() => hide(l)}><Trash2 className='h-3.5 w-3.5' /></button>
-            <button type='button' className={btn} title='Copiar para Claude' onClick={() => copy(JSON.stringify(exportRow(l, refs.get(l.id)), null, 2), 'Listing copiado')}><Copy className='h-3.5 w-3.5' /></button>
-            <a href={l.url} target='_blank' rel='noopener noreferrer' onClick={() => openListing(l.id)} className={btn} title='Abrir publicación'><ExternalLink className='h-3.5 w-3.5' /></a>
           </div>
         )
       },

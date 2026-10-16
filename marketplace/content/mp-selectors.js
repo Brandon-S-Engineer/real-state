@@ -19,7 +19,7 @@
       // Cada card es un <a> al item. Los anuncios apuntan a l.facebook.com → no matchean.
       link: 'a[href*="/marketplace/item/"]',
       // aria-label: "MacBook Pro 16 M1 Pro, MX$17,000, reduced from MX$18,500, La Magdalena Contreras, CDMX, listing 4396767557241789"
-      ariaLabel: /^(.*), (MX\$[\d,]+|Free|Gratis)(?:, (?:reduced from|precio anterior:?|antes) (MX\$[\d,]+))?, (.+), listing (\d+)$/i,
+      ariaLabel: /^(.*), (MX\$[\d.,]*\d|Free|Gratis)(?:, (?:reduced from|precio anterior:?|antes) (MX\$[\d.,]*\d))?, (.+), listing (\d+)$/i,
       itemId: /\/marketplace\/item\/(\d+)/,
       image: 'img',
       // Líneas de innerText que no son título (badges sobre la foto)
@@ -36,7 +36,7 @@
       ],
       title: 'h1',
       // "MX$30,000 · In stock" (a veces "MX$27,000MX$29,000" con el tachado)
-      priceText: /^MX\$\s?[\d,]+/,
+      priceText: /^MX\$\s?\d/,
       // "Listed in Coyoacán, CDMX" / "Listed 2 weeks ago in Coyoacán, CDMX" / "Publicado hace 3 días en …"
       listedText: /^(Listed|Publicado)\b/,
       listedAgoIn: /^Listed\s+(.+?)\s+ago\s+in\s+(.+)$/i,

@@ -14,7 +14,8 @@
   function moneyToNumber(s) {
     if (!s) return null
     if (/free|gratis/i.test(s)) return 0
-    const n = Number(String(s).replace(/[^\d]/g, ''))
+    // "9,900", "9.900" (algunos vendedores/locales usan punto de miles) y "9,900.00": quita centavos y separadores
+    const n = Number(String(s).replace(/[.,]\d{1,2}$/, '').replace(/[^\d]/g, ''))
     return Number.isFinite(n) && n > 0 ? n : null
   }
 
@@ -134,7 +135,7 @@
     const spans = Array.from(root.querySelectorAll('span[dir="auto"]'))
     const priceSpan = spans.find((s) => cfg.priceText.test(text(s)))
     const priceLine = text(priceSpan)
-    const moneys = priceLine.match(/MX\$\s?[\d,]+/g) ?? []
+    const moneys = priceLine.match(/MX\$\s?[\d.,]*\d/g) ?? []
     const price = moneyToNumber(moneys[0])
     const originalPrice = moneys[1] ? moneyToNumber(moneys[1]) : null
 

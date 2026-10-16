@@ -384,6 +384,8 @@ export default function ElecListingsTable({
       const res = await fetch(`/api/electronicos/listings/${l.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
+      // 404 = la ingesta ya lo borró (p. ej. la descripción nueva lo descartó): se quita y ya
+      if (res.status === 404) { setListings((prev) => prev.filter((x) => x.id !== l.id)); toast('Ese listing ya se había quitado solo'); return }
       if (!res.ok) throw new Error()
       const updated = await res.json()
       setListings((prev) => prev.map((x) => (x.id === l.id ? updated : x)))
@@ -399,6 +401,8 @@ export default function ElecListingsTable({
     const res = await fetch(`/api/electronicos/listings/${l.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oculto: true }),
     }).catch(() => null)
+    // 404 = la ingesta ya lo borró (descartado por la descripción nueva, p. ej. batería baja): ya está eliminado
+    if (res?.status === 404) { toast('Listing eliminado'); return }
     if (!res?.ok) { setListings((prev) => [l, ...prev]); toast.error('No se pudo eliminar'); return }
     toast('Listing eliminado', {
       action: {

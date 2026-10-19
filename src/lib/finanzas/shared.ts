@@ -152,6 +152,22 @@ export const GOAL_TABLES: { id: string; title: string; meta: string; nota: strin
       { from: 5, to: null, etapa: 'Mes 5+', volumen: '150–190 ventas', detalle: '~$2,000', capital: '~$1.8M', netoMes: '$300k–380k', freno: 'Capital y demanda en 3 zonas', min: 300000, max: 380000 },
     ],
   },
+  // Con el capital real: $130k ahorro + $100k BBVA + $100k Nu, y la ganancia
+  // reinvertida. Mezcla Marketplace (rota en 7–10 días: ahí va el crédito caro)
+  // y B-Stock (lote pagado ~1 mes antes: ahí va el ahorro y la ganancia).
+  {
+    id: 'capital-real',
+    title: 'Tabla 5 · Tu capital real ($130k ahorro + $100k BBVA + $100k Nu), en familia',
+    meta: 'Meta: ~$300,000 / mes desde el mes 5, ya con intereses pagados',
+    detalleLabel: 'Mezcla',
+    nota: 'El mes 1 arranca con tus equipos (iPad, Mac, iPhone): validas precios de venta sin arriesgar capital. El crédito entra cuando ya sabes tus precios: BBVA en el mes 2 y Nu en el 3. El crédito caro va a Marketplace, que rota 3–4 veces al mes, así que cada peso prestado trabaja varias veces antes de pagar intereses; los lotes de B-Stock se pagan con ahorro y ganancia. Intereses estimados con ~3–4% mensual BBVA y ~5–7% Nu (revisa tu CAT): ~$10k–11k al mes con los $200k usados, ya restados del neto. Con la ganancia, liquida primero Nu.',
+    rows: [
+      { from: 1, to: 1, etapa: 'Mes 1 · validar', volumen: '15–25 ventas', detalle: 'Tus equipos + Marketplace', capital: '$130k (ahorro)', netoMes: '$25k–40k', freno: 'Aprender precios reales; tu tiempo (2 encuentros por compra)', min: 25000, max: 40000 },
+      { from: 2, to: 2, etapa: 'Mes 2', volumen: '45–60 ventas', detalle: 'Marketplace + 1er lote B-Stock', capital: '$230k (+ BBVA)', netoMes: '$70k–95k', freno: 'Que la familia aprenda a comprar y vender', min: 70000, max: 95000 },
+      { from: 3, to: 4, etapa: 'Meses 3–4', volumen: '90–120 ventas', detalle: 'Marketplace ~80% · B-Stock ~20%', capital: '~$450k–600k (+ Nu + ganancia)', netoMes: '$160k–215k', freno: 'Compras buenas en Marketplace (~3–4/día)', min: 160000, max: 215000 },
+      { from: 5, to: null, etapa: 'Mes 5+', volumen: '140–170 ventas', detalle: 'Marketplace ~70% · B-Stock ~30%', capital: '~$900k (con ganancia reinvertida)', netoMes: '$270k–330k', freno: 'Capital para lotes más grandes', min: 270000, max: 330000 },
+    ],
+  },
 ]
 
 /** Mes del negocio (1 = el primer mes con actividad de reventa). */

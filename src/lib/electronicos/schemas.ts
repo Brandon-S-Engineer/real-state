@@ -35,3 +35,7 @@ export const searchSchema = z.object({
   groupName: z.string().trim().min(1).max(60).default('Mis búsquedas'),
   minPrice: z.number().int().nonnegative().nullable().optional(),
 })
+
+export const sectionSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+})

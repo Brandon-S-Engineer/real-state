@@ -528,6 +528,14 @@ model ElecSearch {
   createdAt DateTime @default(now())
 }
 
+// Secciones propias de Búsquedas (las fijas Apple y Bolsos viven en el código)
+model ElecSearchSection {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
 // ── Finanzas ────────────────────────────────────────────────────────────────
 // Ingresos/egresos capturados a mano (reventa, software, otros). La ganancia
 // de ElecTrade (compras/ventas de equipos) se suma aparte al calcular el mes,

@@ -1,7 +1,7 @@
 // Mensajes listos para Marketplace, en el orden en que se mandan. Cortos y en
 // tono normal: con muchos tratos al día, el que contesta rápido y claro gana.
 //
-// Orden de compra: disponible + Polanco (filtro) → preguntas → oferta con día
+// Orden de compra: ¿sigue disponible? → 2–3 preguntas → oferta con lugar, día
 // y hora (llamado a la acción) → ya quedamos: captura del IMEI → confirmación.
 
 import type { AuthMode, AuthProduct } from './checklists'
@@ -54,37 +54,37 @@ const buy = (p: AuthProduct): ChatScript[] => [
   {
     id: 'hola',
     title: '1 · Primer mensaje',
-    when: 'Lo primero es el lugar: si no puede ir a Polanco, ya no sigas.',
-    text: (v) => `Hola, ¿sigue disponible? Me interesa. ¿Me lo podrías entregar en ${L(v)}?`,
-  },
-  {
-    id: 'no-polanco',
-    title: 'Si no puede ir',
-    when: 'Corto y sin negociar el lugar. A veces regresan.',
-    text: (v) => `Va, gracias. Por seguridad solo hago entregas en ${L(v)}. Si en algún momento te queda, aquí sigo.`,
+    when: 'Nada más. Si contesta, sigues; si tarda horas, ya se vendió o no le urge.',
+    text: () => 'Hola, ¿sigue disponible?',
   },
   {
     id: 'preguntas',
     title: '2 · Preguntas',
-    when: 'Un solo mensaje. Lo demás lo revisas en persona.',
+    when: 'Un solo mensaje, solo lo que mueve el precio. Lo demás se ve en persona.',
     text: () => QUESTIONS[p],
   },
   {
     id: 'oferta',
-    title: '3 · Oferta con día y hora',
-    when: 'Oferta + cuándo + cómo pagas en el mismo mensaje: el que se compromete a pasar hoy le gana al que solo pregunta.',
-    text: (v) => `Te ofrezco ${P(v)} y paso ${H(v)} a ${L(v)}. Te transfiero ahí mismo después de revisarlo. ¿Te late?`,
+    title: '3 · Oferta con lugar, día y hora',
+    when: 'El llamado a la acción: precio, lugar, hora y pago en un mensaje. Polanco va como lo que te queda, no como condición.',
+    text: (v) => `Me interesa. Te ofrezco ${P(v)}; me queda en ${L(v)} ${H(v)}. Lo reviso ahí y te transfiero en el momento. ¿Te late?`,
+  },
+  {
+    id: 'lejos',
+    title: 'Si le queda lejos',
+    when: 'Con márgenes de miles, $150 de Uber es nada. Si aun así no, déjalo ir.',
+    text: (v) => `Si te queda lejos te pongo $150 para el Uber. Prefiero ${L(v)} porque hay cámaras y gente, es más seguro para los dos.`,
   },
   {
     id: 'contra',
     title: 'Si contraoferta',
-    when: 'Pon aquí tu tope. Si no baja a tu tope, déjalo ir: hay muchos.',
+    when: 'Pon aquí tu tope y dilo una sola vez. Si no llega, déjalo ir: hay cientos al día.',
     text: (v) => `Lo más que puedo es ${P(v)}, y nos vemos ${H(v)} en ${L(v)}. Si te late, lo apartamos.`,
   },
   {
     id: 'quedamos',
     title: '4 · Ya quedamos: captura',
-    when: 'Ya con lugar y hora. Con la captura revisas el CRT y apuntas el IMEI/serie arriba.',
+    when: 'Ya con lugar y hora. Con la captura revisas el CRT y pegas el IMEI/serie abajo.',
     text: (v) => `Perfecto, ${H(v)} en ${L(v)}. Para ir a la segura, ${IDENT[p]}`,
   },
   {
@@ -99,14 +99,14 @@ const sell = (p: AuthProduct): ChatScript[] => [
   {
     id: 'hola',
     title: '1 · Respuesta a interesado',
-    when: 'Lugar desde el principio; así no pierdes tiempo con quien no va a ir.',
+    when: 'Al vender tú pones el lugar: el que quiere comprar se acomoda.',
     text: (v) => `Hola, sí sigue disponible. Lo entrego en ${L(v)}. ¿Qué día y hora te queda?`,
   },
   {
     id: 'precio',
     title: '2 · Si pide descuento',
-    when: 'Precio P75: es firme si está bien presentado. Si acaso, un descuento chico por cerrar hoy.',
-    text: (v) => `El precio es ${P(v)}. Lo puedes revisar todo ahí con calma${p === 'BOLSOS' ? ', y trae certificado de autenticidad Entrupy' : ''}. Si nos vemos ${H(v)}, te lo aparto.`,
+    when: 'Publica un poco arriba de tu mínimo para dejar regateo. Aquí pones tu mínimo y lo dices una vez, a cambio de cerrar ya.',
+    text: (v) => `Te lo dejo en ${P(v)} si nos vemos ${H(v)}. Lo puedes revisar todo ahí con calma${p === 'BOLSOS' ? ', y trae certificado de autenticidad Entrupy' : ''}.`,
   },
   {
     id: 'cita',
@@ -121,6 +121,27 @@ const sell = (p: AuthProduct): ChatScript[] => [
     text: (v) => `Hola, ¿seguimos en pie ${H(v)} en ${L(v)}? Avísame cuando llegues.`,
   },
 ]
+
+// ─── Marco ───────────────────────────────────────────────────────────────────
+// Cómo trabaja un revendedor con volumen: rápido, concreto, sin discutir, y con
+// una sola regla de seguridad que no se negocia (las dos manos).
+
+export const PRINCIPLES: Record<AuthMode, { title: string; body: string }[]> = {
+  COMPRA: [
+    { title: 'Gana el más rápido y concreto', body: 'Los buenos precios duran horas. Gana el que contesta primero con precio, lugar y hora, no el que más pregunta.' },
+    { title: 'Primero, cero condiciones', body: '"¿Sigue disponible?" y 2–3 preguntas que mueven el precio. Polanco va con la oferta, como lo que te queda; si le queda lejos, le pagas el Uber.' },
+    { title: 'Ofreces con número del CRM', body: 'Ofreces cerca del P25 y tienes un tope antes de escribir. Si no llega, lo dejas ir sin discutir: hay cientos al día.' },
+    { title: 'En persona no se regatea', body: 'Solo se ajusta por algo que no te dijo (batería, pieza, golpe), con el costo a la mano. Regatear porque sí quema tiempo y la cita.' },
+    { title: 'Las dos manos', body: 'Desde que lo revisas, el equipo no sale de tu mano y pagas con él en la mano. Tu Apple ID es el último paso; si algo falla antes, te vas sin pena.' },
+  ],
+  VENTA: [
+    { title: 'Publica arriba de tu mínimo', body: 'Deja margen para el regateo y decide tu mínimo antes de contestar. Contesta rápido y propone tú lugar y hora.' },
+    { title: 'Que revise todo, frente a ti', body: 'Con tu Apple ID puesto: si se lo quiere llevar sin pagar, no le sirve. Una persona por trato.' },
+    { title: 'Las dos manos', body: 'El equipo pasa a su mano cuando el pago completo está en la tuya. Y lo que ya te pagaron no regresa: ni "déjame contarlo", ni "mejor te transfiero".' },
+    { title: 'Dinero real', body: 'Transferencia vista en tu app (no captura). Efectivo revisado billete por billete antes de entregar.' },
+    { title: 'Cierre limpio', body: 'Ya cobrado: quitas tu cuenta, borras frente a él y firman nota de venta. Sin garantías verbales.' },
+  ],
+}
 
 export function chatScripts(mode: AuthMode, p: AuthProduct): ChatScript[] {
   return mode === 'COMPRA' ? buy(p) : sell(p)

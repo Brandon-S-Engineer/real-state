@@ -10,7 +10,7 @@ import {
   AUTH_PRODUCTS, CHECKLISTS, ENTRUPY_NOTE, ENTRUPY_OTHER, ENTRUPY_PLANS, MODE_CHECKLISTS, SERVICES, SERVICES_NOTE,
   type AuthMode, type AuthProduct, type CheckItem,
 } from '@/lib/autenticacion/checklists'
-import { DEFAULT_LUGAR, chatScripts, type ChatVars } from '@/lib/autenticacion/mensajes'
+import { DEFAULT_LUGAR, PRINCIPLES, chatScripts, type ChatVars } from '@/lib/autenticacion/mensajes'
 import { BAG_BRANDS, TIER_LABEL, TIER_TOKENS } from '@/lib/electronicos/bag-catalog'
 
 const USD_MXN = 18.5
@@ -128,6 +128,19 @@ function saveReview(m: AuthMode, p: AuthProduct, r: Review) {
 
 async function copyText(text: string) {
   try { await navigator.clipboard.writeText(text); toast.success('Copiado') } catch { toast.error('No se pudo copiar') }
+}
+
+function Marco({ mode }: { mode: AuthMode }) {
+  return (
+    <section className='grid gap-2 sm:grid-cols-2 xl:grid-cols-5'>
+      {PRINCIPLES[mode].map((pr, i) => (
+        <div key={pr.title} className='rounded-lg border px-3 py-2.5'>
+          <div className='text-sm font-medium'>{i + 1}. {pr.title}</div>
+          <div className='text-xs text-muted-foreground mt-1'>{pr.body}</div>
+        </div>
+      ))}
+    </section>
+  )
 }
 
 function Mensajes({ mode, product, vars, onVars }: {
@@ -262,7 +275,7 @@ export default function AutenticacionClient() {
       <div>
         <h1 className='text-xl font-semibold'>Autenticación</h1>
         <p className='text-sm text-muted-foreground'>
-          Del primer mensaje al pago, por producto. Solo se entrega en plaza de Polanco; por chat se filtra lo mínimo y el rigor va en persona.
+          Del primer mensaje al pago, por producto. Solo en plaza de Polanco; por chat lo mínimo y el rigor en persona.
           Marca cada punto en el trato; se guarda en este navegador hasta que empieces otra.
         </p>
       </div>
@@ -290,6 +303,8 @@ export default function AutenticacionClient() {
 
       {loaded && (
         <>
+          <Marco mode={mode} />
+
           <Mensajes mode={mode} product={product} vars={{ lugar, hora: review.hora, precio: review.precio }} onVars={setVars} />
 
           <div className='rounded-lg border p-4 space-y-3'>

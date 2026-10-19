@@ -112,11 +112,13 @@ const antiBypass = (device: string): CheckItem[] => [
   { id: 'reboot', label: 'Reinícialo 2 o 3 veces: enciende normal y con señal', how: 'Los bypass "tethered" se caen al reiniciar y regresa la pantalla de activación.', stop: true },
 ]
 
-const PAY_BUY: CheckItem = { id: 'pay', label: 'Pagas al final, por transferencia, y le enseñas el comprobante', how: 'Así queda registro y no traes efectivo. Ya con el equipo en tu bolsa o mochila.' }
+// Regla de las dos manos: lo tuyo no sale de tu mano hasta que lo del otro
+// está en la tuya. Al comprar, pagas con el equipo en la mano.
+const PAY_BUY: CheckItem = { id: 'pay', label: 'Pagas con el equipo en tu mano: transfieres y le enseñas tu app', how: 'Por transferencia: queda registro y no traes efectivo. Te vas con el equipo; no se lo regresas "para despedirse" ni para "quitarle la funda".' }
 const NO_SWAP_BUY = (where: string): CheckItem => ({
   id: 'no-swap',
-  label: 'No lo sueltes desde que lo revisas',
-  how: `Cambiazo clásico: te enseñan uno bueno y te entregan otro igual (bloqueado o roto) al final, "deja te lo limpio" o "te doy la caja". Si vuelve a sus manos, revisa de nuevo ${where} antes de pagar.`,
+  label: 'Desde que lo revisas, el equipo no sale de tu mano',
+  how: `Cambiazo clásico: te enseñan uno bueno y al final te dan otro igual (bloqueado o roto) con "deja te lo limpio" o "te doy la caja". Para cerrar sesión, él teclea su contraseña mientras tú lo sostienes. Si por algo regresó a sus manos, revisa otra vez ${where}.`,
   stop: true,
 })
 
@@ -144,7 +146,7 @@ const closingIos = (device: string): CheckPhase => ({
 const PLACE_ITEM: CheckItem = {
   id: 'place',
   label: 'Entrega en plaza comercial de Polanco',
-  how: 'Antara, Plaza Carso o Miyana: seguridad, cámaras y gente. Es lo primero que se pregunta; si no puede ir, no hay trato (ni "a media calle", ni en su casa, ni en metro).',
+  how: 'Antara, Plaza Carso o Miyana: seguridad, cámaras y gente. Va junto con la oferta, como lo que te queda ("me queda en Antara hoy a las 6"), no como condición en el primer mensaje. Si le queda lejos, ofrécele para el Uber; si aun así no, no hay trato (ni en la calle, ni en su casa, ni en metro).',
   stop: true,
 }
 
@@ -505,6 +507,8 @@ const SALE_PAYMENT: CheckPhase = {
   items: [
     { id: 'transfer', label: 'Transferencia: confírmala en TU app del banco', how: 'No en la captura, correo o SMS que te enseñe: los comprobantes SPEI falsos son el fraude más común. SPEI llega en segundos; si "ya te la mandé pero tarda", no se entrega. Desconfía de "te la programé" o "está en proceso".', stop: true },
     { id: 'cash', label: 'Efectivo: cuenta y revisa cada billete de $200, $500 y $1,000', how: 'Toca el relieve; a contraluz, marca de agua y hilo; inclínalo: la tinta cambia de color. Una lámpara UV de llavero (~$100) delata el papel falso: brilla parejo. Un billete dudoso se rechaza; no aceptes "te lo cambio luego".', stop: true },
+    { id: 'keep-cash', label: 'Lo que ya te pagaron no regresa a sus manos', how: 'Truco del billete: "déjame contarlo otra vez", "mejor te transfiero, regrésame el efectivo", "ese billete no, dame ese y te doy otro" — y en el cambio vuelven falsos. Si quiere cambiar a transferencia, primero te transfiere y ya que lo ves en tu app le regresas su efectivo.', stop: true },
+    { id: 'hand-over', label: 'El equipo pasa a su mano hasta que el pago está completo en la tuya', how: 'Mientras lo revisa está a la vista y con tu Apple ID puesto; no se lo das "para que lo vaya guardando" antes de pagar.', stop: true },
     { id: 'no-split', label: 'Sin pagos partidos ni "te deposito el resto mañana"', stop: true },
   ],
 }

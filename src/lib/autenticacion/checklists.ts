@@ -112,13 +112,13 @@ const antiBypass = (device: string): CheckItem[] => [
   { id: 'reboot', label: 'Reinícialo 2 o 3 veces: enciende normal y con señal', how: 'Los bypass "tethered" se caen al reiniciar y regresa la pantalla de activación.', stop: true },
 ]
 
-// Regla de las dos manos: lo tuyo no sale de tu mano hasta que lo del otro
-// está en la tuya. Al comprar, pagas con el equipo en la mano.
-const PAY_BUY: CheckItem = { id: 'pay', label: 'Pagas con el equipo en tu mano: transfieres y le enseñas tu app', how: 'Por transferencia: queda registro y no traes efectivo. Te vas con el equipo; no se lo regresas "para despedirse" ni para "quitarle la funda".' }
+// Contra el cambiazo: el IMEI/serie se vuelve a checar justo antes de cada
+// paso que ya no tiene regreso (activar con tu cuenta, transferir).
+const PAY_BUY: CheckItem = { id: 'pay', label: 'Pagas al final, por transferencia, y le enseñas tu app', how: 'Justo después de la última revisión del IMEI. Por transferencia queda registro y no traes efectivo.' }
 const NO_SWAP_BUY = (where: string): CheckItem => ({
   id: 'no-swap',
-  label: 'Desde que lo revisas, el equipo no sale de tu mano',
-  how: `Cambiazo clásico: te enseñan uno bueno y al final te dan otro igual (bloqueado o roto) con "deja te lo limpio" o "te doy la caja". Para cerrar sesión, él teclea su contraseña mientras tú lo sostienes. Si por algo regresó a sus manos, revisa otra vez ${where}.`,
+  label: 'Última revisión del IMEI antes de cada paso clave',
+  how: `Cuando te lo regresa después de cerrar sesión y borrar, y otra vez justo antes de transferir: ${where}. El cambiazo pasa en esos momentos ("deja te lo limpio", "te doy la caja"): te dan uno igual pero bloqueado o roto.`,
   stop: true,
 })
 
@@ -131,9 +131,9 @@ const closingIos = (device: string): CheckPhase => ({
   items: [
     { id: 'logout', label: 'El vendedor cierra sesión de su Apple ID frente a ti', how: `Ajustes › [su nombre] › Cerrar sesión. Pide su contraseña de Apple ID: eso apaga Buscar ${device}.`, stop: true },
     { id: 'erase', label: 'Borrar contenidos y ajustes, frente a ti', how: 'Ajustes › General › Transferir o restablecer › Borrar contenidos y ajustes.', stop: true },
+    NO_SWAP_BUY('que el IMEI (en "Hola" toca ⓘ) sea el que anotaste'),
     { id: 'activation', label: 'Al reiniciar llega a "Hola" y se activa sin pedir el Apple ID de nadie', how: 'El borrado reinstala la activación limpia. Si pide "Bloqueo de activación" o muestra "Gestión remota", no se compra.', stop: true },
     { id: 'own-id', label: 'Último paso: lo configuras con TU Apple ID y prendes Buscar', how: `Prueba final contra bypass: un equipo con bypass no deja entrar a iCloud ni activar Buscar ${device}. Desde aquí queda bloqueado a tu nombre hasta que lo vendas.`, stop: true },
-    NO_SWAP_BUY('el IMEI (en "Hola" toca ⓘ, o *#06#)'),
     { id: 'box', label: 'Caja con el mismo IMEI/serie y cable', how: 'La caja debe coincidir con el equipo; suma para vender en P75.' },
     { id: 'id', label: 'Foto de INE del vendedor y compraventa simple', how: 'Nombre, teléfono, IMEI/serie, precio, fecha y firma. Si tiene factura o ticket, foto.' },
     PAY_BUY,
@@ -325,7 +325,7 @@ const MACBOOK: CheckPhase[] = [
       { id: 'erase', label: 'Borrar contenidos y ajustes, frente a ti', how: 'Ajustes del Sistema › General › Transferir o restablecer.', stop: true },
       { id: 'setup', label: 'Arranca al asistente sin "Gestión remota" ni Apple ID ajeno', how: 'El borrado vuelve a pedir activación a Apple, y ahí sale cualquier bloqueo o MDM que se hayan saltado.', stop: true },
       { id: 'own-id', label: 'Último paso: la configuras con TU Apple ID y prendes Buscar mi Mac', how: 'Ajustes del Sistema › [tu nombre] › iCloud › Buscar mi Mac. Si no deja, algo está bloqueado. Desde aquí queda a tu nombre hasta que la vendas.', stop: true },
-      NO_SWAP_BUY('la serie en Acerca de esta Mac'),
+      NO_SWAP_BUY('que la serie (caja o base, y Acerca de esta Mac ya configurada) sea la que anotaste'),
       { id: 'charger', label: 'Cargador original', how: 'Cargador genérico baja precio.' },
       { id: 'id', label: 'Foto de INE del vendedor y compraventa simple' },
       PAY_BUY,
@@ -380,7 +380,7 @@ const AUDIFONOS: CheckPhase[] = [
     items: [
       { id: 'reset', label: 'Restablecer: botón del estuche 15 s hasta luz ámbar y luego blanca', stop: true },
       { id: 'own-findmy', label: 'Último paso: se emparejan con tu iPhone y aparecen en TU app Encontrar', how: 'Prueba final de que ya no están ligados al vendedor.', stop: true },
-      NO_SWAP_BUY('los seriales en tu iPhone'),
+      NO_SWAP_BUY('que los seriales en tu iPhone sean los que anotaste'),
       { id: 'box', label: 'Caja con la misma serie y cable' },
       PAY_BUY,
     ],
@@ -462,7 +462,7 @@ const BOLSOS: CheckPhase[] = [
     title: 'Cierre',
     hint: 'Hasta aquí se paga.',
     items: [
-      NO_SWAP_BUY('las fotos del escaneo contra el bolso (código, herrajes, marcas de uso)'),
+      NO_SWAP_BUY('que el bolso sea el que escaneaste: código, herrajes y marcas de uso contra tus fotos'),
       { id: 'id', label: 'Foto de INE del vendedor y compraventa simple', how: 'Nombre, teléfono, marca, modelo, número de certificado Entrupy, precio, fecha y firma. La garantía de Entrupy pide comprobante de compra.' },
       PAY_BUY,
     ],
@@ -508,7 +508,7 @@ const SALE_PAYMENT: CheckPhase = {
     { id: 'transfer', label: 'Transferencia: confírmala en TU app del banco', how: 'No en la captura, correo o SMS que te enseñe: los comprobantes SPEI falsos son el fraude más común. SPEI llega en segundos; si "ya te la mandé pero tarda", no se entrega. Desconfía de "te la programé" o "está en proceso".', stop: true },
     { id: 'cash', label: 'Efectivo: cuenta y revisa cada billete de $200, $500 y $1,000', how: 'Toca el relieve; a contraluz, marca de agua y hilo; inclínalo: la tinta cambia de color. Una lámpara UV de llavero (~$100) delata el papel falso: brilla parejo. Un billete dudoso se rechaza; no aceptes "te lo cambio luego".', stop: true },
     { id: 'keep-cash', label: 'Lo que ya te pagaron no regresa a sus manos', how: 'Truco del billete: "déjame contarlo otra vez", "mejor te transfiero, regrésame el efectivo", "ese billete no, dame ese y te doy otro" — y en el cambio vuelven falsos. Si quiere cambiar a transferencia, primero te transfiere y ya que lo ves en tu app le regresas su efectivo.', stop: true },
-    { id: 'hand-over', label: 'El equipo pasa a su mano hasta que el pago está completo en la tuya', how: 'Mientras lo revisa está a la vista y con tu Apple ID puesto; no se lo das "para que lo vaya guardando" antes de pagar.', stop: true },
+    { id: 'hand-over', label: 'Entregas cuando el pago está completo', how: 'Mientras lo revisa está a la vista y con tu Apple ID puesto; no se lo das "para que lo vaya guardando" antes de pagar.', stop: true },
     { id: 'no-split', label: 'Sin pagos partidos ni "te deposito el resto mañana"', stop: true },
   ],
 }

@@ -66,8 +66,8 @@ const buy = (p: AuthProduct): ChatScript[] => [
   {
     id: 'oferta',
     title: '3 · Oferta con lugar, día y hora',
-    when: 'El llamado a la acción: precio, lugar, hora y pago en un mensaje. Polanco va como lo que te queda, no como condición.',
-    text: (v) => `Me interesa. Te ofrezco ${P(v)}; me queda en ${L(v)} ${H(v)}. Lo reviso ahí y te transfiero en el momento. ¿Te late?`,
+    when: 'Aquí es el regateo (ver "Cuándo regatear"). Precio, lugar, hora y pago en un mensaje: lo que das a cambio del descuento es certeza y rapidez.',
+    text: (v) => `Me interesa. Te ofrezco ${P(v)}; me queda en ${L(v)} ${H(v)}. Lo reviso ahí y te transfiero en el momento, sin vueltas. ¿Te late?`,
   },
   {
     id: 'lejos',
@@ -78,8 +78,14 @@ const buy = (p: AuthProduct): ChatScript[] => [
   {
     id: 'contra',
     title: 'Si contraoferta',
-    when: 'Pon aquí tu tope y dilo una sola vez. Si no llega, déjalo ir: hay cientos al día.',
-    text: (v) => `Lo más que puedo es ${P(v)}, y nos vemos ${H(v)} en ${L(v)}. Si te late, lo apartamos.`,
+    when: 'Sube una vez, a la mitad entre tu oferta y su número (sin pasar tu tope). Si no acepta, márcalo Vigilando y usa el seguimiento.',
+    text: (v) => `Ni tú ni yo: ${P(v)} y nos vemos ${H(v)} en ${L(v)}. Si te late, lo apartamos.`,
+  },
+  {
+    id: 'seguimiento',
+    title: 'Seguimiento (5–7 días después)',
+    when: 'Si no aceptó y sigue publicado. Aquí se cierran muchos: ya vio que a su precio no sale.',
+    text: (v) => `Hola, ¿todavía lo tienes? Mi oferta de ${P(v)} sigue en pie; puedo pasar ${H(v)} a ${L(v)} y te transfiero ahí.`,
   },
   {
     id: 'quedamos',
@@ -124,22 +130,45 @@ const sell = (p: AuthProduct): ChatScript[] => [
 
 // ─── Marco ───────────────────────────────────────────────────────────────────
 // Cómo trabaja un revendedor con volumen: rápido, concreto, sin discutir, y con
-// una sola regla de seguridad que no se negocia (las dos manos).
+// regateo en el chat (nunca en la mesa) y revisión del IMEI antes de cada paso
+// que ya no tiene regreso.
 
 export const PRINCIPLES: Record<AuthMode, { title: string; body: string }[]> = {
   COMPRA: [
     { title: 'Gana el más rápido y concreto', body: 'Los buenos precios duran horas. Gana el que contesta primero con precio, lugar y hora, no el que más pregunta.' },
     { title: 'Primero, cero condiciones', body: '"¿Sigue disponible?" y 2–3 preguntas que mueven el precio. Polanco va con la oferta, como lo que te queda; si le queda lejos, le pagas el Uber.' },
-    { title: 'Ofreces con número del CRM', body: 'Ofreces cerca del P25 y tienes un tope antes de escribir. Si no llega, lo dejas ir sin discutir: hay cientos al día.' },
-    { title: 'En persona no se regatea', body: 'Solo se ajusta por algo que no te dijo (batería, pieza, golpe), con el costo a la mano. Regatear porque sí quema tiempo y la cita.' },
-    { title: 'Las dos manos', body: 'Desde que lo revisas, el equipo no sale de tu mano y pagas con él en la mano. Tu Apple ID es el último paso; si algo falla antes, te vas sin pena.' },
+    { title: 'Se regatea en el chat, con número', body: 'Todos lo esperan. Antes de escribir decides oferta y tope con el CRM (% vs mercado, antigüedad, si ya bajó). Qué tanto depende del listing: ver "Cuándo regatear".' },
+    { title: 'En la mesa solo por defectos', body: 'Lo que quedó en el chat se respeta. Se ajusta solo por algo que no te dijo (batería, pieza, golpe), con el costo de arreglarlo como número.' },
+    { title: 'IMEI antes de cada paso clave', body: 'Lo anotas al quedar y lo vuelves a checar cuando te lo regresa ya borrado y justo antes de transferir. Tu Apple ID es el último paso; si algo falla antes, te vas sin pena.' },
   ],
   VENTA: [
-    { title: 'Publica arriba de tu mínimo', body: 'Deja margen para el regateo y decide tu mínimo antes de contestar. Contesta rápido y propone tú lugar y hora.' },
+    { title: 'Publica arriba de tu mínimo', body: 'Todos van a regatear: publica ~8–10% arriba de tu mínimo. El descuento se da una vez, a cambio de cerrar ya (día y hora), nunca a quien solo pregunta.' },
     { title: 'Que revise todo, frente a ti', body: 'Con tu Apple ID puesto: si se lo quiere llevar sin pagar, no le sirve. Una persona por trato.' },
-    { title: 'Las dos manos', body: 'El equipo pasa a su mano cuando el pago completo está en la tuya. Y lo que ya te pagaron no regresa: ni "déjame contarlo", ni "mejor te transfiero".' },
+    { title: 'Cobras y luego entregas', body: 'El equipo es suyo cuando el pago está completo. Y lo que ya te pagaron no regresa: ni "déjame contarlo", ni "mejor te transfiero". Si te lo regresa, checa IMEI antes de aceptarlo.' },
     { title: 'Dinero real', body: 'Transferencia vista en tu app (no captura). Efectivo revisado billete por billete antes de entregar.' },
     { title: 'Cierre limpio', body: 'Ya cobrado: quitas tu cuenta, borras frente a él y firman nota de venta. Sin garantías verbales.' },
+  ],
+}
+
+// ─── Cuándo regatear ─────────────────────────────────────────────────────────
+// El poder de negociación lo da el listing, no la labia. Los % son punto de
+// partida; ajústalos con lo que veas cerrar en tus primeros tratos.
+
+export const REGATEO: Record<AuthMode, { situacion: string; como: string }[]> = {
+  COMPRA: [
+    { situacion: 'Ganga: score alto, 15%+ abajo del mercado, publicado hoy', como: 'Casi no regatees (redondea a lo mucho). El riesgo es perderlo por $300; contesta primero y cierra hoy.' },
+    { situacion: 'A precio de mercado, publicado hoy o ayer', como: 'Oferta 8–12% abajo. Esperan regateo; lo que das a cambio es verse hoy y transferencia en el momento.' },
+    { situacion: 'Publicado hace 7+ días, o ya bajó de precio (precio tachado)', como: 'El mejor momento: 15–20% abajo. Ya vio que a su precio no sale. Si no acepta, Vigilando y seguimiento.' },
+    { situacion: 'Urgencia: "urge", "hoy", "me voy", "necesito el dinero"', como: '15%+ abajo con cita hoy mismo. La rapidez vale más para él que el último peso.' },
+    { situacion: 'Caro: arriba del mercado', como: 'No regatees contra su número: ofreces el tuyo con "se están vendiendo en $X". Si no, Vigilando y vuelves en una semana.' },
+    { situacion: 'En persona sale un defecto que no te dijo', como: 'Descuento = costo de arreglarlo (batería, pantalla…), dicho como número. Si no acepta, te vas sin discutir.' },
+  ],
+  VENTA: [
+    { situacion: 'Publicación nueva (primeros 2–3 días)', como: 'Aguanta el precio: los primeros interesados son los más motivados. A lo mucho redondeo por cerrar hoy.' },
+    { situacion: 'Pide descuento y ya propuso día y hora', como: 'Una sola concesión, hasta tu mínimo, atada a verse hoy o mañana.' },
+    { situacion: 'Pide descuento sin comprometerse', como: '"Si nos vemos hoy te lo dejo en $X." Sin cita no hay descuento.' },
+    { situacion: 'Oferta muy baja', como: '"Gracias, el precio está en $X." Sin contraoferta: si de verdad quiere, sube él.' },
+    { situacion: 'Lleva 7–10 días sin venderse', como: 'Baja el anuncio 5% (sale "precio reducido" y avisa a quien lo guardó) y escribe a los que preguntaron.' },
   ],
 }
 

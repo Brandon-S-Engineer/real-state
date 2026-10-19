@@ -10,7 +10,7 @@ import {
   AUTH_PRODUCTS, CHECKLISTS, ENTRUPY_NOTE, ENTRUPY_OTHER, ENTRUPY_PLANS, MODE_CHECKLISTS, SERVICES, SERVICES_NOTE,
   type AuthMode, type AuthProduct, type CheckItem,
 } from '@/lib/autenticacion/checklists'
-import { DEFAULT_LUGAR, PRINCIPLES, chatScripts, type ChatVars } from '@/lib/autenticacion/mensajes'
+import { DEFAULT_LUGAR, PRINCIPLES, REGATEO, chatScripts, type ChatVars } from '@/lib/autenticacion/mensajes'
 import { BAG_BRANDS, TIER_LABEL, TIER_TOKENS } from '@/lib/electronicos/bag-catalog'
 
 const USD_MXN = 18.5
@@ -139,6 +139,34 @@ function Marco({ mode }: { mode: AuthMode }) {
           <div className='text-xs text-muted-foreground mt-1'>{pr.body}</div>
         </div>
       ))}
+    </section>
+  )
+}
+
+function Regateo({ mode }: { mode: AuthMode }) {
+  return (
+    <section className='space-y-2'>
+      <h2 className='text-base font-semibold'>Cuándo regatear</h2>
+      <div className='rounded-md border overflow-x-auto'>
+        <table className='w-full text-sm'>
+          <thead>
+            <tr className='border-b bg-muted/50'>
+              {['Situación', mode === 'COMPRA' ? 'Cuánto y cómo' : 'Qué hacer'].map((h) => (
+                <th key={h} className='px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap'>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {REGATEO[mode].map((r) => (
+              <tr key={r.situacion} className='border-b last:border-b-0 align-top'>
+                <td className='px-4 py-3 font-medium sm:w-2/5'>{r.situacion}</td>
+                <td className='px-4 py-3 text-muted-foreground'>{r.como}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {mode === 'COMPRA' && <p className='text-xs text-muted-foreground'>Los datos están en Listings: % vs mercado, antigüedad, precio tachado y score. Los % son punto de partida; ajústalos con lo que veas cerrar.</p>}
     </section>
   )
 }
@@ -304,6 +332,8 @@ export default function AutenticacionClient() {
       {loaded && (
         <>
           <Marco mode={mode} />
+
+          <Regateo mode={mode} />
 
           <Mensajes mode={mode} product={product} vars={{ lugar, hora: review.hora, precio: review.precio }} onVars={setVars} />
 

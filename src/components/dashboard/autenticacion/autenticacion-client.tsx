@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Check, Copy, ExternalLink, RotateCcw, X } from 'lucide-react'
+import { Check, Copy, ExternalLink, MessageSquare, RotateCcw, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
-  AUTH_PRODUCTS, CHECKLISTS, ENTRUPY_NOTE, ENTRUPY_OTHER, ENTRUPY_PLANS, SERVICES, SERVICES_NOTE,
-  type AuthProduct, type CheckItem,
+  AUTH_PRODUCTS, CHECKLISTS, ENTRUPY_NOTE, ENTRUPY_OTHER, ENTRUPY_PLANS, MODE_CHECKLISTS, SERVICES, SERVICES_NOTE,
+  type AuthMode, type AuthProduct, type CheckItem,
 } from '@/lib/autenticacion/checklists'
+import { DEFAULT_LUGAR, chatScripts, type ChatVars } from '@/lib/autenticacion/mensajes'
 import { BAG_BRANDS, TIER_LABEL, TIER_TOKENS } from '@/lib/electronicos/bag-catalog'
 
 const USD_MXN = 18.5
@@ -104,23 +105,65 @@ function EntrupySection() {
 }
 
 type Mark = 'ok' | 'fail'
-type Review = { ident: string; marks: Record<string, Mark> }
+type Review = { ident: string; hora: string; precio: string; marks: Record<string, Mark> }
 
-// La revisión en curso vive en este navegador (una por producto): es la hoja
-// que llenas frente al vendedor, no un registro. Lo que se compra se anota en Mis trades.
+// La revisión en curso vive en este navegador (una por producto y modo): es la
+// hoja que llenas en el trato, no un registro. Lo que se compra se anota en Mis trades.
 const TAB_KEY = 'autenticacion-tab'
-const reviewKey = (p: AuthProduct) => `autenticacion-review-${p}`
-const EMPTY: Review = { ident: '', marks: {} }
+const MODE_KEY = 'autenticacion-mode'
+const LUGAR_KEY = 'autenticacion-lugar'
+const reviewKey = (m: AuthMode, p: AuthProduct) => (m === 'COMPRA' ? `autenticacion-review-${p}` : `autenticacion-venta-${p}`)
+const EMPTY: Review = { ident: '', hora: '', precio: '', marks: {} }
 
-function loadReview(p: AuthProduct): Review {
+function loadReview(m: AuthMode, p: AuthProduct): Review {
   try {
-    const raw = window.localStorage.getItem(reviewKey(p))
+    const raw = window.localStorage.getItem(reviewKey(m, p))
     return raw ? { ...EMPTY, ...JSON.parse(raw) } : EMPTY
   } catch { return EMPTY }
 }
 
-function saveReview(p: AuthProduct, r: Review) {
-  try { window.localStorage.setItem(reviewKey(p), JSON.stringify(r)) } catch { /* modo privado */ }
+function saveReview(m: AuthMode, p: AuthProduct, r: Review) {
+  try { window.localStorage.setItem(reviewKey(m, p), JSON.stringify(r)) } catch { /* modo privado */ }
+}
+
+async function copyText(text: string) {
+  try { await navigator.clipboard.writeText(text); toast.success('Copiado') } catch { toast.error('No se pudo copiar') }
+}
+
+function Mensajes({ mode, product, vars, onVars }: {
+  mode: AuthMode
+  product: AuthProduct
+  vars: ChatVars
+  onVars: (v: Partial<ChatVars>) => void
+}) {
+  const scripts = chatScripts(mode, product)
+  return (
+    <section className='rounded-lg border'>
+      <div className='flex flex-wrap items-center gap-2 px-4 py-3 border-b bg-muted/50'>
+        <MessageSquare className='h-4 w-4 text-muted-foreground' />
+        <h2 className='text-sm font-semibold mr-auto'>Mensajes</h2>
+        <Input placeholder={DEFAULT_LUGAR} value={vars.lugar} onChange={(e) => onVars({ lugar: e.target.value })} className='h-8 w-44' title='Lugar de entrega (se queda guardado)' />
+        <Input placeholder='Día y hora (hoy a las 6)' value={vars.hora} onChange={(e) => onVars({ hora: e.target.value })} className='h-8 w-44' />
+        <Input placeholder={mode === 'COMPRA' ? 'Oferta / tope' : 'Precio'} inputMode='numeric' value={vars.precio} onChange={(e) => onVars({ precio: e.target.value })} className='h-8 w-32' />
+      </div>
+      <ul className='divide-y'>
+        {scripts.map((sc) => {
+          const text = sc.text(vars)
+          return (
+            <li key={sc.id} className='flex gap-3 px-4 py-3'>
+              <div className='min-w-0 flex-1 space-y-1'>
+                <div className='text-xs font-medium'>{sc.title} <span className='font-normal text-muted-foreground'>· {sc.when}</span></div>
+                <div className='text-sm'>{text}</div>
+              </div>
+              <button onClick={() => copyText(text)} title='Copiar mensaje' className='shrink-0 self-start p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted'>
+                <Copy className='h-3.5 w-3.5' />
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
 }
 
 function ItemRow({ item, mark, onMark }: { item: CheckItem; mark?: Mark; onMark: (m: Mark | undefined) => void }) {
@@ -153,27 +196,41 @@ function ItemRow({ item, mark, onMark }: { item: CheckItem; mark?: Mark; onMark:
 
 export default function AutenticacionClient() {
   const [product, setProduct] = useState<AuthProduct>('IPHONE')
+  const [mode, setMode] = useState<AuthMode>('COMPRA')
   const [review, setReview] = useState<Review>(EMPTY)
+  const [lugar, setLugar] = useState('')
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     let p: AuthProduct = 'IPHONE'
+    let m: AuthMode = 'COMPRA'
     try {
       const saved = window.localStorage.getItem(TAB_KEY) as AuthProduct | null
       if (saved && saved in CHECKLISTS) p = saved
+      if (window.localStorage.getItem(MODE_KEY) === 'VENTA') m = 'VENTA'
+      setLugar(window.localStorage.getItem(LUGAR_KEY) ?? '')
     } catch { /* modo privado */ }
     setProduct(p)
-    setReview(loadReview(p))
+    setMode(m)
+    setReview(loadReview(m, p))
     setLoaded(true)
   }, [])
 
-  const switchTo = (p: AuthProduct) => {
+  const switchTo = (p: AuthProduct, m: AuthMode = mode) => {
     setProduct(p)
-    setReview(loadReview(p))
-    try { window.localStorage.setItem(TAB_KEY, p) } catch { /* modo privado */ }
+    setMode(m)
+    setReview(loadReview(m, p))
+    try { window.localStorage.setItem(TAB_KEY, p); window.localStorage.setItem(MODE_KEY, m) } catch { /* modo privado */ }
   }
 
-  const update = (r: Review) => { setReview(r); saveReview(product, r) }
+  const update = (r: Review) => { setReview(r); saveReview(mode, product, r) }
+  const setVars = (v: Partial<ChatVars>) => {
+    if (v.lugar !== undefined) {
+      setLugar(v.lugar)
+      try { window.localStorage.setItem(LUGAR_KEY, v.lugar) } catch { /* modo privado */ }
+    }
+    if (v.hora !== undefined || v.precio !== undefined) update({ ...review, ...(v.hora !== undefined && { hora: v.hora }), ...(v.precio !== undefined && { precio: v.precio }) })
+  }
   const setMark = (key: string, m: Mark | undefined) => {
     const marks = { ...review.marks }
     if (m) marks[key] = m
@@ -181,7 +238,7 @@ export default function AutenticacionClient() {
     update({ ...review, marks })
   }
 
-  const phases = CHECKLISTS[product]
+  const phases = MODE_CHECKLISTS[mode][product]
   const services = SERVICES[product]
 
   const stats = useMemo(() => {
@@ -196,10 +253,7 @@ export default function AutenticacionClient() {
     return { total, done, blockers }
   }, [phases, review.marks])
 
-  const copyIdent = async () => {
-    if (!review.ident.trim()) return
-    try { await navigator.clipboard.writeText(review.ident.trim()); toast.success('Copiado') } catch { toast.error('No se pudo copiar') }
-  }
+  const copyIdent = () => { if (review.ident.trim()) copyText(review.ident.trim()) }
 
   const label = AUTH_PRODUCTS.find((p) => p.id === product)?.label
 
@@ -207,21 +261,37 @@ export default function AutenticacionClient() {
     <div className='p-3 sm:p-6 space-y-6'>
       <div>
         <h1 className='text-xl font-semibold'>Autenticación</h1>
-        <p className='text-sm text-muted-foreground'>Revisión antes de pagar, por producto. Marca cada punto frente al vendedor; se guarda en este navegador hasta que empieces otra.</p>
+        <p className='text-sm text-muted-foreground'>
+          Del primer mensaje al pago, por producto. Solo se entrega en plaza de Polanco; por chat se filtra lo mínimo y el rigor va en persona.
+          Marca cada punto en el trato; se guarda en este navegador hasta que empieces otra.
+        </p>
       </div>
 
-      <div className='inline-flex max-w-full overflow-x-auto rounded-md border p-0.5 bg-muted/40'>
-        {AUTH_PRODUCTS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => switchTo(p.id)}
-            className={cn('shrink-0 whitespace-nowrap px-3 py-1 text-sm rounded transition-colors', product === p.id ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
-          >{p.label}</button>
-        ))}
+      <div className='flex flex-wrap gap-2'>
+        <div className='inline-flex rounded-md border p-0.5 bg-muted/40'>
+          {(['COMPRA', 'VENTA'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => switchTo(product, m)}
+              className={cn('px-3 py-1 text-sm rounded transition-colors', mode === m ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
+            >{m === 'COMPRA' ? 'Compra' : 'Venta'}</button>
+          ))}
+        </div>
+        <div className='inline-flex max-w-full overflow-x-auto rounded-md border p-0.5 bg-muted/40'>
+          {AUTH_PRODUCTS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => switchTo(p.id)}
+              className={cn('shrink-0 whitespace-nowrap px-3 py-1 text-sm rounded transition-colors', product === p.id ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
+            >{p.label}</button>
+          ))}
+        </div>
       </div>
 
       {loaded && (
         <>
+          <Mensajes mode={mode} product={product} vars={{ lugar, hora: review.hora, precio: review.precio }} onVars={setVars} />
+
           <div className='rounded-lg border p-4 space-y-3'>
             <div className='flex flex-wrap items-center gap-2'>
               <Input
@@ -238,7 +308,7 @@ export default function AutenticacionClient() {
                 <Button
                   variant='outline'
                   size='sm'
-                  onClick={() => { if (stats.done === 0 && !review.ident || window.confirm(`¿Empezar una revisión nueva de ${label}? Se borran las marcas actuales.`)) update(EMPTY) }}
+                  onClick={() => { if (stats.done === 0 && !review.ident || window.confirm(`¿Empezar ${mode === 'COMPRA' ? 'una compra' : 'una venta'} nueva de ${label}? Se borran las marcas actuales.`)) update(EMPTY) }}
                 >
                   <RotateCcw className='h-3.5 w-3.5 mr-1.5' />Nueva revisión
                 </Button>
@@ -263,36 +333,6 @@ export default function AutenticacionClient() {
             )}
           </div>
 
-          <section className='space-y-2'>
-            <h2 className='text-base font-semibold'>{product === 'BOLSOS' ? 'Autenticación' : `Consultas con ${product === 'IPHONE' ? 'IMEI' : 'serie'}`}</h2>
-            <div className='rounded-md border overflow-x-auto'>
-              <table className='w-full text-sm'>
-                <thead>
-                  <tr className='border-b bg-muted/50'>
-                    {['Servicio', 'Costo', 'Usa', 'Qué te dice'].map((h) => (
-                      <th key={h} className='px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap'>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {services.map((s) => (
-                    <tr key={s.name} className='border-b last:border-b-0'>
-                      <td className='px-4 py-3 whitespace-nowrap'>
-                        <a href={s.url} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1.5 font-medium hover:underline'>
-                          {s.name}<ExternalLink className='h-3 w-3 text-muted-foreground' />
-                        </a>
-                      </td>
-                      <td className={cn('px-4 py-3 whitespace-nowrap', s.cost === 'Gratis' ? 'text-green-600 dark:text-green-400' : '')}>{s.cost}</td>
-                      <td className='px-4 py-3 whitespace-nowrap text-muted-foreground'>{s.input}</td>
-                      <td className='px-4 py-3 text-muted-foreground'>{s.what}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {product !== 'BOLSOS' && <p className='text-xs text-muted-foreground'>{SERVICES_NOTE}</p>}
-          </section>
-
           <div className='space-y-4'>
             {phases.map((ph, i) => {
               const done = ph.items.filter((it) => review.marks[`${ph.id}.${it.id}`]).length
@@ -314,7 +354,40 @@ export default function AutenticacionClient() {
             })}
           </div>
 
-          {product === 'BOLSOS' && <EntrupySection />}
+          {mode === 'COMPRA' && (
+            <>
+              <section className='space-y-2'>
+                <h2 className='text-base font-semibold'>{product === 'BOLSOS' ? 'Autenticación' : `Consultas con ${product === 'IPHONE' ? 'IMEI' : 'serie'}`}</h2>
+                <div className='rounded-md border overflow-x-auto'>
+                  <table className='w-full text-sm'>
+                    <thead>
+                      <tr className='border-b bg-muted/50'>
+                        {['Servicio', 'Costo', 'Usa', 'Qué te dice'].map((h) => (
+                          <th key={h} className='px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap'>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {services.map((s) => (
+                        <tr key={s.name} className='border-b last:border-b-0'>
+                          <td className='px-4 py-3 whitespace-nowrap'>
+                            <a href={s.url} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1.5 font-medium hover:underline'>
+                              {s.name}<ExternalLink className='h-3 w-3 text-muted-foreground' />
+                            </a>
+                          </td>
+                          <td className={cn('px-4 py-3 whitespace-nowrap', s.cost === 'Gratis' ? 'text-green-600 dark:text-green-400' : '')}>{s.cost}</td>
+                          <td className='px-4 py-3 whitespace-nowrap text-muted-foreground'>{s.input}</td>
+                          <td className='px-4 py-3 text-muted-foreground'>{s.what}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {product !== 'BOLSOS' && <p className='text-xs text-muted-foreground'>{SERVICES_NOTE}</p>}
+              </section>
+              {product === 'BOLSOS' && <EntrupySection />}
+            </>
+          )}
         </>
       )}
     </div>

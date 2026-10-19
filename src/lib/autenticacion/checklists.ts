@@ -1,8 +1,14 @@
 // Checklists de revisión antes de comprar, por producto. Contenido de
 // referencia (no vive en la DB): si algo cambia con una versión nueva de iOS o
 // un servicio sube precios, se edita aquí. Investigado en octubre 2026.
+//
+// Criterio: muchos tratos, poco riesgo real. Si un vendedor miente por chat lo
+// peor es perder el viaje (solo se entrega en plaza de Polanco y se paga al
+// final), así que el chat filtra lo mínimo y el rigor va en persona: que no
+// haya bypass, que no haya cambiazo y que el dinero sea real.
 
 export type AuthProduct = 'IPHONE' | 'IPAD' | 'MACBOOK' | 'AUDIFONOS' | 'BOLSOS'
+export type AuthMode = 'COMPRA' | 'VENTA'
 
 export type CheckItem = {
   id: string
@@ -104,8 +110,15 @@ export const SERVICES_NOTE =
 const antiBypass = (device: string): CheckItem[] => [
   { id: 'update', label: `Lo primero: ¿${device} tiene la última versión? Si no, inicia la actualización`, how: 'Ajustes › General › Actualización de software. Comparte internet desde tu teléfono (2 h de datos Telcel ~$15) y prueba lo demás mientras descarga. Un bypass solo funciona en versiones específicas; al actualizar regresa el Bloqueo de activación. Si no deja actualizar o la opción no aparece, no se compra.', stop: true },
   { id: 'reboot', label: 'Reinícialo 2 o 3 veces: enciende normal y con señal', how: 'Los bypass "tethered" se caen al reiniciar y regresa la pantalla de activación.', stop: true },
-  { id: 'own-id', label: 'Inicia sesión con TU Apple ID en Ajustes', how: 'Un equipo con bypass no deja entrar a iCloud ni a App Store, o falla al activar Buscar. Cierras sesión antes del borrado.', stop: true },
 ]
+
+const PAY_BUY: CheckItem = { id: 'pay', label: 'Pagas al final, por transferencia, y le enseñas el comprobante', how: 'Así queda registro y no traes efectivo. Ya con el equipo en tu bolsa o mochila.' }
+const NO_SWAP_BUY = (where: string): CheckItem => ({
+  id: 'no-swap',
+  label: 'No lo sueltes desde que lo revisas',
+  how: `Cambiazo clásico: te enseñan uno bueno y te entregan otro igual (bloqueado o roto) al final, "deja te lo limpio" o "te doy la caja". Si vuelve a sus manos, revisa de nuevo ${where} antes de pagar.`,
+  stop: true,
+})
 
 // ─── Fases compartidas ───────────────────────────────────────────────────────
 
@@ -116,27 +129,38 @@ const closingIos = (device: string): CheckPhase => ({
   items: [
     { id: 'logout', label: 'El vendedor cierra sesión de su Apple ID frente a ti', how: `Ajustes › [su nombre] › Cerrar sesión. Pide su contraseña de Apple ID: eso apaga Buscar ${device}.`, stop: true },
     { id: 'erase', label: 'Borrar contenidos y ajustes, frente a ti', how: 'Ajustes › General › Transferir o restablecer › Borrar contenidos y ajustes.', stop: true },
-    { id: 'activation', label: 'Al reiniciar llega a "Hola" y se activa sin pedir el Apple ID de nadie', how: 'Es la prueba definitiva contra bypass: el borrado reinstala la activación limpia. Si pide "Bloqueo de activación" o muestra "Gestión remota", no se compra.', stop: true },
+    { id: 'activation', label: 'Al reiniciar llega a "Hola" y se activa sin pedir el Apple ID de nadie', how: 'El borrado reinstala la activación limpia. Si pide "Bloqueo de activación" o muestra "Gestión remota", no se compra.', stop: true },
+    { id: 'own-id', label: 'Último paso: lo configuras con TU Apple ID y prendes Buscar', how: `Prueba final contra bypass: un equipo con bypass no deja entrar a iCloud ni activar Buscar ${device}. Desde aquí queda bloqueado a tu nombre hasta que lo vendas.`, stop: true },
+    NO_SWAP_BUY('el IMEI (en "Hola" toca ⓘ, o *#06#)'),
     { id: 'box', label: 'Caja con el mismo IMEI/serie y cable', how: 'La caja debe coincidir con el equipo; suma para vender en P75.' },
     { id: 'id', label: 'Foto de INE del vendedor y compraventa simple', how: 'Nombre, teléfono, IMEI/serie, precio, fecha y firma. Si tiene factura o ticket, foto.' },
-    { id: 'pay', label: 'Pagas al final, por transferencia', how: 'Así queda registro y no traes efectivo.' },
+    PAY_BUY,
   ],
 })
+
+// ─── Por chat (compra) ───────────────────────────────────────────────────────
+// Lo mínimo para no perder el viaje. Los mensajes listos están en mensajes.ts.
+
+const PLACE_ITEM: CheckItem = {
+  id: 'place',
+  label: 'Entrega en plaza comercial de Polanco',
+  how: 'Antara, Plaza Carso o Miyana: seguridad, cámaras y gente. Es lo primero que se pregunta; si no puede ir, no hay trato (ni "a media calle", ni en su casa, ni en metro).',
+  stop: true,
+}
 
 // ─── iPhone ──────────────────────────────────────────────────────────────────
 
 const IPHONE: CheckPhase[] = [
   {
-    id: 'previo',
-    title: 'Antes de ir',
-    hint: 'Por chat, con el IMEI y la serie. Filtra antes de gastar tiempo.',
+    id: 'chat',
+    title: 'Por chat',
+    hint: 'Lo mínimo. Si mintió, lo cachas en persona y solo pierdes el viaje.',
     items: [
-      { id: 'imei', label: 'Pide captura de Ajustes › General › Información', how: 'Ahí salen IMEI, número de serie, modelo y capacidad.' },
-      { id: 'crt', label: 'CRT: no reportado como robado en México', how: 'portal.crt.gob.mx/consultar-imei', stop: true },
-      { id: 'blacklist', label: 'Reporte pagado: lista negra limpia, sin bloqueo de operador, no "Lost"', how: 'SICKW Carrier & FMI & Blacklist + Clean/Lost. FMI ON todavía es normal; se apaga en el cierre. Pero FMI ON + "ya lo borré, no tiene cuenta" = posible bypass.', stop: true },
-      { id: 'coverage', label: 'Serie en Apple Cobertura coincide con modelo y color', how: 'Si dice otro modelo o no existe, es carcasa cambiada o equipo armado.', stop: true },
-      { id: 'model', label: 'Número de modelo: revisa la primera letra y la región', how: 'Ajustes › General › Información › toca "Modelo". M = nuevo de tienda · F = reacondicionado por Apple · N = reemplazo de garantía · P = grabado · 3 = demo. Sufijo: E/A México · LL/A EE. UU. (desde el iPhone 14 son solo eSIM, sin bandeja) · LZ/A Chile y Paraguay.' },
-      { id: 'battery-pre', label: 'Captura de Salud de la batería y de Historial de piezas', how: 'Si no la quiere mandar, mala señal.' },
+      PLACE_ITEM,
+      { id: 'imei', label: 'Ya con lugar y hora: captura de Ajustes › General › Información', how: 'IMEI, modelo y capacidad. Pídela después de quedar (mensaje "Ya quedamos"); si a esas alturas no la manda, no vayas. Pega el IMEI arriba: en persona lo comparas.' },
+      { id: 'crt', label: 'CRT: no reportado como robado en México', how: 'Gratis, 30 segundos: portal.crt.gob.mx/consultar-imei.', stop: true },
+      { id: 'model', label: 'Número de modelo: primera letra y región', how: 'En la misma captura, toca "Modelo". M = nuevo de tienda · F = reacondicionado por Apple · N = reemplazo de garantía · P = grabado · 3 = demo. Sufijo: E/A México · LL/A EE. UU. (desde el iPhone 14 son solo eSIM, sin bandeja) · LZ/A Chile y Paraguay.' },
+      { id: 'report', label: 'Opcional: reporte SICKW (~$6) si es caro o algo no cuadra', how: 'Carrier & FMI & Blacklist + Clean/Lost. Úsalo si dice "ya lo borré, no tiene cuenta", si el modelo no coincide o si el trato pasa de ~$15,000.' },
     ],
   },
   {
@@ -186,15 +210,15 @@ const IPHONE: CheckPhase[] = [
 
 const IPAD: CheckPhase[] = [
   {
-    id: 'previo',
-    title: 'Antes de ir',
-    hint: 'Por chat. Los Wi-Fi no tienen IMEI: usa la serie.',
+    id: 'chat',
+    title: 'Por chat',
+    hint: 'Lo mínimo. Los Wi-Fi no tienen IMEI: usa la serie.',
     items: [
-      { id: 'serial', label: 'Pide captura de Ajustes › General › Información', how: 'Serie, modelo, capacidad, e IMEI si es Cellular.' },
+      PLACE_ITEM,
+      { id: 'serial', label: 'Ya con lugar y hora: captura de Ajustes › General › Información', how: 'Serie, modelo, capacidad, e IMEI si es Cellular.' },
       { id: 'crt', label: 'Si es Cellular: CRT no reportado', how: 'portal.crt.gob.mx/consultar-imei', stop: true },
-      { id: 'mdm-pre', label: 'Reporte pagado con MDM', how: 'SICKW Carrier + MDM & iCloud (~US$0.40). Los iPads de escuelas y empresas vienen inscritos y no se pueden liberar.', stop: true },
-      { id: 'coverage', label: 'Serie en Apple Cobertura coincide con modelo y color', stop: true },
       { id: 'model', label: 'Primera letra del modelo', how: 'M nuevo · F reacondicionado Apple · N reemplazo · 3 demo (los de exhibición tienen mucho uso de pantalla).' },
+      { id: 'report', label: 'Opcional: reporte SICKW con MDM (~$8) si suena a escuela o empresa', how: 'Carrier + MDM & iCloud. En persona igual sale: perfiles de gestión y, al borrar, "Gestión remota".' },
     ],
   },
   {
@@ -240,14 +264,14 @@ const IPAD: CheckPhase[] = [
 
 const MACBOOK: CheckPhase[] = [
   {
-    id: 'previo',
-    title: 'Antes de ir',
-    hint: 'Por chat, con la serie.',
+    id: 'chat',
+    title: 'Por chat',
+    hint: 'Lo mínimo; MDM y bloqueo se ven en persona.',
     items: [
-      { id: 'serial', label: 'Pide captura de menú Apple › Acerca de esta Mac', how: 'Chip, RAM, almacenamiento, serie y versión de macOS.' },
-      { id: 'coverage', label: 'Serie en Apple Cobertura coincide con modelo y año', stop: true },
-      { id: 'icloud-mdm', label: 'Reporte pagado: iCloud y MDM', how: 'SICKW MacBook iCloud On/Off (~US$0.20) + Apple MDM Status (~US$0.30). Las Mac de empresa inscritas en DEP no se liberan.', stop: true },
-      { id: 'cycles-pre', label: 'Captura de ciclos de batería', how: 'Información del sistema › Energía.' },
+      PLACE_ITEM,
+      { id: 'serial', label: 'Ya con lugar y hora: captura de menú Apple › Acerca de esta Mac', how: 'Chip, RAM, almacenamiento, serie y versión de macOS. Que sea la configuración anunciada.' },
+      { id: 'coverage', label: 'Serie en Apple Cobertura coincide con modelo y año', how: 'Gratis. Si no existe o es otro modelo, no vayas.', stop: true },
+      { id: 'report', label: 'Opcional: reporte SICKW iCloud + MDM (~$9) si suena a Mac de empresa', how: 'MacBook iCloud On/Off + Apple MDM Status. En persona igual sale con profiles status y al borrar.' },
     ],
   },
   {
@@ -257,7 +281,6 @@ const MACBOOK: CheckPhase[] = [
     items: [
       { id: 'update', label: 'Lo primero: ¿macOS está en la última versión? Si no, inicia la actualización', how: 'Ajustes del Sistema › General › Actualización de software (comparte internet desde tu teléfono). Las Mac Intel con chip T2 se pueden saltar el bloqueo con checkm8, pero no es permanente: al actualizar, reinstalar o reiniciar regresa. Si no deja actualizar, no se compra.', stop: true },
       { id: 'reboot', label: 'Reiníciala 2 o 3 veces: arranca normal a macOS', stop: true },
-      { id: 'own-id', label: 'Inicia sesión con TU Apple ID y activa Buscar mi Mac', how: 'Ajustes del Sistema › [tu nombre] › iCloud › Buscar mi Mac. Si no deja, algo está bloqueado. Cierras sesión antes del borrado.', stop: true },
       { id: 'serial-match', label: 'Serie coincide en Acerca de esta Mac, base y caja', stop: true },
       { id: 'activation', label: 'Bloqueo de activación: Desactivado', how: 'Mantén Opción › menú Apple › Información del sistema › Hardware: "Estado del bloqueo de activación". Lo tienen las Mac con Apple Silicon (M1 en adelante) y las Intel con chip T2 (2018–2020). Las Intel más viejas no, pero si las bloquearon desde iCloud piden un PIN al arrancar.', stop: true },
       { id: 'mdm', label: 'Sin MDM ni DEP', how: 'Terminal: profiles status -type enrollment → "No" en las dos líneas. Y Ajustes › General › Gestión de dispositivos vacío. Hay trucos que saltan la pantalla de "Gestión remota" al configurar; este comando la delata y vuelve a salir al borrar.', stop: true },
@@ -298,10 +321,12 @@ const MACBOOK: CheckPhase[] = [
     items: [
       { id: 'logout', label: 'El vendedor cierra sesión de iCloud (apaga Buscar mi Mac)', stop: true },
       { id: 'erase', label: 'Borrar contenidos y ajustes, frente a ti', how: 'Ajustes del Sistema › General › Transferir o restablecer.', stop: true },
-      { id: 'setup', label: 'Arranca al asistente sin "Gestión remota" ni Apple ID ajeno', how: 'Es la prueba definitiva: el borrado vuelve a pedir activación a Apple, y ahí sale cualquier bloqueo o MDM que se hayan saltado.', stop: true },
+      { id: 'setup', label: 'Arranca al asistente sin "Gestión remota" ni Apple ID ajeno', how: 'El borrado vuelve a pedir activación a Apple, y ahí sale cualquier bloqueo o MDM que se hayan saltado.', stop: true },
+      { id: 'own-id', label: 'Último paso: la configuras con TU Apple ID y prendes Buscar mi Mac', how: 'Ajustes del Sistema › [tu nombre] › iCloud › Buscar mi Mac. Si no deja, algo está bloqueado. Desde aquí queda a tu nombre hasta que la vendas.', stop: true },
+      NO_SWAP_BUY('la serie en Acerca de esta Mac'),
       { id: 'charger', label: 'Cargador original', how: 'Cargador genérico baja precio.' },
       { id: 'id', label: 'Foto de INE del vendedor y compraventa simple' },
-      { id: 'pay', label: 'Pagas al final, por transferencia' },
+      PAY_BUY,
     ],
   },
 ]
@@ -310,10 +335,11 @@ const MACBOOK: CheckPhase[] = [
 
 const AUDIFONOS: CheckPhase[] = [
   {
-    id: 'previo',
-    title: 'Antes de ir',
+    id: 'chat',
+    title: 'Por chat',
     hint: 'La serie sola no prueba nada: las clonan de cajas reales.',
     items: [
+      PLACE_ITEM,
       { id: 'serial', label: 'Pide la serie (estuche, tapa interior)', how: 'Revísala en Apple Cobertura: descarta números inventados, no clones.' },
       { id: 'model', label: 'Modelo exacto', how: 'Pro 2 Lightning vs USB-C, Pro 3, AirPods 4 con o sin cancelación. Cambia mucho el precio.' },
     ],
@@ -351,9 +377,10 @@ const AUDIFONOS: CheckPhase[] = [
     hint: 'Hasta aquí se paga.',
     items: [
       { id: 'reset', label: 'Restablecer: botón del estuche 15 s hasta luz ámbar y luego blanca', stop: true },
-      { id: 'own-findmy', label: 'Se emparejan con tu iPhone y aparecen en TU app Encontrar', how: 'Es la prueba definitiva de que ya no están ligados al vendedor.', stop: true },
+      { id: 'own-findmy', label: 'Último paso: se emparejan con tu iPhone y aparecen en TU app Encontrar', how: 'Prueba final de que ya no están ligados al vendedor.', stop: true },
+      NO_SWAP_BUY('los seriales en tu iPhone'),
       { id: 'box', label: 'Caja con la misma serie y cable' },
-      { id: 'pay', label: 'Pagas al final, por transferencia' },
+      PAY_BUY,
     ],
   },
 ]
@@ -380,10 +407,11 @@ const ENTRUPY_SEARCH: CheckService = {
 
 const BOLSOS: CheckPhase[] = [
   {
-    id: 'previo',
-    title: 'Antes de ir',
-    hint: 'Por chat. La mayoría de las réplicas se caen aquí.',
+    id: 'chat',
+    title: 'Por chat',
+    hint: 'La mayoría de las réplicas se caen aquí: avísale que la escaneas con Entrupy.',
     items: [
+      PLACE_ITEM,
       { id: 'entrupy-list', label: 'La marca y el material están en Entrupy', how: 'Ver la tabla de abajo. Michael Kors, Kate Spade, Tory Burch, Longchamp y Guess no los autentica: no se compran. Exóticos (cocodrilo, avestruz) en Hermès no.', stop: true },
       { id: 'price', label: 'El precio no está abajo del piso de la marca', how: 'El CRM marca "precio muy bajo para la marca". Una LV Neverfull a $3,000 no existe.', stop: true },
       { id: 'photos', label: 'Fotos reales, no de catálogo', how: 'Pide: logo/estampado interior, código de fecha o etiqueta de serie, herrajes y cierre de cerca, costuras de las asas, base y esquinas.' },
@@ -432,13 +460,102 @@ const BOLSOS: CheckPhase[] = [
     title: 'Cierre',
     hint: 'Hasta aquí se paga.',
     items: [
+      NO_SWAP_BUY('las fotos del escaneo contra el bolso (código, herrajes, marcas de uso)'),
       { id: 'id', label: 'Foto de INE del vendedor y compraventa simple', how: 'Nombre, teléfono, marca, modelo, número de certificado Entrupy, precio, fecha y firma. La garantía de Entrupy pide comprobante de compra.' },
-      { id: 'pay', label: 'Pagas al final, por transferencia' },
+      PAY_BUY,
     ],
   },
 ]
 
 export const CHECKLISTS: Record<AuthProduct, CheckPhase[]> = { IPHONE, IPAD, MACBOOK, AUDIFONOS, BOLSOS }
+
+// ─── Venta ───────────────────────────────────────────────────────────────────
+// Del otro lado los riesgos son el cambiazo, el comprobante falso y el billete
+// falso. El seguro es el mismo que al comprar: tu Apple ID se queda puesto
+// hasta que el dinero está en tu cuenta (o contado y revisado).
+
+const salePrep = (ident: string, account: string | null): CheckPhase => ({
+  id: 'prep',
+  title: 'Antes de salir',
+  hint: 'Evidencia por si te lo regresan o reclaman.',
+  items: [
+    PLACE_ITEM,
+    { id: 'record', label: `Anota ${ident} y toma fotos de sus marcas únicas`, how: 'Rayones, golpecitos, el ángulo de la funda… lo que solo tiene el tuyo. Con eso reconoces el tuyo si te lo regresan.' },
+    { id: 'video', label: 'Video corto del equipo funcionando', how: `Encendido, ${ident} en pantalla y lo principal funcionando. Si el comprador reclama después, ahí está cómo lo entregaste.` },
+    ...(account ? [{ id: 'keep-id', label: `Va con ${account} puesto`, how: 'Si te lo arrebatan o te pagan con algo falso, queda bloqueado e inservible. Se quita hasta el cierre.' }] : []),
+    { id: 'charge', label: 'Cargado y con caja, cable y accesorios del anuncio' },
+  ],
+})
+
+const saleHandover = (check: string): CheckPhase => ({
+  id: 'entrega',
+  title: 'En persona · revisión del comprador',
+  hint: 'Que revise todo lo que quiera, pero frente a ti.',
+  items: [
+    { id: 'in-sight', label: 'El equipo nunca sale de tu vista', how: 'Que lo revise en la mesa, frente a ti. No "lo voy a enseñar a mi esposa", no pasarlo a un acompañante, no ir al baño con él.', stop: true },
+    { id: 'return-check', label: `Si te lo regresa ("no me convenció", "tiene falla"), revisa ${check} antes de aceptarlo`, how: 'El cambiazo se hace aquí: te regresan uno igual pero roto, bloqueado o réplica, con tu funda.', stop: true },
+    { id: 'one-buyer', label: 'Una persona, un trato', how: 'Si llegan 2 o 3 y uno te distrae platicando mientras otro revisa, guarda el equipo y reagenda.' },
+  ],
+})
+
+const SALE_PAYMENT: CheckPhase = {
+  id: 'cobro',
+  title: 'Cobro',
+  hint: 'Nada se entrega hasta que el dinero es real.',
+  items: [
+    { id: 'transfer', label: 'Transferencia: confírmala en TU app del banco', how: 'No en la captura, correo o SMS que te enseñe: los comprobantes SPEI falsos son el fraude más común. SPEI llega en segundos; si "ya te la mandé pero tarda", no se entrega. Desconfía de "te la programé" o "está en proceso".', stop: true },
+    { id: 'cash', label: 'Efectivo: cuenta y revisa cada billete de $200, $500 y $1,000', how: 'Toca el relieve; a contraluz, marca de agua y hilo; inclínalo: la tinta cambia de color. Una lámpara UV de llavero (~$100) delata el papel falso: brilla parejo. Un billete dudoso se rechaza; no aceptes "te lo cambio luego".', stop: true },
+    { id: 'no-split', label: 'Sin pagos partidos ni "te deposito el resto mañana"', stop: true },
+  ],
+}
+
+const saleClose = (steps: CheckItem[]): CheckPhase => ({
+  id: 'cierre',
+  title: 'Cierre',
+  hint: 'Solo con el dinero confirmado.',
+  items: [
+    ...steps,
+    { id: 'receipt', label: 'Nota de venta con foto de su INE', how: 'Producto, IMEI/serie, precio, fecha, "se entrega revisado y funcionando a satisfacción del comprador" y firma de los dos.' },
+  ],
+})
+
+const iosSaleClose = (device: string) => saleClose([
+  { id: 'logout', label: `Cierras sesión de TU Apple ID (apaga Buscar ${device})`, how: 'Último paso, ya cobrado.', stop: true },
+  { id: 'erase', label: 'Borrar contenidos y ajustes frente al comprador', how: 'Que vea que llega a "Hola" y se activa sin pedir tu cuenta.', stop: true },
+])
+
+const SALE_CHECKLISTS_: Record<AuthProduct, CheckPhase[]> = {
+  IPHONE: [salePrep('el IMEI', 'tu Apple ID'), saleHandover('el IMEI (*#06#) y tus marcas'), SALE_PAYMENT, iosSaleClose('mi iPhone')],
+  IPAD: [salePrep('la serie', 'tu Apple ID'), saleHandover('la serie y tus marcas'), SALE_PAYMENT, iosSaleClose('mi iPad')],
+  MACBOOK: [
+    salePrep('la serie', 'tu Apple ID'),
+    saleHandover('la serie (Acerca de esta Mac) y tus marcas'),
+    SALE_PAYMENT,
+    saleClose([
+      { id: 'logout', label: 'Cierras sesión de iCloud (apaga Buscar mi Mac)', how: 'Último paso, ya cobrado.', stop: true },
+      { id: 'erase', label: 'Borrar contenidos y ajustes frente al comprador', how: 'Ajustes del Sistema › General › Transferir o restablecer. Llega al asistente sin pedir tu cuenta.', stop: true },
+    ]),
+  ],
+  AUDIFONOS: [
+    salePrep('la serie de estuche y cada AirPod', 'tu cuenta (Encontrar)'),
+    saleHandover('los seriales y tus marcas'),
+    SALE_PAYMENT,
+    saleClose([
+      { id: 'remove', label: 'Los quitas de TU app Encontrar (Eliminar este dispositivo)', how: 'Último paso, ya cobrado. Sin esto le sale "vinculados a otro Apple ID".', stop: true },
+      { id: 'reset', label: 'Restablecer frente al comprador y que los empareje con su iPhone', stop: true },
+    ]),
+  ],
+  BOLSOS: [
+    salePrep('el número de certificado Entrupy y el código', null),
+    saleHandover('el código, herrajes y tus marcas contra tus fotos'),
+    SALE_PAYMENT,
+    saleClose([
+      { id: 'cert', label: 'Le compartes el certificado Entrupy', how: 'Lo verifica en entrupy.com/search-certificate con el número.' },
+    ]),
+  ],
+}
+
+export const MODE_CHECKLISTS: Record<AuthMode, Record<AuthProduct, CheckPhase[]>> = { COMPRA: CHECKLISTS, VENTA: SALE_CHECKLISTS_ }
 
 export const SERVICES: Record<AuthProduct, CheckService[]> = {
   IPHONE: [CRT, SICKW_BASIC, SICKW_LOST, APPLE_COVERAGE, SICKW_MDM, SICKW_REPLACEMENTS, SICKW_GSX],

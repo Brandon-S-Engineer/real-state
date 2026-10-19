@@ -122,6 +122,36 @@ export const GOAL_TABLES: { id: string; title: string; meta: string; nota: strin
       { from: 5, to: null, etapa: 'Mes 5+', volumen: '110–140 ventas', detalle: '~$2,100', capital: '~$450k', netoMes: '$230k–290k', freno: 'Capital y compras buenas (~5/día)', min: 230000, max: 290000 },
     ],
   },
+  // B-Stock: se compra por lotes en línea, así que solo cuentan los encuentros
+  // de venta. A cambio, el lote se paga ~1 mes antes de venderse (2–3 semanas
+  // de envío e importación + ~10 días de venta): el capital ≈ un mes de compras
+  // a ~$10.5k por pieza ya puesta en CDMX.
+  {
+    id: 'bstock-solo',
+    title: 'Tabla 3 · B-Stock individual (compras por lote, tú solo vendes)',
+    meta: 'Meta: ~$140,000 / mes desde el mes 5',
+    detalleLabel: 'Neto por pieza',
+    nota: 'Cada venta es 1 encuentro de ~30–40 min en Polanco; 70 ventas ≈ 3 al día. El tiempo deja de ser el freno y lo pasa a ser el capital. El neto ya descuenta envío, importación y piezas defectuosas del lote (estimado: ajústalo con tu validación). En lotes de devoluciones vienen iPhones con Bloqueo de activación, que no tienen arreglo: compra lotes "tested / iCloud unlocked" o cuenta la merma. MacBook de lotes de EE. UU. trae teclado en inglés y se vende ~5–10% abajo.',
+    rows: [
+      { from: 1, to: 1, etapa: 'Mes 1 · primer lote', volumen: '8–12 ventas', detalle: '~$1,500', capital: '~$120k (un lote)', netoMes: '$12k–18k', freno: 'El lote tarda 2–3 semanas; aprender manifiestos y grados', min: 12000, max: 18000 },
+      { from: 2, to: 2, etapa: 'Mes 2', volumen: '20–30 ventas', detalle: '~$1,700', capital: '~$300k', netoMes: '$34k–51k', freno: 'Capital: el lote se paga un mes antes', min: 34000, max: 51000 },
+      { from: 3, to: 4, etapa: 'Meses 3–4', volumen: '40–55 ventas', detalle: '~$1,900', capital: '~$500k', netoMes: '$76k–105k', freno: 'Capital', min: 76000, max: 105000 },
+      { from: 5, to: null, etapa: 'Mes 5+', volumen: '60–80 ventas', detalle: '~$2,000', capital: '~$750k', netoMes: '$120k–160k', freno: 'Demanda de un perfil (~3 ventas/día)', min: 120000, max: 160000 },
+    ],
+  },
+  {
+    id: 'bstock-familia',
+    title: 'Tabla 4 · B-Stock en familia (tú compras los lotes, los 3 venden)',
+    meta: 'Meta: ~$340,000 / mes desde el mes 5 (entre los 3)',
+    detalleLabel: 'Neto por pieza',
+    nota: 'Una sola cuenta de B-Stock (lotes más grandes, mejor precio por pieza) y cada quien vende con su perfil en su zona. Con 3 vendedores el freno es solo capital: la meta del mes 5 pide ~$1.8M rotando. Con los ~$450k de la tabla 2 el techo es ~40–45 ventas al mes. Si el capital no alcanza, combina: Marketplace (rota en 7–10 días con poco capital) y B-Stock para el volumen.',
+    rows: [
+      { from: 1, to: 1, etapa: 'Mes 1 · primer lote', volumen: '8–12 ventas (tú)', detalle: '~$1,500', capital: '~$120k', netoMes: '$12k–18k', freno: 'Validar lotes', min: 12000, max: 18000 },
+      { from: 2, to: 2, etapa: 'Mes 2', volumen: '40–60 ventas', detalle: '~$1,700', capital: '~$550k', netoMes: '$68k–102k', freno: 'Capital', min: 68000, max: 102000 },
+      { from: 3, to: 4, etapa: 'Meses 3–4', volumen: '90–120 ventas', detalle: '~$1,900', capital: '~$1.1M', netoMes: '$170k–230k', freno: 'Capital', min: 170000, max: 230000 },
+      { from: 5, to: null, etapa: 'Mes 5+', volumen: '150–190 ventas', detalle: '~$2,000', capital: '~$1.8M', netoMes: '$300k–380k', freno: 'Capital y demanda en 3 zonas', min: 300000, max: 380000 },
+    ],
+  },
 ]
 
 /** Mes del negocio (1 = el primer mes con actividad de reventa). */

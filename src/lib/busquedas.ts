@@ -1,9 +1,34 @@
 // Búsquedas rápidas de Marketplace (CDMX, más nuevos primero). Las de siempre
-// viven aquí; las que agrega el usuario están en la tabla ElecSearch.
+// viven aquí; las que agrega el usuario están en la tabla ElecSearch y pueden
+// ser texto (se arma el link de Marketplace) o un link completo (Upwork, etc.).
 
 import { BAG_BRANDS } from '@/lib/electronicos/bag-catalog'
 
-export type QuickSearch = { id: string; query: string; groupName: string; minPrice: number | null; custom: boolean }
+export type QuickSearch = { id: string; query: string; label?: string | null; groupName: string; minPrice: number | null; custom: boolean }
+
+export const isLink = (q: string) => /^https?:\/\//i.test(q.trim())
+
+/** Link que abre la búsqueda: el link tal cual, o el de Marketplace armado con el texto. */
+export function searchUrl(s: Pick<QuickSearch, 'query' | 'minPrice'>): string {
+  return isLink(s.query) ? s.query.trim() : marketplaceUrl(s.query, s.minPrice)
+}
+
+/** Nombre a mostrar: el que le pusiste, el texto, o lo que busca el link (q= de Upwork). */
+export function searchTitle(s: Pick<QuickSearch, 'query' | 'label'>): string {
+  if (s.label?.trim()) return s.label.trim()
+  if (!isLink(s.query)) return s.query
+  try {
+    const u = new URL(s.query.trim())
+    const q = u.searchParams.get('q') ?? u.searchParams.get('query')
+    return q ? q.replace(/\s+/g, ' ').slice(0, 80) : `${u.hostname.replace(/^www\./, '')}${u.pathname}`
+  } catch { return s.query }
+}
+
+/** Debajo del nombre: el precio mínimo (Marketplace) o el sitio (links). */
+export function searchHost(q: string): string | null {
+  if (!isLink(q)) return null
+  try { return new URL(q.trim()).hostname.replace(/^www\./, '') } catch { return null }
+}
 
 const BASE = 'https://www.facebook.com/marketplace/mexicocity/search'
 

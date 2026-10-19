@@ -520,7 +520,9 @@ model ElecTrade {
 // iPhone, iPad, marcas de bolsos… — viven en código: src/lib/busquedas.ts).
 model ElecSearch {
   id        String   @id @default(cuid())
+  // Texto para Marketplace, o un link completo (Upwork, etc.) que se abre tal cual
   query     String
+  label     String?
   groupName String   @default("Mis búsquedas")
   minPrice  Int?
   createdAt DateTime @default(now())

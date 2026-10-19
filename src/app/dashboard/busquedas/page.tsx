@@ -8,6 +8,6 @@ export default async function BusquedasPage() {
   const session = await auth()
   if (!session) redirect('/login')
   const rows = await prisma.elecSearch.findMany({ orderBy: { createdAt: 'asc' } })
-  const custom: QuickSearch[] = rows.map((r) => ({ id: r.id, query: r.query, groupName: r.groupName, minPrice: r.minPrice, custom: true }))
+  const custom: QuickSearch[] = rows.map((r) => ({ id: r.id, query: r.query, label: r.label, groupName: r.groupName, minPrice: r.minPrice, custom: true }))
   return <BusquedasClient initialCustom={custom} />
 }

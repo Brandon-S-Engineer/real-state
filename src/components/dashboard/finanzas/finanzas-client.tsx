@@ -288,7 +288,7 @@ export default function FinanzasClient({ entries: initial, trades, monthlyGoal }
         <div>
           <h2 className='text-base font-semibold'>Metas de referencia (reventa)</h2>
           <p className='text-sm text-muted-foreground'>
-            Estimaciones de octubre 2026, comprando y vendiendo todo desde tus zonas (sin trasladarte). Resaltado: el mes {bizMonth} del negocio
+            Estimaciones de octubre 2026, vendiendo desde tus zonas. Tablas 1–2: compras en Marketplace (2 encuentros por pieza). Tablas 3–4: compras por lote en B-Stock (solo encuentros de venta). Resaltado: el mes {bizMonth} del negocio
             {startKey ? ` (empezó en ${monthLabel(startKey)})` : ' — empieza a contar con tu primer trade o movimiento de reventa'}.
           </p>
         </div>

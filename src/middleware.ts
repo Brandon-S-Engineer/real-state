@@ -12,7 +12,7 @@ export default auth((req) => {
   }
 
   if (isAuthPage && isLoggedIn) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+    return NextResponse.redirect(new URL('/dashboard/finanzas', req.url))
   }
 
   return NextResponse.next()

@@ -29,7 +29,9 @@ export const tradeSchema = z.object({
 })
 
 export const searchSchema = z.object({
-  query: z.string().trim().min(1).max(120),
+  // Texto para Marketplace o un link completo
+  query: z.string().trim().min(1).max(2000),
+  label: z.string().trim().max(80).nullable().optional(),
   groupName: z.string().trim().min(1).max(60).default('Mis búsquedas'),
   minPrice: z.number().int().nonnegative().nullable().optional(),
 })

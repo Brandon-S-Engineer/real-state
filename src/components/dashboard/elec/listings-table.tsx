@@ -424,7 +424,10 @@ export default function ElecListingsTable({
   }
 
   // ── Filtrado ─────────────────────────────────────────────────────────────
-  const filtered = useMemo(() => listings.filter((l) => {
+  // Los filtros se aplican al cambiarlos tú. Lo que ya está en la tabla congelada
+  // se queda aunque cambie solo (lo marcaste visto, la extensión trajo la
+  // descripción y bajó el score…): si no, el listing que abriste desaparece al volver.
+  const passes = useCallback((l: ElecListingDTO) => {
     if (filters.q) {
       const q = filters.q.toLowerCase()
       if (!l.title.toLowerCase().includes(q) && !(l.description ?? '').toLowerCase().includes(q)) return false
@@ -445,7 +448,11 @@ export default function ElecListingsTable({
     if (filters.vigilando && !l.vigilando) return false
     if (filters.sinVistos && seenIds.has(l.id) && !l.vigilando) return false
     return true
-  }), [listings, filters])
+  }, [filters, seenIds])
+  const passesRef = useRef(passes)
+  passesRef.current = passes
+  const frozenIds = useMemo(() => (frozenOrder ? new Set(frozenOrder) : null), [frozenOrder])
+  const filtered = useMemo(() => listings.filter((l) => frozenIds?.has(l.id) || passes(l)), [listings, passes, frozenIds])
 
   const reviewCount = useMemo(() => listings.filter((l) => l.needsReview && l.status === 'ACTIVO').length, [listings])
   const chips = Array.from(new Set(CATALOG.flatMap((e) => e.chips)))
@@ -605,7 +612,7 @@ export default function ElecListingsTable({
   // Re-ordenar (y volver a la página 1) solo cuando el usuario cambia orden o filtros.
   // Al montar se respeta la página guardada; la llave evita resetearla en el doble render de dev.
   useEffect(() => {
-    setFrozenOrder(sortedRef.current.map((r) => r.original.id))
+    setFrozenOrder(sortedRef.current.filter((r) => passesRef.current(r.original)).map((r) => r.original.id))
     const key = JSON.stringify([sorting, priceSortMode, scoreSortMode, filters, orderVersion])
     if (orderKeyRef.current !== null && orderKeyRef.current !== key) setPageIndex(0)
     orderKeyRef.current = key
@@ -613,9 +620,8 @@ export default function ElecListingsTable({
 
   // Antes de congelar (primer render) se usa el orden vivo
   const rowById = new Map(sortedRows.map((r) => [r.original.id, r]))
-  const frozenSet = frozenOrder ? new Set(frozenOrder) : null
   const orderedRows = frozenOrder ? frozenOrder.flatMap((id) => rowById.get(id) ?? []) : sortedRows
-  const pendingNew = frozenSet ? sortedRows.filter((r) => !frozenSet.has(r.original.id)).length : 0
+  const pendingNew = frozenIds ? sortedRows.filter((r) => !frozenIds.has(r.original.id)).length : 0
   const pageCount = Math.max(1, Math.ceil(orderedRows.length / PAGE_SIZE))
   const page = Math.min(pageIndex, pageCount - 1)
   const pageRows = orderedRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)

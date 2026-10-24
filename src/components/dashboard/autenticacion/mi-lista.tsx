@@ -13,7 +13,7 @@ export type MyCheck = { id: string; label: string; how: string | null; stop: boo
 
 export const myCheckKey = (id: string) => `mine.${id}`
 
-export function ItemRow({ item, mark, onMark, actions }: { item: CheckItem; mark?: Mark; onMark: (m: Mark | undefined) => void; actions?: ReactNode }) {
+export function ItemRow({ item, mark, onMark, actions, prefix }: { item: CheckItem; mark?: Mark; onMark: (m: Mark | undefined) => void; actions?: ReactNode; prefix?: ReactNode }) {
   return (
     <li className={cn('group flex gap-3 px-4 py-3 border-b last:border-b-0', mark === 'fail' && 'bg-red-500/5')}>
       <div className='flex gap-1 shrink-0 pt-0.5'>
@@ -32,13 +32,42 @@ export function ItemRow({ item, mark, onMark, actions }: { item: CheckItem; mark
       </div>
       <div className='min-w-0 flex-1'>
         <div className={cn('text-sm', mark === 'ok' && 'text-muted-foreground')}>
-          {item.label}
+          {prefix}{item.label}
           {item.stop && <span className='ml-2 align-middle text-[10px] font-medium uppercase tracking-wide text-red-600 dark:text-red-400'>No compra si falla</span>}
         </div>
         {item.how && <div className='text-xs text-muted-foreground mt-0.5 whitespace-pre-line'>{item.how}</div>}
       </div>
       {actions}
     </li>
+  )
+}
+
+// Número editable: escribes la posición nueva y Enter (o salir del campo) lo mueve ahí
+function PositionInput({ index, total, onMove }: { index: number; total: number; onMove: (to: number) => void }) {
+  const [val, setVal] = useState(String(index + 1))
+  const [prev, setPrev] = useState(index)
+  if (prev !== index) { setPrev(index); setVal(String(index + 1)) }
+  const commit = () => {
+    const n = Math.round(Number(val))
+    if (!Number.isFinite(n) || n < 1) { setVal(String(index + 1)); return }
+    const to = Math.min(total, n) - 1
+    if (to === index) setVal(String(index + 1))
+    else onMove(to)
+  }
+  return (
+    <input
+      value={val}
+      inputMode='numeric'
+      title='Escribe el lugar al que lo quieres mover'
+      onChange={(e) => setVal(e.target.value.replace(/\D/g, ''))}
+      onFocus={(e) => e.target.select()}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        if (e.key === 'Escape') { setVal(String(index + 1)); e.currentTarget.blur() }
+      }}
+      className='mr-1.5 w-8 rounded border border-transparent bg-transparent px-1 text-center text-sm tabular-nums hover:border-input focus:border-input focus:outline-none focus:ring-1 focus:ring-ring'
+    />
   )
 }
 
@@ -139,11 +168,11 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
     api(`/api/autenticacion/checks/${it.id}`, 'DELETE').catch(() => toast.error('No se pudo quitar'))
   }
 
-  const move = (i: number, dir: -1 | 1) => {
-    const j = i + dir
-    if (j < 0 || j >= items.length) return
+  const moveTo = (i: number, j: number) => {
+    if (j < 0 || j >= items.length || j === i) return
     const next = [...items]
-    ;[next[i], next[j]] = [next[j], next[i]]
+    const [it] = next.splice(i, 1)
+    next.splice(j, 0, it)
     setItems(() => next)
     api('/api/autenticacion/checks/orden', 'POST', { ids: next.map((x) => x.id) }).catch(() => toast.error('No se pudo guardar el orden'))
   }
@@ -154,7 +183,7 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
     <section className='rounded-lg border'>
       <div className='flex items-baseline gap-3 px-4 py-3 border-b bg-muted/50'>
         <h2 className='text-sm font-semibold'>Mi lista</h2>
-        <span className='text-xs text-muted-foreground'>En el orden en que lo revisas. Flechas para mover, lápiz para editar.</span>
+        <span className='text-xs text-muted-foreground'>En el orden en que lo revisas. Cambia el número para moverlo a ese lugar; flechas para uno en uno.</span>
         <span className='ml-auto text-xs text-muted-foreground whitespace-nowrap'>{done} / {items.length}</span>
       </div>
       {items.length > 0 && (
@@ -171,13 +200,14 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
           ) : (
             <ItemRow
               key={it.id}
-              item={{ id: it.id, label: `${i + 1}. ${it.label}`, how: it.how ?? undefined, stop: it.stop }}
+              item={{ id: it.id, label: it.label, how: it.how ?? undefined, stop: it.stop }}
+              prefix={<PositionInput index={i} total={items.length} onMove={(to) => moveTo(i, to)} />}
               mark={marks[myCheckKey(it.id)]}
               onMark={(m) => onMark(myCheckKey(it.id), m)}
               actions={
                 <div className='flex shrink-0 items-start gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity'>
-                  <button onClick={() => move(i, -1)} disabled={i === 0} title='Subir' className={iconBtn}><ArrowUp className='h-3.5 w-3.5' /></button>
-                  <button onClick={() => move(i, 1)} disabled={i === items.length - 1} title='Bajar' className={iconBtn}><ArrowDown className='h-3.5 w-3.5' /></button>
+                  <button onClick={() => moveTo(i, i - 1)} disabled={i === 0} title='Subir' className={iconBtn}><ArrowUp className='h-3.5 w-3.5' /></button>
+                  <button onClick={() => moveTo(i, i + 1)} disabled={i === items.length - 1} title='Bajar' className={iconBtn}><ArrowDown className='h-3.5 w-3.5' /></button>
                   <button onClick={() => setEditing(it.id)} title='Editar' className={iconBtn}><Pencil className='h-3.5 w-3.5' /></button>
                   <button onClick={() => remove(it)} title='Quitar' className={cn(iconBtn, 'hover:text-red-600')}><Trash2 className='h-3.5 w-3.5' /></button>
                 </div>

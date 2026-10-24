@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ChevronDown, Copy, ExternalLink, MessageSquare, RotateCcw } from 'lucide-react'
+import { ChevronDown, Copy, ExternalLink, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
   AUTH_PRODUCTS, CHECKLISTS, ENTRUPY_NOTE, ENTRUPY_OTHER, ENTRUPY_PLANS, MODE_CHECKLISTS, SERVICES, SERVICES_NOTE,
   type AuthMode, type AuthProduct,
 } from '@/lib/autenticacion/checklists'
-import { DEFAULT_LUGAR, PRINCIPLES, REGATEO, chatScripts, type ChatVars } from '@/lib/autenticacion/mensajes'
+import { PRINCIPLES } from '@/lib/autenticacion/mensajes'
 import { BAG_BRANDS, TIER_LABEL, TIER_TOKENS } from '@/lib/electronicos/bag-catalog'
 import { ItemRow, MiLista, myCheckKey, type Mark, type MyCheck } from './mi-lista'
 
@@ -105,15 +105,14 @@ function EntrupySection() {
   )
 }
 
-type Review = { ident: string; hora: string; precio: string; marks: Record<string, Mark> }
+type Review = { ident: string; marks: Record<string, Mark> }
 
 // La revisión en curso vive en este navegador (una por producto y modo): es la
 // hoja que llenas en el trato, no un registro. Lo que se compra se anota en Mis trades.
 const TAB_KEY = 'autenticacion-tab'
 const MODE_KEY = 'autenticacion-mode'
-const LUGAR_KEY = 'autenticacion-lugar'
 const reviewKey = (m: AuthMode, p: AuthProduct) => (m === 'COMPRA' ? `autenticacion-review-${p}` : `autenticacion-venta-${p}`)
-const EMPTY: Review = { ident: '', hora: '', precio: '', marks: {} }
+const EMPTY: Review = { ident: '', marks: {} }
 
 function loadReview(m: AuthMode, p: AuthProduct): Review {
   try {
@@ -143,75 +142,10 @@ function Marco({ mode }: { mode: AuthMode }) {
   )
 }
 
-function Regateo({ mode }: { mode: AuthMode }) {
-  return (
-    <section className='space-y-2'>
-      <h2 className='text-base font-semibold'>Cuándo regatear</h2>
-      <div className='rounded-md border overflow-x-auto'>
-        <table className='w-full text-sm'>
-          <thead>
-            <tr className='border-b bg-muted/50'>
-              {['Situación', mode === 'COMPRA' ? 'Cuánto y cómo' : 'Qué hacer'].map((h) => (
-                <th key={h} className='px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap'>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {REGATEO[mode].map((r) => (
-              <tr key={r.situacion} className='border-b last:border-b-0 align-top'>
-                <td className='px-4 py-3 font-medium sm:w-2/5'>{r.situacion}</td>
-                <td className='px-4 py-3 text-muted-foreground'>{r.como}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {mode === 'COMPRA' && <p className='text-xs text-muted-foreground'>Los datos están en Listings: % vs mercado, antigüedad, precio tachado y score. Los % son punto de partida; ajústalos con lo que veas cerrar.</p>}
-    </section>
-  )
-}
-
-function Mensajes({ mode, product, vars, onVars }: {
-  mode: AuthMode
-  product: AuthProduct
-  vars: ChatVars
-  onVars: (v: Partial<ChatVars>) => void
-}) {
-  const scripts = chatScripts(mode, product)
-  return (
-    <section className='rounded-lg border'>
-      <div className='flex flex-wrap items-center gap-2 px-4 py-3 border-b bg-muted/50'>
-        <MessageSquare className='h-4 w-4 text-muted-foreground' />
-        <h2 className='text-sm font-semibold mr-auto'>Mensajes</h2>
-        <Input placeholder={DEFAULT_LUGAR} value={vars.lugar} onChange={(e) => onVars({ lugar: e.target.value })} className='h-8 w-44' title='Lugar de entrega (se queda guardado)' />
-        <Input placeholder='Día y hora (hoy a las 6)' value={vars.hora} onChange={(e) => onVars({ hora: e.target.value })} className='h-8 w-44' />
-        <Input placeholder={mode === 'COMPRA' ? 'Oferta / tope' : 'Precio'} inputMode='numeric' value={vars.precio} onChange={(e) => onVars({ precio: e.target.value })} className='h-8 w-32' />
-      </div>
-      <ul className='divide-y'>
-        {scripts.map((sc) => {
-          const text = sc.text(vars)
-          return (
-            <li key={sc.id} className='flex gap-3 px-4 py-3'>
-              <div className='min-w-0 flex-1 space-y-1'>
-                <div className='text-xs font-medium'>{sc.title} <span className='font-normal text-muted-foreground'>· {sc.when}</span></div>
-                <div className='text-sm'>{text}</div>
-              </div>
-              <button onClick={() => copyText(text)} title='Copiar mensaje' className='shrink-0 self-start p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted'>
-                <Copy className='h-3.5 w-3.5' />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </section>
-  )
-}
-
 export default function AutenticacionClient() {
   const [product, setProduct] = useState<AuthProduct>('IPHONE')
   const [mode, setMode] = useState<AuthMode>('COMPRA')
   const [review, setReview] = useState<Review>(EMPTY)
-  const [lugar, setLugar] = useState('')
   const [loaded, setLoaded] = useState(false)
   const [myItems, setMyItems] = useState<MyCheck[]>([])
   const [myLoaded, setMyLoaded] = useState(false)
@@ -224,7 +158,6 @@ export default function AutenticacionClient() {
       const saved = window.localStorage.getItem(TAB_KEY) as AuthProduct | null
       if (saved && saved in CHECKLISTS) p = saved
       if (window.localStorage.getItem(MODE_KEY) === 'VENTA') m = 'VENTA'
-      setLugar(window.localStorage.getItem(LUGAR_KEY) ?? '')
     } catch { /* modo privado */ }
     setProduct(p)
     setMode(m)
@@ -251,13 +184,6 @@ export default function AutenticacionClient() {
   }, [loaded, mode, product])
 
   const update = (r: Review) => { setReview(r); saveReview(mode, product, r) }
-  const setVars = (v: Partial<ChatVars>) => {
-    if (v.lugar !== undefined) {
-      setLugar(v.lugar)
-      try { window.localStorage.setItem(LUGAR_KEY, v.lugar) } catch { /* modo privado */ }
-    }
-    if (v.hora !== undefined || v.precio !== undefined) update({ ...review, ...(v.hora !== undefined && { hora: v.hora }), ...(v.precio !== undefined && { precio: v.precio }) })
-  }
   const setMark = (key: string, m: Mark | undefined) => {
     const marks = { ...review.marks }
     if (m) marks[key] = m
@@ -325,10 +251,6 @@ export default function AutenticacionClient() {
       {loaded && (
         <>
           <Marco mode={mode} />
-
-          <Regateo mode={mode} />
-
-          <Mensajes mode={mode} product={product} vars={{ lugar, hora: review.hora, precio: review.precio }} onVars={setVars} />
 
           <div className='rounded-lg border p-4 space-y-3'>
             <div className='flex flex-wrap items-center gap-2'>

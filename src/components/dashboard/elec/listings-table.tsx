@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import {
   ExternalLink, RefreshCw, Loader2, ChevronDown, ChevronRight, Bell, Copy, Download, Trash2,
-  Pencil, MessageSquare, ShoppingCart, AlertTriangle, X, Eye,
+  Pencil, MessageSquare, ShoppingCart, AlertTriangle, X, Eye, Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -18,7 +18,7 @@ import type { ElecListingDTO } from '@/lib/electronicos/serialize'
 import { cleanPrices, isPriceUsable, marginTarget, percentile } from '@/lib/electronicos/math'
 import { coarseKey, coarseLabel, parseConfigKey } from '@/lib/electronicos/categories'
 import {
-  CATALOG, CATEGORY_META, ScoreBadge, SpecsEditorDialog, ZoneBadge, configShort, daysAgo,
+  CATALOG, CATEGORY_META, ScoreBadge, SpecsEditorDialog, ZoneBadge, configShort, daysAgo, matchesSearch,
   downloadFile, formatDays, formatSsd, money, scoreTier, type Category,
 } from './shared'
 
@@ -428,10 +428,7 @@ export default function ElecListingsTable({
   // se queda aunque cambie solo (lo marcaste visto, la extensión trajo la
   // descripción y bajó el score…): si no, el listing que abriste desaparece al volver.
   const passes = useCallback((l: ElecListingDTO) => {
-    if (filters.q) {
-      const q = filters.q.toLowerCase()
-      if (!l.title.toLowerCase().includes(q) && !(l.description ?? '').toLowerCase().includes(q)) return false
-    }
+    if (filters.q && !matchesSearch(filters.q, l.title, configShort(l))) return false
     if (filters.configKey && l.configKey !== filters.configKey) return false
     if (filters.scoreMin > 0 && (l.opportunityScore ?? -1) < filters.scoreMin) return false
     if (filters.line && l.line !== filters.line) return false
@@ -639,12 +636,15 @@ export default function ElecListingsTable({
     <div className='space-y-4'>
       {/* Barra de filtros */}
       <div className='flex flex-wrap gap-2 items-end'>
+        <div className='relative w-full sm:w-72'>
+          <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none' />
+          <Input placeholder='Buscar en títulos (ej. 15 pro 256)' value={filters.q} onChange={(e) => set({ q: e.target.value })} className='pl-8' />
+        </div>
         <div className='flex items-center gap-1.5 px-2.5 h-9 rounded-md border bg-accent/40' title='Se guarda solo'>
           <Bell className='h-3.5 w-3.5 text-muted-foreground' />
           <span className='text-sm text-muted-foreground whitespace-nowrap'>Alertarme si score ≥</span>
           <Input type='number' min={0} max={10} value={minScoreAlert} onChange={(e) => onMinScoreAlertChange(Number(e.target.value))} className='w-14 h-7 border-0 bg-transparent px-1 text-center' />
         </div>
-        <Input placeholder='Buscar título o descripción...' value={filters.q} onChange={(e) => set({ q: e.target.value })} className='w-52' />
         <select value={filters.scoreMin} onChange={(e) => set({ scoreMin: Number(e.target.value) })} className={cn(sel, 'w-28')}>
           <option value={0}>Score: todos</option>
           {[4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>Score ≥ {n}</option>)}

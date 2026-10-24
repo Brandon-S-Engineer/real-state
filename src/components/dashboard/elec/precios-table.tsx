@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { PriceTableRow } from '@/lib/electronicos/stats'
 import { marginTarget } from '@/lib/electronicos/math'
-import { CATEGORY_META, ConfidenceDot, configShort, downloadFile, money, moneyK, type Category } from './shared'
+import { CATEGORY_META, ConfidenceDot, configShort, downloadFile, matchesSearch, money, moneyK, type Category } from './shared'
+import { Search } from 'lucide-react'
 
 type SortKey = 'n' | 'buy' | 'sell' | 'margin' | 'exit' | 'days'
 
@@ -42,7 +43,7 @@ export default function ElecPreciosTable({
     .filter((r) => !onlyComplete || !r.configKey.includes('?'))
     .filter((r) => !line || r.line === line)
     .filter((r) => !hideLow || r.confidence !== 'baja')
-    .filter((r) => !q || configShort(r).toLowerCase().includes(q.toLowerCase()))
+    .filter((r) => matchesSearch(q, configShort(r), meta.lineLabel[r.line ?? ''], r.configKey))
     .sort((a, b) => (sort.desc ? val(b, sort.key) - val(a, sort.key) : val(a, sort.key) - val(b, sort.key))),
   [rows, line, q, hideLow, onlyComplete, sort])
 
@@ -69,7 +70,10 @@ export default function ElecPreciosTable({
   return (
     <div className='space-y-4'>
       <div className='flex flex-wrap gap-2 items-center'>
-        <Input placeholder='Buscar configuración...' value={q} onChange={(e) => setQ(e.target.value)} className='w-52' />
+        <div className='relative w-full sm:w-72'>
+          <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none' />
+          <Input placeholder='Buscar modelo (ej. 15 pro 256)' value={q} onChange={(e) => setQ(e.target.value)} className='pl-8' />
+        </div>
         <select value={line} onChange={(e) => setLine(e.target.value)} className='border rounded-md px-2 py-2 text-sm bg-background h-9'>
           <option value=''>Todos los modelos</option>
           {meta.lines.map((l) => <option key={l} value={l}>{meta.lineLabel[l]}</option>)}

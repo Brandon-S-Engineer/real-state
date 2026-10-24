@@ -169,7 +169,7 @@
     if (!onMarketplace()) return
     if (!statusEl) {
       statusEl = document.createElement('div')
-      statusEl.style.cssText = `position:fixed;bottom:16px;right:16px;z-index:99999;background:rgba(17,24,39,.92);color:#fff;
+      statusEl.style.cssText = `position:fixed;bottom:16px;left:16px;z-index:99999;background:rgba(17,24,39,.92);color:#fff;
         font:11px/1.4 system-ui,-apple-system,sans-serif;padding:6px 10px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.25);
         max-width:260px;pointer-events:none`
       document.body.appendChild(statusEl)

@@ -14,6 +14,17 @@ import { ipadEntry } from '@/lib/electronicos/ipad-catalog'
 import type { ElecListingDTO } from '@/lib/electronicos/serialize'
 
 export { LINE_LABEL, LINES, formatSsd, CATALOG, CATEGORY_META, configShort, lineLabel }
+
+const norm = (t: string) => t.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+
+/** Búsqueda por palabras sueltas, en cualquier orden: "15 pro 256" encuentra "iPhone 15 Pro · 256 GB". */
+export function matchesSearch(q: string, ...texts: (string | null | undefined)[]): boolean {
+  const words = norm(q).split(' ').filter(Boolean)
+  if (!words.length) return true
+  const hay = norm(texts.filter(Boolean).join(' '))
+  const compact = hay.replace(/ /g, '')
+  return words.every((w) => hay.includes(w) || compact.includes(w))
+}
 export type { Category }
 
 export const money = (n: number | null | undefined) =>

@@ -538,6 +538,21 @@ model ElecSearchSection {
   createdAt DateTime @default(now())
 }
 
+// Lista de validación propia en Autenticación, por modo y producto. El orden
+// (position) es la prioridad con la que se revisa.
+model AuthCheck {
+  id        String   @id @default(cuid())
+  mode      String
+  product   String
+  label     String
+  how       String?
+  stop      Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([mode, product, position])
+}
+
 // ── Finanzas ────────────────────────────────────────────────────────────────
 // Ingresos/egresos capturados a mano (reventa, software, otros). La ganancia
 // de ElecTrade (compras/ventas de equipos) se suma aparte al calcular el mes,

@@ -3,15 +3,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Check, Copy, ExternalLink, MessageSquare, RotateCcw, X } from 'lucide-react'
+import { ChevronDown, Copy, ExternalLink, MessageSquare, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
   AUTH_PRODUCTS, CHECKLISTS, ENTRUPY_NOTE, ENTRUPY_OTHER, ENTRUPY_PLANS, MODE_CHECKLISTS, SERVICES, SERVICES_NOTE,
-  type AuthMode, type AuthProduct, type CheckItem,
+  type AuthMode, type AuthProduct,
 } from '@/lib/autenticacion/checklists'
 import { DEFAULT_LUGAR, PRINCIPLES, REGATEO, chatScripts, type ChatVars } from '@/lib/autenticacion/mensajes'
 import { BAG_BRANDS, TIER_LABEL, TIER_TOKENS } from '@/lib/electronicos/bag-catalog'
+import { ItemRow, MiLista, myCheckKey, type Mark, type MyCheck } from './mi-lista'
 
 const USD_MXN = 18.5
 const mxn = (usd: number) => `~$${Math.round(usd * USD_MXN).toLocaleString('es-MX')}`
@@ -104,7 +105,6 @@ function EntrupySection() {
   )
 }
 
-type Mark = 'ok' | 'fail'
 type Review = { ident: string; hora: string; precio: string; marks: Record<string, Mark> }
 
 // La revisión en curso vive en este navegador (una por producto y modo): es la
@@ -207,40 +207,15 @@ function Mensajes({ mode, product, vars, onVars }: {
   )
 }
 
-function ItemRow({ item, mark, onMark }: { item: CheckItem; mark?: Mark; onMark: (m: Mark | undefined) => void }) {
-  return (
-    <li className={cn('flex gap-3 px-4 py-3 border-b last:border-b-0', mark === 'fail' && 'bg-red-500/5')}>
-      <div className='flex gap-1 shrink-0 pt-0.5'>
-        <button
-          onClick={() => onMark(mark === 'ok' ? undefined : 'ok')}
-          title='Bien'
-          className={cn('h-6 w-6 rounded border flex items-center justify-center transition-colors',
-            mark === 'ok' ? 'bg-green-600 border-green-600 text-white' : 'text-muted-foreground hover:bg-muted')}
-        ><Check className='h-3.5 w-3.5' strokeWidth={3} /></button>
-        <button
-          onClick={() => onMark(mark === 'fail' ? undefined : 'fail')}
-          title='Falla'
-          className={cn('h-6 w-6 rounded border flex items-center justify-center transition-colors',
-            mark === 'fail' ? 'bg-red-600 border-red-600 text-white' : 'text-muted-foreground hover:bg-muted')}
-        ><X className='h-3.5 w-3.5' strokeWidth={3} /></button>
-      </div>
-      <div className='min-w-0'>
-        <div className={cn('text-sm', mark === 'ok' && 'text-muted-foreground')}>
-          {item.label}
-          {item.stop && <span className='ml-2 align-middle text-[10px] font-medium uppercase tracking-wide text-red-600 dark:text-red-400'>No compra si falla</span>}
-        </div>
-        {item.how && <div className='text-xs text-muted-foreground mt-0.5'>{item.how}</div>}
-      </div>
-    </li>
-  )
-}
-
 export default function AutenticacionClient() {
   const [product, setProduct] = useState<AuthProduct>('IPHONE')
   const [mode, setMode] = useState<AuthMode>('COMPRA')
   const [review, setReview] = useState<Review>(EMPTY)
   const [lugar, setLugar] = useState('')
   const [loaded, setLoaded] = useState(false)
+  const [myItems, setMyItems] = useState<MyCheck[]>([])
+  const [myLoaded, setMyLoaded] = useState(false)
+  const [showBase, setShowBase] = useState(false)
 
   useEffect(() => {
     let p: AuthProduct = 'IPHONE'
@@ -264,6 +239,17 @@ export default function AutenticacionClient() {
     try { window.localStorage.setItem(TAB_KEY, p); window.localStorage.setItem(MODE_KEY, m) } catch { /* modo privado */ }
   }
 
+  useEffect(() => {
+    if (!loaded) return
+    let alive = true
+    setMyLoaded(false)
+    fetch(`/api/autenticacion/checks?mode=${mode}&product=${product}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((xs: MyCheck[]) => { if (alive) { setMyItems(xs); setMyLoaded(true) } })
+      .catch(() => { if (alive) setMyLoaded(true) })
+    return () => { alive = false }
+  }, [loaded, mode, product])
+
   const update = (r: Review) => { setReview(r); saveReview(mode, product, r) }
   const setVars = (v: Partial<ChatVars>) => {
     if (v.lugar !== undefined) {
@@ -285,14 +271,21 @@ export default function AutenticacionClient() {
   const stats = useMemo(() => {
     let total = 0, done = 0
     const blockers: string[] = []
-    for (const ph of phases) for (const it of ph.items) {
+    for (const it of myItems) {
+      total++
+      const m = review.marks[myCheckKey(it.id)]
+      if (m) done++
+      if (m === 'fail' && it.stop) blockers.push(it.label)
+    }
+    // Con lista propia, la base es solo referencia y no cuenta en el avance
+    if (myItems.length === 0) for (const ph of phases) for (const it of ph.items) {
       total++
       const m = review.marks[`${ph.id}.${it.id}`]
       if (m) done++
       if (m === 'fail' && it.stop) blockers.push(it.label)
     }
     return { total, done, blockers }
-  }, [phases, review.marks])
+  }, [phases, myItems, review.marks])
 
   const copyIdent = () => { if (review.ident.trim()) copyText(review.ident.trim()) }
 
@@ -378,7 +371,26 @@ export default function AutenticacionClient() {
             )}
           </div>
 
-          <div className='space-y-4'>
+          {myLoaded && (
+            <MiLista
+              mode={mode}
+              product={product}
+              items={myItems}
+              setItems={(fn) => setMyItems(fn)}
+              marks={review.marks}
+              onMark={setMark}
+              base={phases}
+            />
+          )}
+
+          {myLoaded && myItems.length > 0 && (
+            <button onClick={() => setShowBase(!showBase)} className='inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground'>
+              <ChevronDown className={cn('h-4 w-4 transition-transform', !showBase && '-rotate-90')} />
+              Lista base (referencia)
+            </button>
+          )}
+
+          {(myItems.length === 0 || showBase) && <div className='space-y-4'>
             {phases.map((ph, i) => {
               const done = ph.items.filter((it) => review.marks[`${ph.id}.${it.id}`]).length
               return (
@@ -397,7 +409,7 @@ export default function AutenticacionClient() {
                 </section>
               )
             })}
-          </div>
+          </div>}
 
           {mode === 'COMPRA' && (
             <>

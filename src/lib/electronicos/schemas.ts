@@ -39,3 +39,16 @@ export const searchSchema = z.object({
 export const sectionSchema = z.object({
   name: z.string().trim().min(1).max(60),
 })
+
+const authCheckFields = {
+  label: z.string().trim().min(1).max(300),
+  how: z.string().trim().max(1000).nullable().optional(),
+  stop: z.boolean().optional(),
+}
+export const authCheckCreateSchema = z.object({
+  mode: z.enum(['COMPRA', 'VENTA']),
+  product: z.enum(['IPHONE', 'IPAD', 'MACBOOK', 'AUDIFONOS', 'BOLSOS']),
+  items: z.array(z.object(authCheckFields)).min(1).max(100),
+})
+export const authCheckUpdateSchema = z.object(authCheckFields).partial()
+export const authCheckOrderSchema = z.object({ ids: z.array(z.string()).min(1).max(500) })

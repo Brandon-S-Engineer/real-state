@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   const last = await prisma.authCheck.aggregate({ where: { mode, product }, _max: { position: true } })
   const start = (last._max.position ?? -1) + 1
   const created = await prisma.$transaction(items.map((it, i) => prisma.authCheck.create({
-    data: { mode, product, label: it.label, how: it.how || null, stop: it.stop ?? false, position: start + i },
+    data: { mode, product, label: it.label, how: it.how || null, stop: it.stop ?? false, color: it.color ?? null, position: start + i },
   })))
   return NextResponse.json(created, { status: 201 })
 }

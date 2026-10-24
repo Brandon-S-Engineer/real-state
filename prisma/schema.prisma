@@ -547,6 +547,7 @@ model AuthCheck {
   label     String
   how       String?
   stop      Boolean  @default(false)
+  color     String?
   position  Int      @default(0)
   createdAt DateTime @default(now())
 

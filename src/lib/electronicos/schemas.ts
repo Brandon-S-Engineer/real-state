@@ -44,6 +44,7 @@ const authCheckFields = {
   label: z.string().trim().min(1).max(300),
   how: z.string().trim().max(1000).nullable().optional(),
   stop: z.boolean().optional(),
+  color: z.enum(['rojo', 'naranja', 'amarillo', 'verde', 'azul', 'morado']).nullable().optional(),
 }
 export const authCheckCreateSchema = z.object({
   mode: z.enum(['COMPRA', 'VENTA']),

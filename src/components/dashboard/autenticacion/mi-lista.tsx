@@ -9,16 +9,28 @@ import { cn } from '@/lib/utils'
 import type { AuthMode, AuthProduct, CheckItem, CheckPhase } from '@/lib/autenticacion/checklists'
 
 export type Mark = 'ok' | 'fail'
-export type MyCheck = { id: string; label: string; how: string | null; stop: boolean; position: number }
+export type MyCheck = { id: string; label: string; how: string | null; stop: boolean; color: CheckColor | null; position: number }
+
+// Colores para agrupar mentalmente (categorías que tú decides)
+export const CHECK_COLORS = {
+  rojo: { swatch: 'bg-red-500', bar: 'border-l-red-500' },
+  naranja: { swatch: 'bg-orange-500', bar: 'border-l-orange-500' },
+  amarillo: { swatch: 'bg-yellow-400', bar: 'border-l-yellow-400' },
+  verde: { swatch: 'bg-green-500', bar: 'border-l-green-500' },
+  azul: { swatch: 'bg-blue-500', bar: 'border-l-blue-500' },
+  morado: { swatch: 'bg-purple-500', bar: 'border-l-purple-500' },
+} as const
+export type CheckColor = keyof typeof CHECK_COLORS
+type FormValues = { label: string; how: string; stop: boolean; color: CheckColor | null }
 
 export const myCheckKey = (id: string) => `mine.${id}`
 
 // Título a la izquierda y controles a la derecha; la explicación abajo a todo lo
 // ancho. En el celular las acciones de edición van en una fila al final.
-export function ItemRow({ item, mark, onMark, actions, prefix }: { item: CheckItem; mark?: Mark; onMark: (m: Mark | undefined) => void; actions?: ReactNode; prefix?: ReactNode }) {
+export function ItemRow({ item, mark, onMark, actions, prefix, color }: { item: CheckItem; mark?: Mark; onMark: (m: Mark | undefined) => void; actions?: ReactNode; prefix?: ReactNode; color?: CheckColor | null }) {
   const markBtn = 'h-8 w-8 sm:h-7 sm:w-7 rounded border flex items-center justify-center transition-colors'
   return (
-    <li className={cn('group px-4 py-3 border-b last:border-b-0', mark === 'fail' && 'bg-red-500/5')}>
+    <li className={cn('group px-4 py-3 border-b last:border-b-0', color && ['border-l-4 pl-3', CHECK_COLORS[color].bar], mark === 'fail' && 'bg-red-500/5')}>
       <div className='flex items-start gap-3'>
         <div className={cn('min-w-0 flex-1 text-base font-medium leading-snug pt-1', mark === 'ok' && 'text-muted-foreground')}>
           {prefix}{item.label}
@@ -86,21 +98,22 @@ async function api(url: string, method: string, body?: unknown) {
 }
 
 function ItemForm({ initial, submitLabel, onSubmit, onCancel }: {
-  initial?: { label: string; how: string; stop: boolean }
+  initial?: FormValues
   submitLabel: string
-  onSubmit: (v: { label: string; how: string; stop: boolean }) => Promise<void>
+  onSubmit: (v: FormValues) => Promise<void>
   onCancel?: () => void
 }) {
   const [label, setLabel] = useState(initial?.label ?? '')
   const [how, setHow] = useState(initial?.how ?? '')
   const [stop, setStop] = useState(initial?.stop ?? false)
+  const [color, setColor] = useState<CheckColor | null>(initial?.color ?? null)
   const [busy, setBusy] = useState(false)
   const submit = async () => {
     if (!label.trim() || busy) return
     setBusy(true)
     try {
-      await onSubmit({ label: label.trim(), how: how.trim(), stop })
-      if (!initial) { setLabel(''); setHow(''); setStop(false) }
+      await onSubmit({ label: label.trim(), how: how.trim(), stop, color })
+      if (!initial) { setLabel(''); setHow(''); setStop(false); setColor(null) }
     } finally { setBusy(false) }
   }
   const onKey = (e: React.KeyboardEvent) => {
@@ -118,6 +131,23 @@ function ItemForm({ initial, submitLabel, onSubmit, onCancel }: {
         className={cn('h-8 inline-flex items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors',
           stop ? 'border-red-500/50 bg-red-500/10 text-red-600 dark:text-red-400' : 'text-muted-foreground hover:bg-muted')}
       ><ShieldAlert className='h-3.5 w-3.5' />Bloqueante</button>
+      <div className='flex items-center gap-1.5' title='Color'>
+        <button
+          type='button'
+          onClick={() => setColor(null)}
+          title='Sin color'
+          className={cn('h-6 w-6 rounded-full border bg-background', !color && 'ring-2 ring-ring ring-offset-1 ring-offset-background')}
+        />
+        {(Object.keys(CHECK_COLORS) as CheckColor[]).map((c) => (
+          <button
+            key={c}
+            type='button'
+            onClick={() => setColor(c)}
+            title={c}
+            className={cn('h-6 w-6 rounded-full', CHECK_COLORS[c].swatch, color === c && 'ring-2 ring-ring ring-offset-1 ring-offset-background')}
+          />
+        ))}
+      </div>
       <Button size='sm' onClick={submit} disabled={!label.trim() || busy}>
         {initial ? null : <Plus className='h-3.5 w-3.5 mr-1' />}{submitLabel}
       </Button>
@@ -139,7 +169,7 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
 }) {
   const [editing, setEditing] = useState<string | null>(null)
 
-  const add = async (v: { label: string; how: string; stop: boolean }) => {
+  const add = async (v: FormValues) => {
     try {
       const created = (await api('/api/autenticacion/checks', 'POST', { mode, product, items: [v] })) as MyCheck[]
       setItems((xs) => [...xs, ...created])
@@ -155,7 +185,7 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
     } catch { toast.error('No se pudo copiar') }
   }
 
-  const save = async (id: string, v: { label: string; how: string; stop: boolean }) => {
+  const save = async (id: string, v: FormValues) => {
     try {
       const c = (await api(`/api/autenticacion/checks/${id}`, 'PATCH', v)) as MyCheck
       setItems((xs) => xs.map((x) => (x.id === id ? c : x)))
@@ -195,7 +225,7 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
           {items.map((it, i) => editing === it.id ? (
             <li key={it.id} className='border-b last:border-b-0 bg-muted/30'>
               <ItemForm
-                initial={{ label: it.label, how: it.how ?? '', stop: it.stop }}
+                initial={{ label: it.label, how: it.how ?? '', stop: it.stop, color: it.color }}
                 submitLabel='Guardar'
                 onSubmit={(v) => save(it.id, v)}
                 onCancel={() => setEditing(null)}
@@ -206,6 +236,7 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
               key={it.id}
               item={{ id: it.id, label: it.label, how: it.how ?? undefined, stop: it.stop }}
               prefix={<PositionInput index={i} total={items.length} onMove={(to) => moveTo(i, to)} />}
+              color={it.color}
               mark={marks[myCheckKey(it.id)]}
               onMark={(m) => onMark(myCheckKey(it.id), m)}
               actions={

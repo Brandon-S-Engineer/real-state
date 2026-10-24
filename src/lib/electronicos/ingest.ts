@@ -154,8 +154,8 @@ export async function ingestListings(input: IngestInput): Promise<IngestResult> 
   if (touched.length) {
     const idx = indexGroups(await loadWindowRows(settings))
     for (const l of touched) {
-      const { score, reasons } = scoreListing(l, idx, settings)
-      await prisma.elecListing.update({ where: { id: l.id }, data: { opportunityScore: score, scoreReasons: reasons } })
+      const { score, reasons, sospechoso } = scoreListing(l, idx, settings)
+      await prisma.elecListing.update({ where: { id: l.id }, data: { opportunityScore: score, scoreReasons: reasons, sospechoso } })
       if (newIds.has(l.id) && score != null && score >= settings.minScoreAlert) result.alertIds.push(l.id)
     }
   }
@@ -301,8 +301,8 @@ export async function rescoreAll(settings?: ElecSettings): Promise<number> {
   const idx = indexGroups(await loadWindowRows(s))
   const all = await prisma.elecListing.findMany()
   for (const l of all) {
-    const { score, reasons } = scoreListing(l, idx, s)
-    await prisma.elecListing.update({ where: { id: l.id }, data: { opportunityScore: score, scoreReasons: reasons } })
+    const { score, reasons, sospechoso } = scoreListing(l, idx, s)
+    await prisma.elecListing.update({ where: { id: l.id }, data: { opportunityScore: score, scoreReasons: reasons, sospechoso } })
   }
   return all.length
 }

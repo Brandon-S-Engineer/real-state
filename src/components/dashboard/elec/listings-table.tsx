@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import {
   ExternalLink, RefreshCw, Loader2, ChevronDown, ChevronRight, Bell, Copy, Download, Trash2,
-  Pencil, MessageSquare, ShoppingCart, AlertTriangle, X, Eye, Search,
+  Pencil, MessageSquare, ShoppingCart, AlertTriangle, X, Eye, Search, ShieldAlert,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -111,7 +111,7 @@ function playAlertChime(elite: boolean) {
 
 function notifyListing(l: ElecListingDTO) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return
-  const n = new Notification(`💻 Score ${l.opportunityScore}/10 — ${money(l.price)}`, {
+  const n = new Notification(`💻 Score ${l.opportunityScore}/100 — ${money(l.price)}`, {
     body: `${l.title}\n${l.locationText ?? ''}`,
     tag: l.externalId,
   })
@@ -144,12 +144,12 @@ function AlertToastCard({ l, onClose }: { l: ElecListingDTO; onClose: () => void
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
-// "Score + nuevos": 2 puntos menos por día de publicado (tope 5 días): un 7 de hoy le gana a un 8.5 de ayer
+// "Score + nuevos": 20 puntos menos por día de publicado (tope 5 días): un 70 de hoy le gana a un 85 de ayer
 const freshKey = (l: ElecListingDTO) => l.opportunityScore == null
   ? -Infinity
-  : l.opportunityScore - 2 * Math.min(5, daysAgo(l.postedAt ?? l.firstSeenAt) ?? 5)
+  : l.opportunityScore - 20 * Math.min(5, daysAgo(l.postedAt ?? l.firstSeenAt) ?? 5)
 
-const TOP_SCORE = 8
+const TOP_SCORE = 80
 
 function exportRow(l: ElecListingDTO, ref?: MarketRef) {
   return {
@@ -165,6 +165,7 @@ function exportRow(l: ElecListingDTO, ref?: MarketRef) {
     flags: Object.entries(l.flags).filter(([, v]) => v).map(([k]) => k).join(','),
     ubicacion: l.locationText, zona: l.zoneName ?? l.zoneKind,
     score: l.opportunityScore,
+    sospechoso: l.sospechoso,
     razones: l.scoreReasons.map((r) => `${r.pts > 0 ? '+' : ''}${r.pts} ${r.why}`).join(' | '),
     mercadoP25: ref?.p25 ?? null, mercadoMediana: ref?.median ?? null, mercadoVentaP75: ref?.sellPrice ?? null, mercadoN: ref?.n ?? null,
     estado: l.status, diasEnMercado: l.daysOnMarket,
@@ -204,20 +205,25 @@ type Filters = {
   configKey: string // viene de la tabla de precios
   vigilando: boolean
   sinVistos: boolean
+  sinSospechosos: boolean
 }
 
 const filtersKey = (c: Category) => (c === 'MACBOOK' ? 'elec-listings-filters' : `elec-listings-filters-${c}`)
 const FILTERS_DEFAULT: Filters = {
   q: '', scoreMin: 0, line: '', chip: '', ram: '', ssd: '', zone: '', source: '',
   priceMin: '', priceMax: '', maxAgeDays: '', status: 'ACTIVO', review: false, configKey: '',
-  vigilando: false, sinVistos: false,
+  vigilando: false, sinVistos: false, sinSospechosos: false,
 }
 
 function loadStoredFilters(c: Category): Filters {
   if (typeof window === 'undefined') return FILTERS_DEFAULT
   try {
     const raw = window.localStorage.getItem(filtersKey(c))
-    return raw ? { ...FILTERS_DEFAULT, ...(JSON.parse(raw) as Partial<Filters>) } : FILTERS_DEFAULT
+    if (!raw) return FILTERS_DEFAULT
+    const f = { ...FILTERS_DEFAULT, ...(JSON.parse(raw) as Partial<Filters>) }
+    // Filtro guardado con la escala vieja (0–10): pásalo a 0–100
+    if (f.scoreMin > 0 && f.scoreMin <= 10) f.scoreMin *= 10
+    return f
   } catch { return FILTERS_DEFAULT }
 }
 
@@ -334,7 +340,7 @@ export default function ElecListingsTable({
         const fresh = data.filter((l) => !knownIds.current.has(l.id))
         fresh.forEach((l) => knownIds.current.add(l.id))
         for (const l of fresh.filter((x) => (x.opportunityScore ?? 0) >= minScoreRef.current).slice(0, 5)) {
-          const elite = (l.opportunityScore ?? 0) >= 9
+          const elite = (l.opportunityScore ?? 0) >= 90
           notifyListing(l)
           playAlertChime(elite)
           toast.custom((t) => <AlertToastCard l={l} onClose={() => toast.dismiss(t)} />, { duration: elite ? Infinity : 10000 })
@@ -451,6 +457,7 @@ export default function ElecListingsTable({
     if (filters.review && !l.needsReview) return false
     if (filters.vigilando && !l.vigilando) return false
     if (filters.sinVistos && seenIds.has(l.id) && !l.vigilando) return false
+    if (filters.sinSospechosos && l.sospechoso) return false
     return true
   }, [filters, seenIds])
   const passesRef = useRef(passes)
@@ -552,6 +559,7 @@ export default function ElecListingsTable({
             <div className='min-w-0'>
               <div className='font-medium text-sm truncate'>{l.title}</div>
               <div className='text-xs text-muted-foreground truncate flex items-center gap-1'>
+                {l.sospechoso && <span title='Precio >35% bajo P25: probable anzuelo/estafa'><ShieldAlert className='h-3 w-3 text-red-500 shrink-0' /></span>}
                 {l.needsReview && <AlertTriangle className='h-3 w-3 text-amber-500 shrink-0' />}
                 {configShort(l)}
                 {l.batteryHealth ? ` · 🔋${l.batteryHealth}%` : ''}
@@ -648,11 +656,11 @@ export default function ElecListingsTable({
         <div className='flex items-center gap-1.5 px-2.5 h-9 rounded-md border bg-accent/40' title='Se guarda solo'>
           <Bell className='h-3.5 w-3.5 text-muted-foreground' />
           <span className='text-sm text-muted-foreground whitespace-nowrap'>Alertarme si score ≥</span>
-          <Input type='number' min={0} max={10} value={minScoreAlert} onChange={(e) => onMinScoreAlertChange(Number(e.target.value))} className='w-14 h-7 border-0 bg-transparent px-1 text-center' />
+          <Input type='number' min={0} max={100} step={5} value={minScoreAlert} onChange={(e) => onMinScoreAlertChange(Number(e.target.value))} className='w-14 h-7 border-0 bg-transparent px-1 text-center' />
         </div>
         <select value={filters.scoreMin} onChange={(e) => set({ scoreMin: Number(e.target.value) })} className={cn(sel, 'w-28')}>
           <option value={0}>Score: todos</option>
-          {[4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>Score ≥ {n}</option>)}
+          {[40, 50, 60, 70, 80, 90].map((n) => <option key={n} value={n}>Score ≥ {n}</option>)}
         </select>
         <select value={filters.line} onChange={(e) => set({ line: e.target.value })} className={sel}>
           <option value=''>Modelo</option>
@@ -710,6 +718,10 @@ export default function ElecListingsTable({
         </Button>
         <Button variant={filters.sinVistos ? 'default' : 'outline'} size='sm' onClick={() => set({ sinVistos: !filters.sinVistos })} title='Esconde los que ya abriste (en gris)'>
           Sin vistos
+        </Button>
+        <Button variant={filters.sinSospechosos ? 'default' : 'outline'} size='sm' onClick={() => set({ sinSospechosos: !filters.sinSospechosos })} title='Esconde los que están más de 35% abajo del P25 (probable anzuelo/estafa)'>
+          <ShieldAlert className='h-3.5 w-3.5 mr-1.5' />
+          Sin sospechosos
         </Button>
         {hasFilters && (
           <Button variant='ghost' size='sm' onClick={() => { setFilters(FILTERS_DEFAULT); onClearConfigFilter() }}>Limpiar</Button>

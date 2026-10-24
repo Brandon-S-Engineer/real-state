@@ -58,17 +58,20 @@ export type ScoreReason = { pts: number; why: string }
 
 const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-MX')}`
 
+/** Más de 35% abajo del P25 de su grupo: bandera de sospechoso (anzuelo o estafa). */
+export const SUSPICIOUS_DISCOUNT = 0.35
+
 export function scoreListing(
   l: Pick<ElecListing, 'id' | 'price' | 'originalPrice' | 'flags' | 'configKey' | 'line' | 'chip' | 'ramGb' | 'ssdGb' | 'batteryHealth' | 'batteryCycles'>,
   idx: GroupIndex,
   settings: ElecSettings,
-): { score: number | null; reasons: ScoreReason[] } {
+): { score: number | null; reasons: ScoreReason[]; sospechoso: boolean } {
   const reasons: ScoreReason[] = []
   if (!isPriceUsable(l)) {
     const f = (l.flags ?? {}) as SpecFlags
-    if (f.piezas) return { score: null, reasons: [{ pts: 0, why: 'Para piezas / bloqueada — fuera de precios' }] }
-    if (l.line?.startsWith('BAG_') && l.price) return { score: null, reasons: [{ pts: 0, why: `Precio muy bajo para la marca (${fmt(l.price)}): casi siempre es réplica — fuera de precios` }] }
-    return { score: null, reasons: [{ pts: 0, why: 'Sin precio válido' }] }
+    if (f.piezas) return { score: null, sospechoso: false, reasons: [{ pts: 0, why: 'Para piezas / bloqueada — fuera de precios' }] }
+    if (l.line?.startsWith('BAG_') && l.price) return { score: null, sospechoso: false, reasons: [{ pts: 0, why: `Precio muy bajo para la marca (${fmt(l.price)}): casi siempre es réplica — fuera de precios` }] }
+    return { score: null, sospechoso: false, reasons: [{ pts: 0, why: 'Sin precio válido' }] }
   }
   const price = l.price!
 
@@ -89,60 +92,65 @@ export function scoreListing(
     }
   }
   if (group.length < settings.minSample) {
-    return { score: null, reasons: [{ pts: 0, why: `Poca data para comparar (${group.length} listings)` }] }
+    return { score: null, sospechoso: false, reasons: [{ pts: 0, why: `Poca data para comparar (${group.length} listings)` }] }
   }
 
   const prices = cleanPrices(group.map((r) => r.price!))
   const p25 = percentile(prices, 0.25)!
   const discount = (p25 - price) / p25
 
-  let score = 5 + discount * 25
+  // Escala 0–100: 50 + 125 × (% bajo el P25). 20% abajo = 75; 40% abajo = 100
+  let score = 50 + discount * 125
   reasons.push({
-    pts: Math.round(discount * 25 * 10) / 10,
+    pts: Math.round(discount * 125),
     why: discount >= 0
       ? `${Math.round(discount * 100)}% bajo el P25 (${fmt(p25)}) de ${groupLabel}, n=${prices.length}`
       : `${Math.round(-discount * 100)}% sobre el P25 (${fmt(p25)}) de ${groupLabel}, n=${prices.length}`,
   })
+
+  // Muy abajo del mercado: no baja el score, solo se marca para revisarlo con lupa
+  const sospechoso = discount > SUSPICIOUS_DISCOUNT
+  if (sospechoso) reasons.push({ pts: 0, why: 'Precio >35% bajo P25: probable anzuelo/estafa' })
 
   // Margen potencial contra el precio de venta meta (P75: buen estado justifica la parte alta)
   const sellPrice = percentile(prices, 0.75)!
   const margin = sellPrice - price
   const target = marginTarget(l.line, sellPrice)
   if (margin >= target) {
-    score += 1
-    reasons.push({ pts: 1, why: `Margen potencial ${fmt(margin)} vendiendo en ${fmt(sellPrice)} (P75)` })
+    score += 10
+    reasons.push({ pts: 10, why: `Margen potencial ${fmt(margin)} vendiendo en ${fmt(sellPrice)} (P75)` })
   } else {
     reasons.push({ pts: 0, why: `Margen potencial ${fmt(margin)} vs venta P75 ${fmt(sellPrice)} (meta: ${fmt(target)}+)` })
   }
 
   if (l.originalPrice && l.originalPrice > price) {
     const drop = (l.originalPrice - price) / l.originalPrice
-    score += 0.5
-    reasons.push({ pts: 0.5, why: `Bajó ${Math.round(drop * 100)}% (de ${fmt(l.originalPrice)}) — vendedor motivado` })
+    score += 5
+    reasons.push({ pts: 5, why: `Bajó ${Math.round(drop * 100)}% (de ${fmt(l.originalPrice)}) — vendedor motivado` })
   }
 
   const f = (l.flags ?? {}) as SpecFlags
-  if (f.golpe) { score -= 2; reasons.push({ pts: -2, why: 'Menciona golpe/abolladura' }) }
-  if (f.pantallaRota) { score -= 3; reasons.push({ pts: -3, why: 'Pantalla dañada' }) }
-  if (f.detalle) { score -= 0.5; reasons.push({ pts: -0.5, why: 'Menciona detalles estéticos' }) }
-  if (f.conCaja) { score += 0.3; reasons.push({ pts: 0.3, why: 'Con caja' }) }
-  if (f.factura) { score += 0.3; reasons.push({ pts: 0.3, why: 'Con factura' }) }
-  if (f.appleCare) { score += 0.5; reasons.push({ pts: 0.5, why: 'AppleCare' }) }
-  if (f.faceIdFalla) { score -= 3; reasons.push({ pts: -3, why: 'Face ID no funciona' }) }
-  if (f.piezaGenerica) { score -= 1.5; reasons.push({ pts: -1.5, why: 'Pantalla/batería no original' }) }
-  if (f.compania) { score -= 2; reasons.push({ pts: -2, why: 'Amarrado a compañía (no liberado) — vale menos' }) }
-  if (f.liberado) { score += 0.3; reasons.push({ pts: 0.3, why: 'Liberado' }) }
-  if (f.conPencil) { score += 0.5; reasons.push({ pts: 0.5, why: 'Incluye Apple Pencil' }) }
-  if (f.conTeclado) { score += 0.5; reasons.push({ pts: 0.5, why: 'Incluye teclado' }) }
-  if (f.celular) { score += 0.3; reasons.push({ pts: 0.3, why: 'Wi-Fi + Cellular' }) }
-  if (f.autenticado) { score += 0.7; reasons.push({ pts: 0.7, why: 'Ya trae certificado/comprobante de autenticidad' }) }
-  if (f.dustBag) { score += 0.3; reasons.push({ pts: 0.3, why: 'Con dust bag' }) }
-  if (l.batteryHealth != null && l.batteryHealth < 80) { score -= 2; reasons.push({ pts: -2, why: `Batería ${l.batteryHealth}% (pide servicio)` }) }
-  else if (l.batteryHealth != null && l.batteryHealth < 85) { score -= 1; reasons.push({ pts: -1, why: `Batería ${l.batteryHealth}%` }) }
-  if (l.batteryCycles != null && l.batteryCycles > 800) { score -= 1; reasons.push({ pts: -1, why: `${l.batteryCycles} ciclos` }) }
-  if (f.vendido) { score -= 5; reasons.push({ pts: -5, why: 'El post dice "vendido"' }) }
+  if (f.golpe) { score -= 20; reasons.push({ pts: -20, why: 'Menciona golpe/abolladura' }) }
+  if (f.pantallaRota) { score -= 30; reasons.push({ pts: -30, why: 'Pantalla dañada' }) }
+  if (f.detalle) { score -= 5; reasons.push({ pts: -5, why: 'Menciona detalles estéticos' }) }
+  if (f.conCaja) { score += 3; reasons.push({ pts: 3, why: 'Con caja' }) }
+  if (f.factura) { score += 3; reasons.push({ pts: 3, why: 'Con factura' }) }
+  if (f.appleCare) { score += 5; reasons.push({ pts: 5, why: 'AppleCare' }) }
+  if (f.faceIdFalla) { score -= 30; reasons.push({ pts: -30, why: 'Face ID no funciona' }) }
+  if (f.piezaGenerica) { score -= 15; reasons.push({ pts: -15, why: 'Pantalla/batería no original' }) }
+  if (f.compania) { score -= 20; reasons.push({ pts: -20, why: 'Amarrado a compañía (no liberado) — vale menos' }) }
+  if (f.liberado) { score += 3; reasons.push({ pts: 3, why: 'Liberado' }) }
+  if (f.conPencil) { score += 5; reasons.push({ pts: 5, why: 'Incluye Apple Pencil' }) }
+  if (f.conTeclado) { score += 5; reasons.push({ pts: 5, why: 'Incluye teclado' }) }
+  if (f.celular) { score += 3; reasons.push({ pts: 3, why: 'Wi-Fi + Cellular' }) }
+  if (f.autenticado) { score += 7; reasons.push({ pts: 7, why: 'Ya trae certificado/comprobante de autenticidad' }) }
+  if (f.dustBag) { score += 3; reasons.push({ pts: 3, why: 'Con dust bag' }) }
+  if (l.batteryHealth != null && l.batteryHealth < 80) { score -= 20; reasons.push({ pts: -20, why: `Batería ${l.batteryHealth}% (pide servicio)` }) }
+  else if (l.batteryHealth != null && l.batteryHealth < 85) { score -= 10; reasons.push({ pts: -10, why: `Batería ${l.batteryHealth}%` }) }
+  if (l.batteryCycles != null && l.batteryCycles > 800) { score -= 10; reasons.push({ pts: -10, why: `${l.batteryCycles} ciclos` }) }
+  if (f.vendido) { score -= 50; reasons.push({ pts: -50, why: 'El post dice "vendido"' }) }
 
-  return { score: Math.max(0, Math.min(10, Math.round(score * 10) / 10)), reasons }
+  return { score: Math.max(0, Math.min(100, Math.round(score))), reasons, sospechoso }
 }
 
 // ── Tabla de precios por configuración ───────────────────────────────────────

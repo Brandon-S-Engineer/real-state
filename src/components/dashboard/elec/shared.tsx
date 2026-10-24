@@ -46,7 +46,7 @@ export function formatDays(d: number | null) {
 
 // ── Score ────────────────────────────────────────────────────────────────────
 
-export function scoreTier(s: number) { return s >= 9 ? 'elite' : s >= 7 ? 'high' : s >= 4 ? 'mid' : 'low' }
+export function scoreTier(s: number) { return s >= 90 ? 'elite' : s >= 70 ? 'high' : s >= 40 ? 'mid' : 'low' }
 
 export const SCORE_CLASS: Record<string, string> = {
   elite: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
@@ -59,7 +59,7 @@ export function ScoreBadge({ score }: { score: number | null }) {
   if (score === null) return <span className='text-muted-foreground text-xs' title='Poca data para comparar'>—</span>
   return (
     <span className={cn('inline-flex items-center justify-center min-w-[2.25rem] px-2 py-0.5 rounded-full text-xs font-medium', SCORE_CLASS[scoreTier(score)])}>
-      {score}/10
+      {score}
     </span>
   )
 }

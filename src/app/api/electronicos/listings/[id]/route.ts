@@ -67,8 +67,8 @@ export async function PATCH(req: Request, { params }: Params) {
 
   if (specs) {
     const settings = await getElecSettings()
-    const { score, reasons } = scoreListing(listing, indexGroups(await loadWindowRows(settings)), settings)
-    listing = await prisma.elecListing.update({ where: { id }, data: { opportunityScore: score, scoreReasons: reasons }, include: { zone: true } })
+    const { score, reasons, sospechoso } = scoreListing(listing, indexGroups(await loadWindowRows(settings)), settings)
+    listing = await prisma.elecListing.update({ where: { id }, data: { opportunityScore: score, scoreReasons: reasons, sospechoso }, include: { zone: true } })
   }
 
   return NextResponse.json(toListingDTO(listing))

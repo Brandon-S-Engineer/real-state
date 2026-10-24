@@ -227,7 +227,7 @@ export default function TopBar({
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium truncate">{a.title}</span>
-                  <span className="shrink-0 text-[10px] font-medium rounded-full px-1.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">{a.score}/10</span>
+                  <span className="shrink-0 text-[10px] font-medium rounded-full px-1.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">{a.score}/100</span>
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{a.label} · {a.config} · {money(a.price)}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">{timeAgo(a.lastSeenAt)}</div>

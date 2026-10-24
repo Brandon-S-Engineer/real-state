@@ -135,9 +135,23 @@ const PARSERS: Record<Category, (title: string, description?: string | null) => 
 /** Salud de batería mínima para comprar (iPhone, iPad, MacBook): abajo de esto se descarta. */
 export const MIN_BATTERY_HEALTH = 83
 
+// Señales de equipo robado o con bypass: se descartan. "Sin reporte" / "no
+// reportado" / "libre de reporte" dicen lo contrario y se quitan antes de buscar.
+const NOT_REPORTED_RE = /\b(sin|cero|nada de|libre de|ningun) reportes?\b|\bno (esta |tiene |cuenta con |hay )?(ningun )?(reportad[oa]s?|reportes?)\b|\bsin ningun reporte\b/g
+const RISK_RE = /\bbypass\b|\breportad[oa]s?\b|\breportes?\b|\bsin senal\b/
+const ICLOUD_CODE_RE = /icloud[^.\n]{0,40}\bcon codigo\b|\bcon codigo\b[^.\n]{0,40}icloud/
+
+export function isRiskyListing(title: string, description?: string | null): boolean {
+  const t = normalizeText(`${title}\n${description ?? ''}`).replace(NOT_REPORTED_RE, ' ')
+  return RISK_RE.test(t) || ICLOUD_CODE_RE.test(t)
+}
+
 export function parseListing(title: string, description?: string | null): ParsedSpecs & { category: Category } {
   const category = detectCategory(title, description) ?? 'MACBOOK'
   const parsed = PARSERS[category](title, description)
+  if (!parsed.excluded && category !== 'BOLSOS' && isRiskyListing(title, description)) {
+    return { ...parsed, excluded: 'riesgo', category }
+  }
   if (!parsed.excluded && parsed.batteryHealth != null && parsed.batteryHealth < MIN_BATTERY_HEALTH && (category === 'IPHONE' || category === 'IPAD' || category === 'MACBOOK')) {
     return { ...parsed, excluded: 'bateria', category }
   }

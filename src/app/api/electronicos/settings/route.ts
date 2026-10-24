@@ -11,7 +11,7 @@ export async function GET() {
 }
 
 const patchSchema = z.object({
-  minScoreAlert: z.number().int().min(0).max(10).optional(),
+  minScoreAlert: z.number().int().min(0).max(100).optional(),
   disappearSessions: z.number().int().min(1).max(10).optional(),
   disappearMinHours: z.number().int().min(1).max(720).optional(),
   fastSaleDays: z.number().int().min(1).max(60).optional(),

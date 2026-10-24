@@ -418,6 +418,8 @@ model ElecListing {
 
   opportunityScore Float?
   scoreReasons     Json      @default("[]")
+  // Más de 35% abajo del P25 de su grupo: probable anzuelo o estafa (no baja el score)
+  sospechoso       Boolean   @default(false)
   comprado         Boolean   @default(false)
   compradoAt       DateTime?
   vigilando        Boolean   @default(false) // marcado para seguirlo (lo contacté / espero respuesta)
@@ -482,7 +484,7 @@ model ElecZone {
 
 model ElecSettings {
   id                String   @id @default("singleton")
-  minScoreAlert     Int      @default(7)
+  minScoreAlert     Int      @default(70)
   disappearSessions Int      @default(2) // sesiones (en días distintos) sin verlo
   disappearMinHours Int      @default(48)
   fastSaleDays      Int      @default(7)

@@ -40,7 +40,7 @@ export type SpecFlags = {
 
 export type DeviceCategory = 'MACBOOK' | 'IPHONE' | 'IPAD' | 'AUDIO' | 'BOLSOS'
 
-export type ExcludedReason = 'no_relevante' | 'intel' | 'viejo' | 'gama_baja' | 'replica' | 'accesorio' | 'busqueda' | 'intercambio' | 'bateria'
+export type ExcludedReason = 'no_relevante' | 'intel' | 'viejo' | 'gama_baja' | 'replica' | 'accesorio' | 'busqueda' | 'intercambio' | 'bateria' | 'riesgo'
 
 export type ParsedSpecs = {
   excluded: ExcludedReason | null

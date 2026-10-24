@@ -144,6 +144,13 @@ function AlertToastCard({ l, onClose }: { l: ElecListingDTO; onClose: () => void
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
+// "Score + nuevos": 2 puntos menos por día de publicado (tope 5 días): un 7 de hoy le gana a un 8.5 de ayer
+const freshKey = (l: ElecListingDTO) => l.opportunityScore == null
+  ? -Infinity
+  : l.opportunityScore - 2 * Math.min(5, daysAgo(l.postedAt ?? l.firstSeenAt) ?? 5)
+
+const TOP_SCORE = 8
+
 function exportRow(l: ElecListingDTO, ref?: MarketRef) {
   return {
     titulo: l.title,
@@ -451,6 +458,10 @@ export default function ElecListingsTable({
   const frozenIds = useMemo(() => (frozenOrder ? new Set(frozenOrder) : null), [frozenOrder])
   const filtered = useMemo(() => listings.filter((l) => frozenIds?.has(l.id) || passes(l)), [listings, passes, frozenIds])
 
+  const topListings = useMemo(() => listings
+    .filter((l) => l.status === 'ACTIVO' && (l.opportunityScore ?? 0) >= TOP_SCORE)
+    .sort((a, b) => freshKey(b) - freshKey(a)), [listings])
+
   const reviewCount = useMemo(() => listings.filter((l) => l.needsReview && l.status === 'ACTIVO').length, [listings])
   const chips = Array.from(new Set(CATALOG.flatMap((e) => e.chips)))
   const hasFilters = JSON.stringify({ ...filters }) !== JSON.stringify(FILTERS_DEFAULT)
@@ -470,13 +481,7 @@ export default function ElecListingsTable({
       accessorKey: 'opportunityScore',
       header: 'Score',
       sortingFn: (a, b) => {
-        if (scoreSortMode === 'fresh') {
-          // Score menos 2 puntos por día de publicado: un 7 de hoy le gana a un 8.5 de ayer
-          const key = (row: typeof a) => row.original.opportunityScore == null
-            ? -Infinity
-            : row.original.opportunityScore - 2 * Math.min(5, daysAgo(row.original.postedAt ?? row.original.firstSeenAt) ?? 5)
-          return key(a) - key(b)
-        }
+        if (scoreSortMode === 'fresh') return freshKey(a.original) - freshKey(b.original)
         return (a.original.opportunityScore ?? -1) - (b.original.opportunityScore ?? -1)
       },
       cell: ({ row }) => <ScoreBadge score={row.original.opportunityScore} />,
@@ -732,12 +737,12 @@ export default function ElecListingsTable({
           )}
         </div>
         <div className='flex gap-2'>
-          <Button variant='outline' size='sm' disabled={!filtered.length} onClick={() => {
-            downloadFile(JSON.stringify({ generado: new Date().toISOString(), listings: filtered.map((l) => exportRow(l, refs.get(l.id))) }, null, 2), `${category.toLowerCase()}s-${new Date().toISOString().slice(0, 10)}.json`, 'application/json')
-            toast.success(`${filtered.length} listings descargados — pégaselos a Claude`)
+          <Button variant='outline' size='sm' disabled={!topListings.length} title={`Activos con score ${TOP_SCORE}+, ordenados por Score + nuevos`} onClick={() => {
+            downloadFile(JSON.stringify({ generado: new Date().toISOString(), orden: 'Score + nuevos', scoreMin: TOP_SCORE, listings: topListings.map((l) => exportRow(l, refs.get(l.id))) }, null, 2), `${category.toLowerCase()}s-top-${new Date().toISOString().slice(0, 10)}.json`, 'application/json')
+            toast.success(`${topListings.length} listings descargados — pégaselos a Claude`)
           }}>
             <Download className='h-3.5 w-3.5 mr-1.5' />
-            Descargar {filtered.length || ''} para Claude
+            Descargar {topListings.length || ''} con {TOP_SCORE}+ para Claude
           </Button>
           <Button variant='outline' size='sm' disabled={!filtered.length} onClick={() => downloadFile(toCsv(filtered.map((l) => exportRow(l, refs.get(l.id)))), `${category.toLowerCase()}s-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8')}>
             CSV

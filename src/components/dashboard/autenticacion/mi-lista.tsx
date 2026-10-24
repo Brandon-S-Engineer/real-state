@@ -13,31 +13,33 @@ export type MyCheck = { id: string; label: string; how: string | null; stop: boo
 
 export const myCheckKey = (id: string) => `mine.${id}`
 
+// Título a la izquierda y controles a la derecha; la explicación abajo a todo lo
+// ancho. En el celular las acciones de edición van en una fila al final.
 export function ItemRow({ item, mark, onMark, actions, prefix }: { item: CheckItem; mark?: Mark; onMark: (m: Mark | undefined) => void; actions?: ReactNode; prefix?: ReactNode }) {
+  const markBtn = 'h-8 w-8 sm:h-7 sm:w-7 rounded border flex items-center justify-center transition-colors'
   return (
-    <li className={cn('group flex gap-3 px-4 py-3 border-b last:border-b-0', mark === 'fail' && 'bg-red-500/5')}>
-      <div className='flex gap-1 shrink-0 pt-0.5'>
-        <button
-          onClick={() => onMark(mark === 'ok' ? undefined : 'ok')}
-          title='Bien'
-          className={cn('h-6 w-6 rounded border flex items-center justify-center transition-colors',
-            mark === 'ok' ? 'bg-green-600 border-green-600 text-white' : 'text-muted-foreground hover:bg-muted')}
-        ><Check className='h-3.5 w-3.5' strokeWidth={3} /></button>
-        <button
-          onClick={() => onMark(mark === 'fail' ? undefined : 'fail')}
-          title='Falla'
-          className={cn('h-6 w-6 rounded border flex items-center justify-center transition-colors',
-            mark === 'fail' ? 'bg-red-600 border-red-600 text-white' : 'text-muted-foreground hover:bg-muted')}
-        ><X className='h-3.5 w-3.5' strokeWidth={3} /></button>
-      </div>
-      <div className='min-w-0 flex-1'>
-        <div className={cn('text-sm', mark === 'ok' && 'text-muted-foreground')}>
+    <li className={cn('group px-4 py-3 border-b last:border-b-0', mark === 'fail' && 'bg-red-500/5')}>
+      <div className='flex items-start gap-3'>
+        <div className={cn('min-w-0 flex-1 text-base font-medium leading-snug pt-1', mark === 'ok' && 'text-muted-foreground')}>
           {prefix}{item.label}
-          {item.stop && <span className='ml-2 align-middle text-[10px] font-medium uppercase tracking-wide text-red-600 dark:text-red-400'>No compra si falla</span>}
+          {item.stop && <span className='ml-2 align-middle whitespace-nowrap text-[11px] font-medium uppercase tracking-wide text-red-600 dark:text-red-400'>No compra si falla</span>}
         </div>
-        {item.how && <div className='text-xs text-muted-foreground mt-0.5 whitespace-pre-line'>{item.how}</div>}
+        {actions && <div className='hidden sm:flex'>{actions}</div>}
+        <div className='flex gap-1 shrink-0'>
+          <button
+            onClick={() => onMark(mark === 'ok' ? undefined : 'ok')}
+            title='Bien'
+            className={cn(markBtn, mark === 'ok' ? 'bg-green-600 border-green-600 text-white' : 'text-muted-foreground hover:bg-muted')}
+          ><Check className='h-4 w-4' strokeWidth={3} /></button>
+          <button
+            onClick={() => onMark(mark === 'fail' ? undefined : 'fail')}
+            title='Falla'
+            className={cn(markBtn, mark === 'fail' ? 'bg-red-600 border-red-600 text-white' : 'text-muted-foreground hover:bg-muted')}
+          ><X className='h-4 w-4' strokeWidth={3} /></button>
+        </div>
       </div>
-      {actions}
+      {item.how && <div className='text-sm text-muted-foreground mt-1.5 whitespace-pre-line'>{item.how}</div>}
+      {actions && <div className='flex justify-end mt-1.5 sm:hidden'>{actions}</div>}
     </li>
   )
 }
@@ -66,12 +68,12 @@ function PositionInput({ index, total, onMove }: { index: number; total: number;
         if (e.key === 'Enter') e.currentTarget.blur()
         if (e.key === 'Escape') { setVal(String(index + 1)); e.currentTarget.blur() }
       }}
-      className='mr-1.5 w-8 rounded border border-transparent bg-transparent px-1 text-center text-sm tabular-nums hover:border-input focus:border-input focus:outline-none focus:ring-1 focus:ring-ring'
+      className='mr-1.5 w-9 rounded border border-input/60 bg-transparent px-1 text-center text-base font-medium tabular-nums hover:border-input focus:border-input focus:outline-none focus:ring-1 focus:ring-ring'
     />
   )
 }
 
-const iconBtn = 'p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none'
+const iconBtn = 'p-1.5 sm:p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none'
 
 async function api(url: string, method: string, body?: unknown) {
   const res = await fetch(url, {
@@ -181,10 +183,12 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
 
   return (
     <section className='rounded-lg border'>
-      <div className='flex items-baseline gap-3 px-4 py-3 border-b bg-muted/50'>
-        <h2 className='text-sm font-semibold'>Mi lista</h2>
-        <span className='text-xs text-muted-foreground'>En el orden en que lo revisas. Cambia el número para moverlo a ese lugar; flechas para uno en uno.</span>
-        <span className='ml-auto text-xs text-muted-foreground whitespace-nowrap'>{done} / {items.length}</span>
+      <div className='px-4 py-3 border-b bg-muted/50'>
+        <div className='flex items-baseline gap-3'>
+          <h2 className='text-base font-semibold'>Mi lista</h2>
+          <span className='ml-auto text-sm text-muted-foreground whitespace-nowrap'>{done} / {items.length}</span>
+        </div>
+        <p className='text-sm text-muted-foreground mt-0.5'>En el orden en que lo revisas. Cambia el número para moverlo a ese lugar; flechas para uno en uno.</p>
       </div>
       {items.length > 0 && (
         <ul className='border-b'>
@@ -205,11 +209,11 @@ export function MiLista({ mode, product, items, setItems, marks, onMark, base }:
               mark={marks[myCheckKey(it.id)]}
               onMark={(m) => onMark(myCheckKey(it.id), m)}
               actions={
-                <div className='flex shrink-0 items-start gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity'>
-                  <button onClick={() => moveTo(i, i - 1)} disabled={i === 0} title='Subir' className={iconBtn}><ArrowUp className='h-3.5 w-3.5' /></button>
-                  <button onClick={() => moveTo(i, i + 1)} disabled={i === items.length - 1} title='Bajar' className={iconBtn}><ArrowDown className='h-3.5 w-3.5' /></button>
-                  <button onClick={() => setEditing(it.id)} title='Editar' className={iconBtn}><Pencil className='h-3.5 w-3.5' /></button>
-                  <button onClick={() => remove(it)} title='Quitar' className={cn(iconBtn, 'hover:text-red-600')}><Trash2 className='h-3.5 w-3.5' /></button>
+                <div className='flex shrink-0 items-start gap-1 sm:gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity'>
+                  <button onClick={() => moveTo(i, i - 1)} disabled={i === 0} title='Subir' className={iconBtn}><ArrowUp className='h-4 w-4' /></button>
+                  <button onClick={() => moveTo(i, i + 1)} disabled={i === items.length - 1} title='Bajar' className={iconBtn}><ArrowDown className='h-4 w-4' /></button>
+                  <button onClick={() => setEditing(it.id)} title='Editar' className={iconBtn}><Pencil className='h-4 w-4' /></button>
+                  <button onClick={() => remove(it)} title='Quitar' className={cn(iconBtn, 'hover:text-red-600')}><Trash2 className='h-4 w-4' /></button>
                 </div>
               }
             />

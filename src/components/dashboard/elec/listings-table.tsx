@@ -58,6 +58,14 @@ function buildMarketRefs(listings: ElecListingDTO[], minSample: number): Map<str
   return refs
 }
 
+/** 2300 → "2.3k", -800 → "-800" */
+function kShort(n: number) {
+  const sign = n < 0 ? '-' : ''
+  const a = Math.abs(n)
+  if (a < 1000) return `${sign}${Math.round(a)}`
+  return `${sign}${(a / 1000).toFixed(1).replace(/\.0$/, '')}k`
+}
+
 /** Oferta que deja el margen meta contra el precio de venta P75 (redondeada a $500; audífonos a $100). */
 function suggestOffer(l: ElecListingDTO, ref: MarketRef | undefined) {
   if (!ref || !l.price) return null
@@ -541,6 +549,11 @@ export default function ElecListingsTable({
                   {delta > 0 ? '+' : ''}{Math.round(delta * 100)}% vs mercado
                 </span>
               )}
+              {ref && l.price ? (
+                <span className={cn('ml-1 font-medium', ref.sellPrice - l.price > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')} title={`Ganancia si compras al precio publicado y vendes en P75 ${money(ref.sellPrice)}`}>
+                  · {kShort(ref.sellPrice - l.price)}
+                </span>
+              ) : null}
             </div>
           </div>
         )

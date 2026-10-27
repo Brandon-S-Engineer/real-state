@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowDown, ArrowUpRight, Check, Code2, FileText, Mail, UserRound } from 'lucide-react'
+import { ArrowDown, ArrowUpRight, Check, Code2, FileText, Mail, MessageCircle, UserRound } from 'lucide-react'
 import CompanyAgentDemo from '@/components/site/company-agent-demo'
 import OtherServices from '@/components/site/other-services'
 import { site } from '@/content/site'
@@ -49,6 +49,7 @@ export default function HomePage() {
     { href: hiring.links.linkedin, label: 'LinkedIn', icon: UserRound },
     { href: hiring.links.cv, label: 'CV (PDF)', icon: FileText },
     { href: hiring.links.email ? `mailto:${hiring.links.email}` : '', label: 'Email', icon: Mail },
+    { href: hiring.links.whatsapp ? `https://wa.me/${hiring.links.whatsapp}` : '', label: 'WhatsApp', icon: MessageCircle },
   ].filter((l) => l.href)
 
   return (

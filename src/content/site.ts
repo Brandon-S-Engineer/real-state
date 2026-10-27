@@ -1,9 +1,9 @@
 // Central config for the public portfolio.
 //
-// Marketplace-safe by design: the site is linked from freelance platform
-// profiles, so it carries no contact details, booking links, prices, or
-// platform names. Every CTA points back into the site (demos, work); the
-// conversation and the contract happen on whichever platform sent the visitor.
+// The home (`hiring`) targets employers and shows direct contact details. The
+// agency pages (/agency, /services, /solutions) stay marketplace-safe: no
+// contact details, prices or platform names, so they can be linked from
+// freelance profiles.
 
 export const site = {
   name: 'Brandon Soria',
@@ -21,11 +21,13 @@ export const site = {
     subhead:
       'Applied AI engineer — RAG, tool-calling agents, MCP and voice, on a full-stack base of Next.js, Python and Postgres. Every project below is live: try it, then read how it was built.',
     availability: 'Open to full-time remote or on-site in CDMX',
-    meta: ['Mexico City · GMT-6', 'English C1'],
+    meta: ['Cuajimalpa, Mexico City · GMT-6', 'English C1'],
     links: {
-      github: '',
-      linkedin: '',
-      email: '',
+      github: 'https://github.com/Brandon-S-Engineer',
+      linkedin: 'https://www.linkedin.com/in/brandon-i-soria/',
+      email: 'brandon.s.engineer@gmail.com',
+      // Número en formato internacional para wa.me (52 = México).
+      whatsapp: '525516516493',
       cv: '',
     },
   },

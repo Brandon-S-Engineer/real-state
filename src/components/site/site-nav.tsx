@@ -10,7 +10,8 @@ import { site } from '@/content/site'
 // El home es de una sola vista: el menú salta a sus secciones. Las páginas de
 // agencia (/agency, /services, /solutions, /mvp-saas) siguen accesibles por URL.
 const links = [
-  { href: '/#projects', label: 'Projects' },
+  { href: '/#projects', label: 'Demos' },
+  { href: '/#products', label: 'Products' },
   { href: '/#how', label: 'How I build' },
   { href: '/#contact', label: 'Contact' },
   { href: '/agency', label: 'For clients' },

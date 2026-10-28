@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { ArrowDown, ArrowUpRight, Check, Code2, FileText, Mail, MessageCircle, UserRound } from 'lucide-react'
+import ResaleIntel from '@/components/site/resale/resale-intel'
+import { getMarketSnapshot } from '@/lib/resale/market'
 import CompanyAgentDemo from '@/components/site/company-agent-demo'
 import LeadAgentDemo from '@/components/site/lead-agent-demo'
 import OtherServices from '@/components/site/other-services'
@@ -32,13 +34,17 @@ const principles = [
 
 const upcoming = [
   {
-    num: '03',
-    title: 'AI voice receptionist',
-    body: 'A real phone number you can call: answers FAQs, books into a calendar, confirms by text and logs a summary of the call.',
+    num: '2/2',
+    title: 'Cross-border product sourcing',
+    body: 'Matches the same product across supplier and US marketplaces with image + text embeddings, then computes landed cost, fees and real margin to find what is worth selling.',
   },
 ]
 
-export default function HomePage() {
+// Los datos del mercado de reventa se cachean 30 min (ver lib/resale/market).
+export const revalidate = 1800
+
+export default async function HomePage() {
+  const snapshot = await getMarketSnapshot()
   const { hiring } = site
   const links = [
     { href: hiring.links.github, label: 'GitHub', icon: Code2 },
@@ -114,7 +120,7 @@ export default function HomePage() {
       <section id='projects' className='mx-auto max-w-[1120px] scroll-mt-20 px-6 pt-10'>
         <div className='flex flex-wrap items-end justify-between gap-4'>
           <div className='max-w-[62ch]'>
-            <span className='site-kicker'>Project 01 · live</span>
+            <span className='site-kicker'>Demo 01 · live</span>
             <h2
               className='site-display mt-2 font-bold'
               style={{ fontSize: 'clamp(24px,3vw,32px)', letterSpacing: '-0.03em' }}>
@@ -143,7 +149,7 @@ export default function HomePage() {
       <section className='mx-auto max-w-[1120px] px-6 pt-20'>
         <div className='flex flex-wrap items-end justify-between gap-4'>
           <div className='max-w-[62ch]'>
-            <span className='site-kicker'>Project 02 · live</span>
+            <span className='site-kicker'>Demo 02 · live</span>
             <h2
               className='site-display mt-2 font-bold'
               style={{ fontSize: 'clamp(24px,3vw,32px)', letterSpacing: '-0.03em' }}>
@@ -168,15 +174,58 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* NEXT PROJECTS */}
-      <section className='mx-auto max-w-[1120px] px-6 pt-14'>
+      {/* PRODUCTS: páginas completas embebidas, no links externos */}
+      <section id='products' className='mx-auto max-w-[1120px] scroll-mt-20 px-6 pt-24'>
+        <div className='flex flex-wrap items-end justify-between gap-4'>
+          <div className='max-w-[64ch]'>
+            <span className='site-kicker'>Product 1/2 · real data, used daily</span>
+            <h2
+              className='site-display mt-2 font-bold'
+              style={{ fontSize: 'clamp(24px,3vw,32px)', letterSpacing: '-0.03em' }}>
+              Resale Intelligence — a price model and multi-agent deal desk on 16k real listings
+            </h2>
+          </div>
+          <div className='site-mono flex flex-wrap gap-2 text-[12px]' style={{ color: 'var(--muted)' }}>
+            {['Chrome extension', 'Postgres', 'Multi-agent', 'Structured outputs', 'Next.js'].map((t) => (
+              <span key={t} className='rounded-full px-2.5 py-0.5' style={{ border: '1px solid var(--border)' }}>
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className='mt-6 overflow-hidden rounded-[20px]' style={{ border: '1px solid var(--border)', background: 'var(--bg)' }}>
+          <div
+            className='flex items-center gap-3 px-4 py-2.5'
+            style={{ borderBottom: '1px solid var(--border)', background: 'var(--card)' }}>
+            <span className='flex gap-1.5'>
+              {[0, 1, 2].map((i) => (
+                <span key={i} className='h-[10px] w-[10px] rounded-full' style={{ background: 'var(--border)' }} />
+              ))}
+            </span>
+            <span
+              className='site-mono min-w-0 flex-1 truncate rounded-full px-3 py-1 text-center text-[12px]'
+              style={{ background: 'var(--bg-2)', color: 'var(--muted)' }}>
+              brandon-s-engineer.com/resale
+            </span>
+            <Link href='/resale' className='inline-flex shrink-0 items-center gap-1 text-[12.5px]' style={{ color: 'var(--accent)' }}>
+              Full page <ArrowUpRight className='h-3.5 w-3.5' />
+            </Link>
+          </div>
+          <div className='max-h-[860px] overflow-y-auto p-4 sm:p-6'>
+            <ResaleIntel snapshot={snapshot} />
+          </div>
+        </div>
+      </section>
+
+      {/* NEXT PRODUCT */}
+      <section className='mx-auto max-w-[1120px] px-6 pt-8'>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
           {upcoming.map((p) => (
             <div
               key={p.num}
               className='rounded-[18px] p-[22px]'
               style={{ background: 'var(--card)', border: '1px dashed var(--border)' }}>
-              <span className='site-kicker'>Project {p.num} · in progress</span>
+              <span className='site-kicker'>Product {p.num} · in progress</span>
               <h3 className='site-display mt-2 text-[19px] font-semibold' style={{ letterSpacing: '-0.02em' }}>
                 {p.title}
               </h3>

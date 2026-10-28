@@ -113,3 +113,32 @@ export async function chatStream(
   }
   return { message: { content: content || null, tool_calls: calls.length ? calls : undefined }, usage }
 }
+
+// Llamada sin streaming que devuelve un objeto JSON. Con `schema` usa
+// Structured Outputs estricto (OpenAI garantiza enums y campos); igual se
+// valida con zod del lado del que llama.
+export async function chatJson(
+  model: ModelId,
+  system: string,
+  user: string,
+  schema?: { name: string; schema: Record<string, unknown> },
+): Promise<{ data: unknown; usage: ChatResult['usage'] }> {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key()}` },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      response_format: schema
+        ? { type: 'json_schema', json_schema: { name: schema.name, strict: true, schema: schema.schema } }
+        : { type: 'json_object' },
+      ...(model.startsWith('gpt-5') ? { reasoning_effort: 'minimal' } : { temperature: 0.1 }),
+    }),
+  })
+  if (!res.ok) throw new Error(`Chat failed: ${res.status} ${await res.text()}`)
+  const json = (await res.json()) as { choices: { message: { content: string } }[]; usage: ChatResult['usage'] }
+  return { data: JSON.parse(json.choices[0].message.content), usage: json.usage }
+}

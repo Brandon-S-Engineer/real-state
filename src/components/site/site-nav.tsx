@@ -7,12 +7,13 @@ import { Menu, X } from 'lucide-react'
 import SiteThemeToggle from '@/components/site/site-theme-toggle'
 import { site } from '@/content/site'
 
-// Work (/work) is kept in the codebase as reference but no longer linked.
+// El home es de una sola vista: el menú salta a sus secciones. Las páginas de
+// agencia (/agency, /services, /solutions, /mvp-saas) siguen accesibles por URL.
 const links = [
-  { href: '/services', label: 'Services' },
-  { href: '/solutions', label: 'Solutions' },
-  { href: '/mvp-saas', label: 'MVP & SaaS' },
-  { href: '/about', label: 'About' },
+  { href: '/#projects', label: 'Projects' },
+  { href: '/#how', label: 'How I build' },
+  { href: '/#contact', label: 'Contact' },
+  { href: '/agency', label: 'For clients' },
 ]
 
 export default function SiteNav() {
@@ -64,8 +65,8 @@ export default function SiteNav() {
           <div className='ml-1.5'>
             <SiteThemeToggle />
           </div>
-          <Link href='/#demos' className='site-btn site-btn-inverse ml-1.5 h-9 px-4 text-sm'>
-            Try a demo
+          <Link href='/#projects' className='site-btn site-btn-inverse ml-1.5 h-9 px-4 text-sm'>
+            Try the projects
           </Link>
         </nav>
 
@@ -97,10 +98,10 @@ export default function SiteNav() {
               </Link>
             ))}
             <Link
-              href='/#demos'
+              href='/#projects'
               onClick={() => setOpen(false)}
               className='site-btn site-btn-inverse mt-2 h-10 px-4 text-sm'>
-              Try a demo
+              Try the projects
             </Link>
           </nav>
         </div>

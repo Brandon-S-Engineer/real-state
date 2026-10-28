@@ -189,7 +189,7 @@ export default function HomePage() {
       </section>
 
       {/* HOW I BUILD */}
-      <section className='mx-auto max-w-[1120px] px-6 pt-20'>
+      <section id='how' className='mx-auto max-w-[1120px] scroll-mt-20 px-6 pt-20'>
         <span className='site-kicker'>How I build</span>
         <h2
           className='site-display mt-2 font-bold'
@@ -219,7 +219,7 @@ export default function HomePage() {
       </section>
 
       {/* CONTACT */}
-      <section className='mx-auto max-w-[1120px] px-6 pt-20 pb-24'>
+      <section id='contact' className='mx-auto max-w-[1120px] scroll-mt-20 px-6 pt-20 pb-24'>
         <div
           className='relative overflow-hidden rounded-[26px] px-8 py-14 text-center sm:px-12'
           style={{ background: 'var(--fg)', color: 'var(--bg)' }}>

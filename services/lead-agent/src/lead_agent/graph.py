@@ -34,6 +34,7 @@ WRITE_TOOLS = ("upsert_contact", "update_stage", "log_activity", "schedule_follo
 
 class Qualification(BaseModel):
     intent: Literal["buy", "trade_in", "support", "spam", "other"]
+    language: str = Field(description='Language the customer wrote in, e.g. "English" or "Spanish".')
     models_of_interest: list[str] = Field(description='Models the customer wants to BUY, e.g. ["iPhone 15 Pro"]. Empty if none.')
     trade_in_device: str | None = Field(description="Device the customer offers as trade-in, if any.")
     budget_mxn: int | None = Field(description="Budget in MXN if stated or clearly implied, else null.")
@@ -111,7 +112,7 @@ def build_graph(session: ClientSession, write_tool_specs: str, model: str, check
         msg = await llm.ainvoke(
             [
                 SystemMessage(
-                    "Write the WhatsApp reply a Volt Mobile salesperson would send. Same language as the customer. "
+                    "Write the WhatsApp reply a Volt Mobile salesperson would send, in the language given in reply_language. "
                     "Max 4 short sentences. Use ONLY the inventory and store facts given; never invent prices, stock or policies. "
                     "If nothing matches, say so and offer the closest option or to notify them. End with one question "
                     "that moves the sale forward. If the message is spam, reply with an empty string."
@@ -121,6 +122,7 @@ def build_graph(session: ClientSession, write_tool_specs: str, model: str, check
                         {
                             "customer_message": state["message"],
                             "customer_name": state.get("name"),
+                            "reply_language": state["qualification"]["language"],
                             "qualification": state["qualification"],
                             "inventory": state["inventory"],
                             "store_facts": STORE_FACTS,

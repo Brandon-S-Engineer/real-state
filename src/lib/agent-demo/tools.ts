@@ -4,53 +4,11 @@
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { embed } from './openai'
+export { toolSpecs } from './specs'
 
 export type Source = { id: string; title: string; heading: string; score: number }
 
-export const toolSpecs = [
-  {
-    type: 'function',
-    function: {
-      name: 'search_docs',
-      description:
-        'Semantic search over the company policy documents (shipping, returns, warranty, device grades, payments, trade-in). Use for any policy question.',
-      parameters: {
-        type: 'object',
-        properties: { query: { type: 'string', description: 'What to look for, in English.' } },
-        required: ['query'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'find_products',
-      description: 'Look up devices in the live inventory. All filters are optional.',
-      parameters: {
-        type: 'object',
-        properties: {
-          model: { type: 'string', description: 'Model name or part of it, e.g. "iPhone 15" or "Pro".' },
-          max_price_mxn: { type: 'number' },
-          grade: { type: 'string', enum: ['A', 'B', 'C'] },
-          in_stock_only: { type: 'boolean' },
-        },
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_order',
-      description:
-        'Get the status of one order. Requires BOTH the order id and the email used to buy it; the order is only returned if they match.',
-      parameters: {
-        type: 'object',
-        properties: { order_id: { type: 'string' }, email: { type: 'string' } },
-        required: ['order_id', 'email'],
-      },
-    },
-  },
-] as const
+
 
 const searchArgs = z.object({ query: z.string().min(2).max(300) })
 const productArgs = z.object({

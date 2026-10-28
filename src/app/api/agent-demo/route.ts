@@ -4,23 +4,15 @@
 // tokens, costo y latencia.
 
 import { z } from 'zod'
-import { CHAT_MODEL, chat, costUsd, type ChatMessage } from '@/lib/agent-demo/openai'
-import { runTool, toolSpecs, type Source } from '@/lib/agent-demo/tools'
+import { DEFAULT_MODEL, MODELS, chatStream, costUsd, type ChatMessage, type ModelId } from '@/lib/agent-demo/openai'
+import { SYSTEM_PROMPT, toolSpecs } from '@/lib/agent-demo/specs'
+import { runTool, type Source } from '@/lib/agent-demo/tools'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const SYSTEM = `You are the customer support agent for Volt Mobile, a Mexican store that sells refurbished iPhones.
-Rules:
-- Answer ONLY with facts returned by your tools. Never invent prices, stock, dates or policies.
-- For policy questions call search_docs and cite every fact with its source id in brackets, e.g. [returns#1].
-- For inventory questions call find_products. Prices are in MXN.
-- For order questions you need BOTH the order id and the email. If either is missing, ask for it. Never reveal an order that did not match.
-- If the tools return nothing relevant, say you don't have that information and offer to connect the customer with a human. Do not guess.
-- You are read-only: you cannot cancel, refund or change orders. Say a human agent will handle those requests.
-- Reply in the same language as the customer's last message (English unless they wrote in another language). Be brief.`
-
 const bodySchema = z.object({
+  model: z.enum(Object.keys(MODELS) as [ModelId, ...ModelId[]]).default(DEFAULT_MODEL),
   messages: z
     .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(1000) }))
     .min(1)
@@ -64,14 +56,17 @@ export async function POST(req: Request) {
     async start(controller) {
       const send = (event: Record<string, unknown>) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
       const started = Date.now()
+      const model = parsed.data.model
       const totals = { input: 0, output: 0 }
       const sources: Source[] = []
-      const messages: ChatMessage[] = [{ role: 'system', content: SYSTEM }, ...parsed.data.messages]
+      const messages: ChatMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }, ...parsed.data.messages]
 
       try {
         for (let step = 0; step < MAX_STEPS; step++) {
           const t0 = Date.now()
-          const { message, usage } = await chat(messages, [...toolSpecs])
+          const { message, usage } = await chatStream(model, messages, [...toolSpecs], (text) =>
+            send({ type: 'delta', text }),
+          )
           totals.input += usage.prompt_tokens
           totals.output += usage.completion_tokens
           send({ type: 'llm', step, ms: Date.now() - t0, input: usage.prompt_tokens, output: usage.completion_tokens })
@@ -81,10 +76,10 @@ export async function POST(req: Request) {
               type: 'answer',
               content: message.content ?? '',
               sources,
-              model: CHAT_MODEL,
+              model,
               ms: Date.now() - started,
               tokens: totals,
-              cost_usd: costUsd(CHAT_MODEL, totals.input, totals.output),
+              cost_usd: costUsd(model, totals.input, totals.output),
             })
             controller.close()
             return

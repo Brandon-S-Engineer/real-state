@@ -4,13 +4,22 @@
 // a la derecha, la traza en vivo de cómo se construyó cada respuesta.
 
 import { useRef, useState } from 'react'
-import { ArrowUp, Database, FileSearch, Loader2, RotateCcw, Sparkles } from 'lucide-react'
+import { ArrowUp, Code2, Database, FileSearch, Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { suggestedQuestions } from '@/lib/agent-demo/data'
+import { SYSTEM_PROMPT, toolSpecs } from '@/lib/agent-demo/specs'
+
+// Debe coincidir con MODELS en lib/agent-demo/openai.ts (solo modelos baratos).
+const MODEL_OPTIONS = [
+  { id: 'gpt-5-nano', label: 'gpt-5-nano · cheapest' },
+  { id: 'gpt-5-mini', label: 'gpt-5-mini · smarter' },
+  { id: 'gpt-4.1-mini', label: 'gpt-4.1-mini · fastest' },
+]
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 type Source = { id: string; title: string; heading: string; score: number }
 type TraceEvent =
+  | { type: 'delta'; text: string }
   | { type: 'llm'; step: number; ms: number; input: number; output: number }
   | { type: 'tool_call'; id: string; name: string; args: string }
   | { type: 'tool_result'; id: string; name: string; ms: number; sql?: string; sources?: Source[]; rows?: number; preview: string }
@@ -24,6 +33,9 @@ export default function CompanyAgentDemo() {
   const [trace, setTrace] = useState<TraceEvent[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const [model, setModel] = useState('gpt-4.1-mini')
+  const [streaming, setStreaming] = useState('')
+  const [showPrompt, setShowPrompt] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   async function ask(text: string) {
@@ -33,12 +45,13 @@ export default function CompanyAgentDemo() {
     setMessages(next)
     setInput('')
     setTrace([])
+    setStreaming('')
     setBusy(true)
     try {
       const res = await fetch('/api/agent-demo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next.slice(-12) }),
+        body: JSON.stringify({ model, messages: next.slice(-12) }),
       })
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({ error: 'Request failed' }))
@@ -57,7 +70,14 @@ export default function CompanyAgentDemo() {
         for (const line of lines) {
           if (!line.trim()) continue
           const ev = JSON.parse(line) as TraceEvent
+          // El texto llega token por token; no va a la traza.
+          if (ev.type === 'delta') {
+            setStreaming((t) => t + ev.text)
+            continue
+          }
+          if (ev.type === 'tool_call') setStreaming('')
           setTrace((t) => [...t, ev])
+          if (ev.type === 'answer') setStreaming('')
           if (ev.type === 'answer') setMessages([...next, { role: 'assistant', content: ev.content }])
           if (ev.type === 'error') setMessages([...next, { role: 'assistant', content: `⚠️ ${ev.message}` }])
         }
@@ -67,6 +87,7 @@ export default function CompanyAgentDemo() {
       setMessages([...next, { role: 'assistant', content: '⚠️ Network error. Please try again.' }])
     } finally {
       setBusy(false)
+      setStreaming('')
     }
   }
 
@@ -82,6 +103,11 @@ export default function CompanyAgentDemo() {
           <span className='inline-flex items-center gap-2 text-[13.5px] font-medium'>
             <span className='site-pulse h-[7px] w-[7px] rounded-full' style={{ background: 'var(--live)' }} />
             Volt Mobile · support agent
+          </span>
+          <span
+            className='site-mono hidden rounded-full px-2 py-0.5 text-[11px] sm:inline'
+            style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+            live model call · not scripted
           </span>
           {messages.length > 0 && (
             <button
@@ -101,8 +127,9 @@ export default function CompanyAgentDemo() {
           {messages.length === 0 && (
             <div>
               <p className='text-[14px]' style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
-                A fictional refurbished-iPhone store. The agent answers from its policy docs (pgvector) and its live
-                inventory and orders (Postgres) — and says so when it doesn&apos;t know. Try one:
+                A fictional refurbished-iPhone store. Every answer is a live call to the model you pick below, grounded
+                in its policy docs (pgvector) and live inventory and orders (Postgres). Ask anything — try to make it
+                hallucinate. Or start with one of these:
               </p>
               <div className='mt-4 flex flex-col gap-2'>
                 {suggestedQuestions.map((q) => (
@@ -131,7 +158,16 @@ export default function CompanyAgentDemo() {
               </div>
             </div>
           ))}
-          {busy && (
+          {streaming && (
+            <div className='flex justify-start'>
+              <div
+                className='prose prose-sm max-w-[85%] rounded-[14px] px-3.5 py-2.5 text-[14px] dark:prose-invert'
+                style={{ background: 'var(--bg-2)', border: '1px solid var(--border)' }}>
+                <ReactMarkdown>{streaming + ' ▍'}</ReactMarkdown>
+              </div>
+            </div>
+          )}
+          {busy && !streaming && (
             <div className='inline-flex items-center gap-2 text-[13px]' style={{ color: 'var(--muted)' }}>
               <Loader2 className='h-3.5 w-3.5 animate-spin' /> Thinking…
             </div>
@@ -143,8 +179,21 @@ export default function CompanyAgentDemo() {
             e.preventDefault()
             ask(input)
           }}
-          className='flex gap-2 p-3'
+          className='flex flex-wrap gap-2 p-3'
           style={{ borderTop: '1px solid var(--border)' }}>
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            disabled={busy}
+            aria-label='Model'
+            className='site-mono h-11 w-full rounded-[12px] px-2.5 text-[12.5px] outline-none focus-visible:ring-2 sm:w-auto'
+            style={{ background: 'var(--bg-2)', border: '1px solid var(--border)' }}>
+            {MODEL_OPTIONS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -169,21 +218,36 @@ export default function CompanyAgentDemo() {
         className='flex h-[520px] min-w-0 flex-col'
         style={{ background: 'var(--bg-2)', borderLeft: '1px solid var(--border)' }}>
         <div className='flex items-center justify-between px-5 py-3' style={{ borderBottom: '1px solid var(--border)' }}>
-          <span className='site-kicker'>How the answer was built</span>
-          {answer && (
-            <span className='site-mono text-[11.5px]' style={{ color: 'var(--muted)' }}>
-              {answer.model}
-            </span>
-          )}
+          <span className='site-kicker'>{showPrompt ? 'Prompt & tools' : 'How the answer was built'}</span>
+          <button
+            type='button'
+            onClick={() => setShowPrompt((v) => !v)}
+            className='inline-flex items-center gap-1 text-[12.5px]'
+            style={{ color: 'var(--muted)' }}>
+            <Code2 className='h-3.5 w-3.5' /> {showPrompt ? 'Back to trace' : 'View prompt & tools'}
+          </button>
         </div>
         <div className='flex-1 space-y-2.5 overflow-y-auto px-5 py-4'>
-          {trace.length === 0 && (
+          {showPrompt && (
+            <>
+              <p className='site-kicker'>System prompt</p>
+              <Code text={SYSTEM_PROMPT} />
+              <p className='site-kicker pt-2'>Tool schemas sent to the model</p>
+              <Code text={JSON.stringify(toolSpecs, null, 2)} />
+            </>
+          )}
+          {!showPrompt && trace.length === 0 && (
             <p className='text-[13px]' style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
               Every tool call, the exact SQL, the retrieved sources with their similarity score, tokens, cost and
               latency show up here as the agent works.
             </p>
           )}
-          {trace.map((ev, i) => {
+          {!showPrompt && answer && (
+            <p className='site-mono text-[11.5px]' style={{ color: 'var(--muted)' }}>
+              model: {answer.model}
+            </p>
+          )}
+          {!showPrompt && trace.map((ev, i) => {
             if (ev.type === 'llm')
               return (
                 <Row key={i} icon={Sparkles} title={`LLM step ${ev.step + 1}`} meta={`${ev.ms} ms · ${ev.input}→${ev.output} tok`} />

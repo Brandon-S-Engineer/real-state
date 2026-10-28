@@ -1,14 +1,17 @@
 // Cliente mínimo de OpenAI vía fetch (sin SDK) para el demo del agente.
 
-export const CHAT_MODEL = process.env.AGENT_DEMO_MODEL ?? 'gpt-4.1-mini'
 export const EMBED_MODEL = 'text-embedding-3-small'
 
-// USD por millón de tokens, para mostrar el costo real de cada respuesta.
-const PRICING: Record<string, { input: number; output: number }> = {
+// Solo modelos baratos: el demo es público. USD por millón de tokens, para
+// mostrar el costo real de cada respuesta.
+export const MODELS = {
+  'gpt-5-nano': { input: 0.05, output: 0.4 },
+  'gpt-5-mini': { input: 0.25, output: 2 },
   'gpt-4.1-mini': { input: 0.4, output: 1.6 },
-  'gpt-4.1': { input: 2, output: 8 },
-  'gpt-4o-mini': { input: 0.15, output: 0.6 },
-}
+} as const
+export type ModelId = keyof typeof MODELS
+export const DEFAULT_MODEL: ModelId = 'gpt-4.1-mini'
+const PRICING: Record<string, { input: number; output: number }> = MODELS
 
 export function costUsd(model: string, input: number, output: number) {
   const p = PRICING[model]
@@ -45,13 +48,68 @@ export type ChatResult = {
   usage: { prompt_tokens: number; completion_tokens: number }
 }
 
-export async function chat(messages: ChatMessage[], tools: unknown[]): Promise<ChatResult> {
+// Llamada con streaming (SSE). El texto se entrega token por token vía onDelta;
+// los tool calls llegan fragmentados y se reensamblan por índice.
+export async function chatStream(
+  model: ModelId,
+  messages: ChatMessage[],
+  tools: unknown[],
+  onDelta: (text: string) => void,
+): Promise<ChatResult> {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key()}` },
-    body: JSON.stringify({ model: CHAT_MODEL, messages, tools, temperature: 0.1 }),
+    body: JSON.stringify({
+      model,
+      messages,
+      tools,
+      // Los gpt-5 son de razonamiento: no aceptan temperature; con esfuerzo
+      // mínimo responden rápido, que es lo que importa en un chat.
+      ...(model.startsWith('gpt-5') ? { reasoning_effort: 'minimal' } : { temperature: 0.1 }),
+      stream: true,
+      stream_options: { include_usage: true },
+    }),
   })
-  if (!res.ok) throw new Error(`Chat failed: ${res.status} ${await res.text()}`)
-  const json = (await res.json()) as { choices: { message: ChatResult['message'] }[]; usage: ChatResult['usage'] }
-  return { message: json.choices[0].message, usage: json.usage }
+  if (!res.ok || !res.body) throw new Error(`Chat failed: ${res.status} ${await res.text()}`)
+
+  let content = ''
+  const calls: ToolCall[] = []
+  let usage: ChatResult['usage'] = { prompt_tokens: 0, completion_tokens: 0 }
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buf = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += decoder.decode(value, { stream: true })
+    const lines = buf.split('\n')
+    buf = lines.pop() ?? ''
+    for (const line of lines) {
+      const data = line.startsWith('data: ') ? line.slice(6).trim() : ''
+      if (!data || data === '[DONE]') continue
+      const chunk = JSON.parse(data) as {
+        choices: {
+          delta: {
+            content?: string | null
+            tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[]
+          }
+        }[]
+        usage?: ChatResult['usage'] | null
+      }
+      if (chunk.usage) usage = chunk.usage
+      const delta = chunk.choices[0]?.delta
+      if (!delta) continue
+      if (delta.content) {
+        content += delta.content
+        onDelta(delta.content)
+      }
+      for (const tc of delta.tool_calls ?? []) {
+        const c = (calls[tc.index] ??= { id: '', type: 'function', function: { name: '', arguments: '' } })
+        if (tc.id) c.id = tc.id
+        if (tc.function?.name) c.function.name += tc.function.name
+        if (tc.function?.arguments) c.function.arguments += tc.function.arguments
+      }
+    }
+  }
+  return { message: { content: content || null, tool_calls: calls.length ? calls : undefined }, usage }
 }

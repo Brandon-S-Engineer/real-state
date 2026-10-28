@@ -4,7 +4,7 @@
 // corre en un servicio aparte. Flujo: mensaje entrante → grafo en vivo →
 // pausa para aprobación humana → ejecución vía MCP → el kanban del CRM cambia.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Circle, Loader2, PauseCircle, Send, X } from 'lucide-react'
 import { site } from '@/content/site'
 
@@ -18,6 +18,16 @@ const NODES = [
   { id: 'approval', label: 'Human approval', hint: 'LangGraph interrupt · Postgres checkpoint' },
   { id: 'execute', label: 'Execute', hint: 'MCP · write tools' },
 ] as const
+
+// Lo que hace cada nodo mientras el LLM o MCP trabajan; rota para que el
+// panel nunca se quede quieto en los ~15 s del free tier.
+const THINKING: Record<string, string[]> = {
+  qualify: ['Reading the message…', 'Detecting intent and language…', 'Scoring the lead 0–100…', 'Estimating budget and urgency…'],
+  lookup: ['Calling find_contact over MCP…', 'Calling search_inventory over MCP…', 'Matching models and budget…'],
+  draft_reply: ['Grounding the reply in stock and store facts…', 'Writing the reply…'],
+  propose_actions: ['Reading the MCP tool schemas…', 'Choosing CRM actions…', 'Filling tool arguments…'],
+  execute: ['Running approved tools over MCP…', 'Writing to Postgres…'],
+}
 
 const STAGES = ['new', 'qualified', 'quoted', 'won', 'lost'] as const
 
@@ -55,6 +65,12 @@ export default function LeadAgentDemo() {
   const [results, setResults] = useState<{ tool: string; result: unknown }[]>([])
   const [crm, setCrm] = useState<Contact[]>([])
   const [error, setError] = useState('')
+  const [model, setModel] = useState('')
+  // Tiempos por nodo para que se vea dónde se va la latencia.
+  const [times, setTimes] = useState<Record<string, number>>({})
+  const [now, setNow] = useState(0)
+  const stepStart = useRef(0)
+  const runStart = useRef(0)
 
   const loadCrm = useCallback(async () => {
     const r = await fetch(`${API}/crm`).catch(() => null)
@@ -66,10 +82,13 @@ export default function LeadAgentDemo() {
   useEffect(() => {
     let alive = true
     fetch(`${API}/health`)
-      .then((r) => {
+      .then(async (r) => {
         if (!alive) return
         setAwake(r.ok ? 'up' : 'down')
-        if (r.ok) loadCrm()
+        if (r.ok) {
+          setModel((await r.json()).model ?? '')
+          loadCrm()
+        }
       })
       .catch(() => alive && setAwake('down'))
     return () => {
@@ -100,6 +119,10 @@ export default function LeadAgentDemo() {
           setReply((r) => r + ev.text)
         }
         if (ev.type === 'node') {
+          const t = Date.now()
+          const ms = t - stepStart.current
+          setTimes((m) => ({ ...m, [ev.node]: ms }))
+          stepStart.current = t
           setDone((d) => [...d, ev.node])
           const i = NODES.findIndex((n) => n.id === ev.node)
           setActive(NODES[i + 1]?.id ?? null)
@@ -127,6 +150,8 @@ export default function LeadAgentDemo() {
     setActions([])
     setResults([])
     setError('')
+    setTimes({})
+    stepStart.current = runStart.current = Date.now()
     setPhase('running')
     try {
       await consume(
@@ -147,6 +172,7 @@ export default function LeadAgentDemo() {
     if (!threadId) return
     setPhase('executing')
     setActive('execute')
+    stepStart.current = runStart.current = Date.now()
     try {
       await consume(
         await fetch(`${API}/leads/${threadId}/decision`, {
@@ -165,6 +191,17 @@ export default function LeadAgentDemo() {
   }
 
   const busy = phase === 'running' || phase === 'executing'
+
+  useEffect(() => {
+    if (!busy) return
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), 100)
+    return () => clearInterval(id)
+  }, [busy])
+
+  const lines = (active && THINKING[active]) || []
+  const thinking = lines[Math.floor((now - stepStart.current) / 2200) % Math.max(lines.length, 1)]
+  const streaming = active === 'draft_reply' && reply.length > 0
   const focusKey = form.contact.trim().toLowerCase()
 
   return (
@@ -261,6 +298,11 @@ export default function LeadAgentDemo() {
                   <span className='site-mono truncate text-[11px]' style={{ color: 'var(--muted)' }}>
                     {n.hint}
                   </span>
+                  {times[n.id] != null && (
+                    <span className='site-mono ml-auto shrink-0 text-[11px]' style={{ color: 'var(--muted)' }}>
+                      {(times[n.id] / 1000).toFixed(1)}s
+                    </span>
+                  )}
                 </li>
               )
             })}
@@ -276,6 +318,34 @@ export default function LeadAgentDemo() {
               that.
             </p>
           )}
+          {busy && (
+            <div
+              className='mb-3 flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-[12.5px]'
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+              aria-live='polite'>
+              <span className='flex shrink-0 gap-1'>
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className='site-pulse h-[6px] w-[6px] rounded-full'
+                    style={{ background: 'var(--accent)', animationDelay: `${i * 0.2}s` }}
+                  />
+                ))}
+              </span>
+              <span className='min-w-0 flex-1 truncate'>{streaming ? 'Streaming tokens…' : thinking}</span>
+              <span className='site-mono shrink-0 text-[11px]' style={{ color: 'var(--muted)' }}>
+                {model && `${model} · `}
+                {(Math.max(0, now - runStart.current) / 1000).toFixed(1)}s
+              </span>
+            </div>
+          )}
+          {busy && !qual && (
+            <div className='grid grid-cols-3 gap-2'>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className='site-skeleton h-[46px]' />
+              ))}
+            </div>
+          )}
           {qual && (
             <div className='site-mono grid grid-cols-3 gap-2 text-center text-[11.5px]'>
               {[
@@ -290,6 +360,16 @@ export default function LeadAgentDemo() {
               ))}
             </div>
           )}
+          {phase === 'running' && !reply && (
+            <div className='mt-3'>
+              <p className='site-kicker'>Drafted reply</p>
+              <div className='mt-1.5 space-y-2 rounded-[12px] px-3.5 py-3' style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+                {['92%', '100%', '64%'].map((w) => (
+                  <div key={w} className='site-skeleton h-[10px]' style={{ width: w }} />
+                ))}
+              </div>
+            </div>
+          )}
           {reply && (
             <div className='mt-3'>
               <p className='site-kicker'>Drafted reply</p>
@@ -298,6 +378,16 @@ export default function LeadAgentDemo() {
                 style={{ background: 'var(--card)', border: '1px solid var(--border)', lineHeight: 1.5 }}>
                 {reply}
                 {active === 'draft_reply' && ' ▍'}
+              </div>
+            </div>
+          )}
+          {phase === 'running' && actions.length === 0 && (
+            <div className='mt-4'>
+              <p className='site-kicker'>Proposed CRM actions</p>
+              <div className='mt-1.5 space-y-1.5'>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className='site-skeleton h-[44px]' style={{ opacity: 1 - i * 0.25 }} />
+                ))}
               </div>
             </div>
           )}

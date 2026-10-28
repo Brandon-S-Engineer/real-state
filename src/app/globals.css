@@ -326,6 +326,22 @@
   animation: pulseDot 1.8s ease-in-out infinite;
 }
 
+/* Skeleton shimmer for agent output that is still being generated */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.site-skeleton {
+  background: linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: 8px;
+}
+
 /* Soft attention pulse — gentle glow for the "Full screen" CTA on demo embeds */
 @keyframes softAttn {
   0%,

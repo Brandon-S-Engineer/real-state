@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowDown, ArrowUpRight, Check, Code2, FileText, Mail, MessageCircle, UserRound } from 'lucide-react'
 import CompanyAgentDemo from '@/components/site/company-agent-demo'
+import LeadAgentDemo from '@/components/site/lead-agent-demo'
 import OtherServices from '@/components/site/other-services'
 import { site } from '@/content/site'
 
@@ -30,11 +31,6 @@ const principles = [
 ]
 
 const upcoming = [
-  {
-    num: '02',
-    title: 'LangGraph agent on a live CRM, via MCP',
-    body: 'Qualifies inbound leads, proposes CRM updates through its own MCP server and waits for a human to approve before writing.',
-  },
   {
     num: '03',
     title: 'AI voice receptionist',
@@ -140,6 +136,35 @@ export default function HomePage() {
         </div>
         <div className='mt-6'>
           <CompanyAgentDemo />
+        </div>
+      </section>
+
+      {/* PROJECT 02 */}
+      <section className='mx-auto max-w-[1120px] px-6 pt-20'>
+        <div className='flex flex-wrap items-end justify-between gap-4'>
+          <div className='max-w-[62ch]'>
+            <span className='site-kicker'>Project 02 · live</span>
+            <h2
+              className='site-display mt-2 font-bold'
+              style={{ fontSize: 'clamp(24px,3vw,32px)', letterSpacing: '-0.03em' }}>
+              Lead agent on a CRM — LangGraph, MCP and human approval
+            </h2>
+            <p className='mt-2 text-[15.5px]' style={{ lineHeight: 1.55, color: 'var(--muted)' }}>
+              A Python service: a LangGraph state machine qualifies an inbound lead, reads the CRM and inventory through
+              its own MCP server, drafts the reply and proposes CRM writes. The graph then pauses — state checkpointed
+              in Postgres — until a human approves, edits or rejects. Only approved actions run.
+            </p>
+          </div>
+          <div className='site-mono flex flex-wrap gap-2 text-[12px]' style={{ color: 'var(--muted)' }}>
+            {['Python', 'FastAPI', 'LangGraph', 'MCP server', 'Postgres checkpointer', 'Render'].map((t) => (
+              <span key={t} className='rounded-full px-2.5 py-0.5' style={{ border: '1px solid var(--border)' }}>
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className='mt-6'>
+          <LeadAgentDemo />
         </div>
       </section>
 

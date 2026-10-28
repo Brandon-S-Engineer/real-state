@@ -1,0 +1,21 @@
+# Blueprint de Render para el servicio Python del proyecto 02 (lead agent).
+services:
+  - type: web
+    name: volt-lead-agent
+    runtime: python
+    plan: free
+    rootDir: services/lead-agent
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    startCommand: uv run --no-sync uvicorn lead_agent.api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: MODEL
+        value: gpt-4.1-mini
+      - key: ALLOWED_ORIGINS
+        value: https://brandon-s-engineer.com,https://www.brandon-s-engineer.com,http://localhost:3000
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

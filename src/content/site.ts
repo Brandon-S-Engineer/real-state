@@ -31,6 +31,9 @@ export const site = {
       cv: '',
     },
   },
+  // Servicio Python del proyecto 02 (Render). En local se sobreescribe con
+  // NEXT_PUBLIC_LEAD_AGENT_URL.
+  leadAgentUrl: 'https://volt-lead-agent.onrender.com',
   // Core stack shown as a trust strip on the home page — AI first.
   stack: [
     'Python',

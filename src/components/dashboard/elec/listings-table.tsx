@@ -156,6 +156,8 @@ function AlertToastCard({ l, onClose }: { l: ElecListingDTO; onClose: () => void
 const freshKey = (l: ElecListingDTO) => l.opportunityScore == null
   ? -Infinity
   : l.opportunityScore - 20 * Math.min(5, daysAgo(l.postedAt ?? l.firstSeenAt) ?? 5)
+// "Score + nuevos ✓": igual, pero los marcados como sospechosos se van al fondo
+const cleanKey = (l: ElecListingDTO) => l.sospechoso ? -Infinity : freshKey(l)
 
 const TOP_SCORE = 80
 
@@ -242,7 +244,7 @@ const sel = 'border rounded-md px-2 py-2 text-sm bg-background h-9'
 type ViewState = {
   sorting: SortingState
   priceSortMode: 'neutro' | 'asc' | 'desc' | 'market'
-  scoreSortMode: 'desc' | 'asc' | 'fresh'
+  scoreSortMode: 'desc' | 'fresh' | 'clean'
   pageIndex: number
   lastOpenedId: string | null
 }
@@ -261,7 +263,10 @@ function loadView(c: Category): ViewState {
   if (typeof window === 'undefined') return VIEW_DEFAULT
   try {
     const raw = window.localStorage.getItem(viewKey(c))
-    return raw ? { ...VIEW_DEFAULT, ...(JSON.parse(raw) as Partial<ViewState>) } : VIEW_DEFAULT
+    if (!raw) return VIEW_DEFAULT
+    const v = { ...VIEW_DEFAULT, ...(JSON.parse(raw) as Partial<ViewState>) }
+    // 'asc' (peor score) ya no existe
+    return (v.scoreSortMode as string) === 'asc' ? { ...v, scoreSortMode: 'desc', sorting: VIEW_DEFAULT.sorting } : v
   } catch { return VIEW_DEFAULT }
 }
 
@@ -285,7 +290,7 @@ export default function ElecListingsTable({
   // El header de Precio itera 4 estados en vez del asc/desc genérico de la tabla:
   // neutro (vuelve al orden por score) → menor a mayor → mayor a menor → mejor descuento vs mercado primero
   const [priceSortMode, setPriceSortMode] = useState<ViewState['priceSortMode']>(initialView.priceSortMode)
-  // El de Score itera mejor → peor → mejor y más nuevo (para contactar primero lo bueno recién publicado)
+  // El de Score itera mejor → mejor y más nuevo → mejor y más nuevo sin sospechosos (para contactar primero lo bueno recién publicado)
   const [scoreSortMode, setScoreSortMode] = useState<ViewState['scoreSortMode']>(initialView.scoreSortMode)
   const [pageIndex, setPageIndex] = useState(initialView.pageIndex)
   const [lastOpenedId, setLastOpenedId] = useState<string | null>(initialView.lastOpenedId)
@@ -497,6 +502,7 @@ export default function ElecListingsTable({
       header: 'Score',
       sortingFn: (a, b) => {
         if (scoreSortMode === 'fresh') return freshKey(a.original) - freshKey(b.original)
+        if (scoreSortMode === 'clean') return cleanKey(a.original) - cleanKey(b.original)
         return (a.original.opportunityScore ?? -1) - (b.original.opportunityScore ?? -1)
       },
       cell: ({ row }) => <ScoreBadge score={row.original.opportunityScore} />,
@@ -804,19 +810,20 @@ export default function ElecListingsTable({
                     : isScore
                       ? () => {
                         const sortedByScore = sorting[0]?.id === 'opportunityScore'
-                        const next = !sortedByScore ? 'desc' : scoreSortMode === 'desc' ? 'asc' : scoreSortMode === 'asc' ? 'fresh' : 'desc'
+                        const next = !sortedByScore ? 'desc' : scoreSortMode === 'desc' ? 'fresh' : scoreSortMode === 'fresh' ? 'clean' : 'desc'
                         setScoreSortMode(next)
                         setPriceSortMode('neutro')
-                        setSorting([{ id: 'opportunityScore', desc: next !== 'asc' }])
+                        setSorting([{ id: 'opportunityScore', desc: true }])
                       }
                       : header.column.getToggleSortingHandler()
                   const active = header.column.getIsSorted()
                   return (
-                    <th key={header.id} onClick={onClick} className='px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap'>
+                    <th key={header.id} onClick={onClick} title={isScore ? 'Clic: mejor score → + nuevos → + nuevos ✓ (sin sospechosos)' : undefined} className='px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap'>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {isPrice && active
                         ? (priceSortMode === 'market' ? ' mejor desc. ↓' : priceSortMode === 'asc' ? ' ↑' : ' ↓')
                         : isScore && active && scoreSortMode === 'fresh' ? ' + nuevos ↓'
+                          : isScore && active && scoreSortMode === 'clean' ? ' + nuevos ✓ ↓'
                           : active === 'asc' ? ' ↑' : active === 'desc' ? ' ↓' : ''}
                     </th>
                   )

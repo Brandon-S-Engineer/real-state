@@ -8,7 +8,7 @@ import { prisma } from '@/lib/db'
 import { Prisma, type ElecListing, type ElecSettings, type ElecZone } from '@prisma/client'
 import { z } from 'zod'
 import { parsePriceFromText } from './parse-specs'
-import { parseListing } from './categories'
+import { parseListing, type Category } from './categories'
 import { ensureDefaultZones, matchZone } from './zones'
 import { getElecSettings, indexGroups, loadWindowRows, scoreListing } from './stats'
 
@@ -151,13 +151,16 @@ export async function ingestListings(input: IngestInput): Promise<IngestResult> 
   }
 
   // Score de lo recién tocado contra la foto actual del mercado
+  // (solo la categoría de lo que llegó: los grupos de precio no cruzan categorías; y un solo viaje a la base)
   if (touched.length) {
-    const idx = indexGroups(await loadWindowRows(settings))
-    for (const l of touched) {
+    const cats = Array.from(new Set(touched.map((l) => l.category as Category)))
+    const idx = indexGroups(await loadWindowRows(settings, cats.length === 1 ? cats[0] : undefined))
+    const updates = touched.map((l) => {
       const { score, reasons, sospechoso } = scoreListing(l, idx, settings)
-      await prisma.elecListing.update({ where: { id: l.id }, data: { opportunityScore: score, scoreReasons: reasons, sospechoso } })
       if (newIds.has(l.id) && score != null && score >= settings.minScoreAlert) result.alertIds.push(l.id)
-    }
+      return prisma.elecListing.update({ where: { id: l.id }, data: { opportunityScore: score, scoreReasons: reasons, sospechoso } })
+    })
+    await prisma.$transaction(updates)
   }
 
   if (input.countsAsSession && input.source === 'MARKETPLACE') {

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useVisiblePolling } from '@/lib/use-visible-polling'
 import type { ElecListingDTO } from '@/lib/electronicos/serialize'
 import { cleanPrices, isPriceUsable, marginTarget, percentile } from '@/lib/electronicos/math'
 import { coarseKey, coarseLabel, parseConfigKey } from '@/lib/electronicos/categories'
@@ -341,32 +342,32 @@ export default function ElecListingsTable({
   const cursorRef = useRef(new Date().toISOString())
   const knownIds = useRef(new Set(listings.map((l) => l.id)))
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const since = cursorRef.current
-        cursorRef.current = new Date().toISOString()
-        const res = await fetch(`/api/electronicos/listings?category=${category}&since=${encodeURIComponent(since)}`)
-        if (!res.ok) return
-        const { data } = (await res.json()) as { data: ElecListingDTO[] }
-        if (!data.length) return
-        setListings((prev) => {
-          const byId = new Map(prev.map((l) => [l.id, l]))
-          for (const l of data) byId.set(l.id, l)
-          return Array.from(byId.values())
-        })
-        const fresh = data.filter((l) => !knownIds.current.has(l.id))
-        fresh.forEach((l) => knownIds.current.add(l.id))
-        for (const l of fresh.filter((x) => (x.opportunityScore ?? 0) >= minScoreRef.current).slice(0, 5)) {
-          const elite = (l.opportunityScore ?? 0) >= 90
-          notifyListing(l)
-          playAlertChime(elite)
-          toast.custom((t) => <AlertToastCard l={l} onClose={() => toast.dismiss(t)} />, { duration: elite ? Infinity : 10000 })
-        }
-      } catch { /* reintenta en el próximo tick */ }
-    }, 20000)
-    return () => clearInterval(interval)
-  }, [setListings, category])
+  // Cada 30 s con la pestaña visible. Oculta, sigue solo mientras la extensión esté mandando
+  // listings (10 min sin nada nuevo → se calla y la base puede dormir); al volver se pone al día.
+  useVisiblePolling(async () => {
+    try {
+      const since = cursorRef.current
+      cursorRef.current = new Date().toISOString()
+      const res = await fetch(`/api/electronicos/listings?category=${category}&since=${encodeURIComponent(since)}`)
+      if (!res.ok) return false
+      const { data } = (await res.json()) as { data: ElecListingDTO[] }
+      if (!data.length) return false
+      setListings((prev) => {
+        const byId = new Map(prev.map((l) => [l.id, l]))
+        for (const l of data) byId.set(l.id, l)
+        return Array.from(byId.values())
+      })
+      const fresh = data.filter((l) => !knownIds.current.has(l.id))
+      fresh.forEach((l) => knownIds.current.add(l.id))
+      for (const l of fresh.filter((x) => (x.opportunityScore ?? 0) >= minScoreRef.current).slice(0, 5)) {
+        const elite = (l.opportunityScore ?? 0) >= 90
+        notifyListing(l)
+        playAlertChime(elite)
+        toast.custom((t) => <AlertToastCard l={l} onClose={() => toast.dismiss(t)} />, { duration: elite ? Infinity : 10000 })
+      }
+      return true
+    } catch { return false /* reintenta en el próximo tick */ }
+  }, 30000, { hiddenWhileActiveMs: 10 * 60_000 })
 
   const reload = useCallback(async () => {
     const res = await fetch(`/api/electronicos/listings?category=${category}`)

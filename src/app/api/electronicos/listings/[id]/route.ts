@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { buildConfigKey } from '@/lib/electronicos/parse-specs'
 import { getElecSettings, indexGroups, loadWindowRows, scoreListing } from '@/lib/electronicos/stats'
 import { toListingDTO } from '@/lib/electronicos/serialize'
+import type { Category } from '@/lib/electronicos/categories'
 
 const patchSchema = z.object({
   comprado: z.boolean().optional(),
@@ -67,7 +68,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   if (specs) {
     const settings = await getElecSettings()
-    const { score, reasons, sospechoso } = scoreListing(listing, indexGroups(await loadWindowRows(settings)), settings)
+    const { score, reasons, sospechoso } = scoreListing(listing, indexGroups(await loadWindowRows(settings, listing.category as Category)), settings)
     listing = await prisma.elecListing.update({ where: { id }, data: { opportunityScore: score, scoreReasons: reasons, sospechoso }, include: { zone: true } })
   }
 

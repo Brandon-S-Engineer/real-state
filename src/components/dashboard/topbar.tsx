@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { useVisiblePolling } from '@/lib/use-visible-polling'
 import Link from 'next/link'
 import { navTitle } from './nav'
 
@@ -146,17 +147,13 @@ export default function TopBar({
 
   const [alerts, setAlerts] = useState<ElecAlert[]>([])
   const [seen, setSeen] = useState<Set<string>>(() => loadSeen())
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch('/api/electronicos/alerts')
-        if (res.ok) setAlerts((await res.json()).data)
-      } catch { /* reintenta en el próximo tick */ }
-    }
-    load()
-    const interval = setInterval(load, 20000)
-    return () => clearInterval(interval)
-  }, [])
+  // Cada 60 s y solo con la pestaña visible: en segundo plano no consulta, así la base puede dormir
+  useVisiblePolling(async () => {
+    try {
+      const res = await fetch('/api/electronicos/alerts')
+      if (res.ok) setAlerts((await res.json()).data)
+    } catch { /* reintenta en el próximo tick */ }
+  }, 60000, { immediate: true })
   const unseenCount = alerts.filter((a) => !seen.has(a.id)).length
   const markAllSeen = () => {
     if (!alerts.length) return

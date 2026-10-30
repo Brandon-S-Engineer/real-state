@@ -156,8 +156,9 @@ function AlertToastCard({ l, onClose }: { l: ElecListingDTO; onClose: () => void
 const freshKey = (l: ElecListingDTO) => l.opportunityScore == null
   ? -Infinity
   : l.opportunityScore - 20 * Math.min(5, daysAgo(l.postedAt ?? l.firstSeenAt) ?? 5)
-// "Score + nuevos ✓": igual, pero los marcados como sospechosos se van al fondo
-const cleanKey = (l: ElecListingDTO) => l.sospechoso ? -Infinity : freshKey(l)
+/** Sospechoso: la bandera del server (>35% bajo P25) o ≥35% abajo de la mediana que se ve como "% vs mercado". */
+const isSuspicious = (l: ElecListingDTO, ref?: MarketRef) =>
+  l.sospechoso || (!!ref && !!l.price && (l.price - ref.median) / ref.median <= -0.35)
 
 const TOP_SCORE = 80
 
@@ -470,9 +471,9 @@ export default function ElecListingsTable({
     if (filters.review && !l.needsReview) return false
     if (filters.vigilando && !l.vigilando) return false
     if (filters.sinVistos && seenIds.has(l.id) && !l.vigilando) return false
-    if (filters.sinSospechosos && l.sospechoso) return false
+    if (filters.sinSospechosos && isSuspicious(l, refs.get(l.id))) return false
     return true
-  }, [filters, seenIds])
+  }, [filters, seenIds, refs])
   const passesRef = useRef(passes)
   passesRef.current = passes
   const frozenIds = useMemo(() => (frozenOrder ? new Set(frozenOrder) : null), [frozenOrder])
@@ -502,7 +503,11 @@ export default function ElecListingsTable({
       header: 'Score',
       sortingFn: (a, b) => {
         if (scoreSortMode === 'fresh') return freshKey(a.original) - freshKey(b.original)
-        if (scoreSortMode === 'clean') return cleanKey(a.original) - cleanKey(b.original)
+        // "Score + nuevos ✓": igual que + nuevos, pero los sospechosos se van al fondo
+        if (scoreSortMode === 'clean') {
+          const key = (l: ElecListingDTO) => isSuspicious(l, refs.get(l.id)) ? -Infinity : freshKey(l)
+          return key(a.original) - key(b.original)
+        }
         return (a.original.opportunityScore ?? -1) - (b.original.opportunityScore ?? -1)
       },
       cell: ({ row }) => <ScoreBadge score={row.original.opportunityScore} />,
@@ -578,7 +583,7 @@ export default function ElecListingsTable({
             <div className='min-w-0'>
               <div className='font-medium text-sm truncate'>{l.title}</div>
               <div className='text-xs text-muted-foreground truncate flex items-center gap-1'>
-                {l.sospechoso && <span title='Precio >35% bajo P25: probable anzuelo/estafa'><ShieldAlert className='h-3 w-3 text-red-500 shrink-0' /></span>}
+                {isSuspicious(l, refs.get(l.id)) && <span title='Precio ≥35% abajo del mercado: probable anzuelo/estafa'><ShieldAlert className='h-3 w-3 text-red-500 shrink-0' /></span>}
                 {l.needsReview && <AlertTriangle className='h-3 w-3 text-amber-500 shrink-0' />}
                 {configShort(l)}
                 {l.batteryHealth ? ` · 🔋${l.batteryHealth}%` : ''}

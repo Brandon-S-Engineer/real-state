@@ -633,6 +633,9 @@ export default function ElecListingsTable({
     columns,
     state: { sorting },
     onSortingChange: setSorting,
+    // La paginación es propia (pageIndex): sin esto la tabla resetea su estado interno en cada
+    // render (las columnas se recrean) y entra en un loop que remonta las filas sin parar
+    autoResetAll: false,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   })

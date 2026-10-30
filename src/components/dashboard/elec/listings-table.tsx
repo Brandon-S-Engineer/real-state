@@ -223,7 +223,7 @@ const filtersKey = (c: Category) => (c === 'MACBOOK' ? 'elec-listings-filters' :
 const FILTERS_DEFAULT: Filters = {
   q: '', scoreMin: 0, line: '', chip: '', ram: '', ssd: '', zone: '', source: '',
   priceMin: '', priceMax: '', maxAgeDays: '', status: 'ACTIVO', review: false, configKey: '',
-  vigilando: false, sinVistos: false, sinSospechosos: false,
+  vigilando: false, sinVistos: false, sinSospechosos: true,
 }
 
 function loadStoredFilters(c: Category): Filters {
@@ -231,7 +231,11 @@ function loadStoredFilters(c: Category): Filters {
   try {
     const raw = window.localStorage.getItem(filtersKey(c))
     if (!raw) return FILTERS_DEFAULT
-    const f = { ...FILTERS_DEFAULT, ...(JSON.parse(raw) as Partial<Filters>) }
+    const stored = JSON.parse(raw) as Partial<Filters> & { sospV?: number }
+    const f = { ...FILTERS_DEFAULT, ...stored }
+    // "Sin sospechosos" pasó a estar activo de inicio: los filtros guardados antes lo traían apagado
+    if (!stored.sospV) f.sinSospechosos = true
+    delete (f as { sospV?: number }).sospV
     // Filtro guardado con la escala vieja (0–10): pásalo a 0–100
     if (f.scoreMin > 0 && f.scoreMin <= 10) f.scoreMin *= 10
     return f
@@ -245,7 +249,7 @@ const sel = 'border rounded-md px-2 py-2 text-sm bg-background h-9'
 type ViewState = {
   sorting: SortingState
   priceSortMode: 'neutro' | 'asc' | 'desc' | 'market'
-  scoreSortMode: 'desc' | 'fresh' | 'clean'
+  scoreSortMode: 'desc' | 'fresh'
   pageIndex: number
   lastOpenedId: string | null
 }
@@ -266,8 +270,8 @@ function loadView(c: Category): ViewState {
     const raw = window.localStorage.getItem(viewKey(c))
     if (!raw) return VIEW_DEFAULT
     const v = { ...VIEW_DEFAULT, ...(JSON.parse(raw) as Partial<ViewState>) }
-    // 'asc' (peor score) ya no existe
-    return (v.scoreSortMode as string) === 'asc' ? { ...v, scoreSortMode: 'desc', sorting: VIEW_DEFAULT.sorting } : v
+    // 'asc' (peor score) y 'clean' (+ nuevos sin sospechosos) ya no existen
+    return (v.scoreSortMode as string) !== 'desc' && v.scoreSortMode !== 'fresh' ? { ...v, scoreSortMode: 'desc', sorting: VIEW_DEFAULT.sorting } : v
   } catch { return VIEW_DEFAULT }
 }
 
@@ -291,7 +295,7 @@ export default function ElecListingsTable({
   // El header de Precio itera 4 estados en vez del asc/desc genérico de la tabla:
   // neutro (vuelve al orden por score) → menor a mayor → mayor a menor → mejor descuento vs mercado primero
   const [priceSortMode, setPriceSortMode] = useState<ViewState['priceSortMode']>(initialView.priceSortMode)
-  // El de Score itera mejor → mejor y más nuevo → mejor y más nuevo sin sospechosos (para contactar primero lo bueno recién publicado)
+  // El de Score itera mejor → mejor y más nuevo (para contactar primero lo bueno recién publicado)
   const [scoreSortMode, setScoreSortMode] = useState<ViewState['scoreSortMode']>(initialView.scoreSortMode)
   const [pageIndex, setPageIndex] = useState(initialView.pageIndex)
   const [lastOpenedId, setLastOpenedId] = useState<string | null>(initialView.lastOpenedId)
@@ -309,7 +313,7 @@ export default function ElecListingsTable({
   const [editing, setEditing] = useState<ElecListingDTO | null>(null)
 
   useEffect(() => {
-    try { window.localStorage.setItem(filtersKey(category), JSON.stringify(filters)) } catch { /* modo privado */ }
+    try { window.localStorage.setItem(filtersKey(category), JSON.stringify({ ...filters, sospV: 1 })) } catch { /* modo privado */ }
   }, [filters, category])
   useEffect(() => {
     const v: ViewState = { sorting, priceSortMode, scoreSortMode, pageIndex, lastOpenedId }
@@ -503,11 +507,6 @@ export default function ElecListingsTable({
       header: 'Score',
       sortingFn: (a, b) => {
         if (scoreSortMode === 'fresh') return freshKey(a.original) - freshKey(b.original)
-        // "Score + nuevos ✓": igual que + nuevos, pero los sospechosos se van al fondo
-        if (scoreSortMode === 'clean') {
-          const key = (l: ElecListingDTO) => isSuspicious(l, refs.get(l.id)) ? -Infinity : freshKey(l)
-          return key(a.original) - key(b.original)
-        }
         return (a.original.opportunityScore ?? -1) - (b.original.opportunityScore ?? -1)
       },
       cell: ({ row }) => <ScoreBadge score={row.original.opportunityScore} />,
@@ -743,7 +742,7 @@ export default function ElecListingsTable({
         <Button variant={filters.sinVistos ? 'default' : 'outline'} size='sm' onClick={() => set({ sinVistos: !filters.sinVistos })} title='Esconde los que ya abriste (en gris)'>
           Sin vistos
         </Button>
-        <Button variant={filters.sinSospechosos ? 'default' : 'outline'} size='sm' onClick={() => set({ sinSospechosos: !filters.sinSospechosos })} title='Esconde los que están más de 35% abajo del P25 (probable anzuelo/estafa)'>
+        <Button variant={filters.sinSospechosos ? 'default' : 'outline'} size='sm' onClick={() => set({ sinSospechosos: !filters.sinSospechosos })} title='Esconde los que están 35% o más abajo del mercado (probable anzuelo/estafa)'>
           <ShieldAlert className='h-3.5 w-3.5 mr-1.5' />
           Sin sospechosos
         </Button>
@@ -815,7 +814,7 @@ export default function ElecListingsTable({
                     : isScore
                       ? () => {
                         const sortedByScore = sorting[0]?.id === 'opportunityScore'
-                        const next = !sortedByScore ? 'desc' : scoreSortMode === 'desc' ? 'fresh' : scoreSortMode === 'fresh' ? 'clean' : 'desc'
+                        const next = !sortedByScore ? 'desc' : scoreSortMode === 'desc' ? 'fresh' : 'desc'
                         setScoreSortMode(next)
                         setPriceSortMode('neutro')
                         setSorting([{ id: 'opportunityScore', desc: true }])
@@ -823,12 +822,12 @@ export default function ElecListingsTable({
                       : header.column.getToggleSortingHandler()
                   const active = header.column.getIsSorted()
                   return (
-                    <th key={header.id} onClick={onClick} title={isScore ? 'Clic: mejor score → + nuevos → + nuevos ✓ (sin sospechosos)' : undefined} className='px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap'>
+                    <th key={header.id} onClick={onClick} className='px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap'>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {isPrice && active
                         ? (priceSortMode === 'market' ? ' mejor desc. ↓' : priceSortMode === 'asc' ? ' ↑' : ' ↓')
-                        : isScore && active && scoreSortMode === 'fresh' ? ' + nuevos ↓'
-                          : isScore && active && scoreSortMode === 'clean' ? ' + nuevos ✓ ↓'
+                        // En dos renglones para que la columna no se ensanche por el título
+                        : isScore && active && scoreSortMode === 'fresh' ? <> +<br />nuevos ↓</>
                           : active === 'asc' ? ' ↑' : active === 'desc' ? ' ↓' : ''}
                     </th>
                   )

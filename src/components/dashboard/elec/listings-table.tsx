@@ -656,7 +656,9 @@ export default function ElecListingsTable({
 
   // Antes de congelar (primer render) se usa el orden vivo
   const rowById = new Map(sortedRows.map((r) => [r.original.id, r]))
-  const orderedRows = frozenOrder ? frozenOrder.flatMap((id) => rowById.get(id) ?? []) : sortedRows
+  const baseRows = frozenOrder ? frozenOrder.flatMap((id) => rowById.get(id) ?? []) : sortedRows
+  // Los que estás vigilando (ojito) siempre arriba, en el mismo orden entre ellos
+  const orderedRows = [...baseRows.filter((r) => r.original.vigilando), ...baseRows.filter((r) => !r.original.vigilando)]
   const pendingNew = frozenIds ? sortedRows.filter((r) => !frozenIds.has(r.original.id)).length : 0
   const pageCount = Math.max(1, Math.ceil(orderedRows.length / PAGE_SIZE))
   const page = Math.min(pageIndex, pageCount - 1)

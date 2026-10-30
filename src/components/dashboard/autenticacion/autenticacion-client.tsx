@@ -176,10 +176,16 @@ export default function AutenticacionClient() {
     if (!loaded) return
     let alive = true
     setMyLoaded(false)
+    // Copia local de Mi lista: si la base no responde, se usa la última que se cargó en este navegador
+    const cacheKey = `auth-mylist.${mode}.${product}`
+    const cached = (): MyCheck[] => { try { return JSON.parse(window.localStorage.getItem(cacheKey) ?? '[]') as MyCheck[] } catch { return [] } }
     fetch(`/api/autenticacion/checks?mode=${mode}&product=${product}`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((xs: MyCheck[]) => { if (alive) { setMyItems(xs); setMyLoaded(true) } })
-      .catch(() => { if (alive) setMyLoaded(true) })
+      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
+      .then((xs: MyCheck[]) => {
+        try { window.localStorage.setItem(cacheKey, JSON.stringify(xs)) } catch { /* modo privado */ }
+        if (alive) { setMyItems(xs); setMyLoaded(true) }
+      })
+      .catch(() => { if (alive) { setMyItems(cached()); setMyLoaded(true) } })
     return () => { alive = false }
   }, [loaded, mode, product])
 
